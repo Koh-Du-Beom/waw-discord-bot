@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-D-03·D-05·D-07·D-08 통합 검토와 첫 경계 Spike 완료, 실패 결과의 결정 영향 검토 준비
+D-03·D-05·D-07·D-08 통합 검토와 경계·저장소 Spike 2개 완료, outbound-pull 경계 Spike 제안 준비
 
 ## 완료
 
@@ -47,18 +47,22 @@ D-03·D-05·D-07·D-08 통합 검토와 첫 경계 Spike 완료, 실패 결과�
 - 경계 왕복·기본 거부 Spike에서 로컬 서명·replay·key rotation·5분 cache와 기본 거부 계약 검증
 - 별도 Vercel preview→자가 host 임시 outbound tunnel 왕복이 function timeout으로 5초 기준을 충족하지 못해 Spike 실패 판정
 - 임시 Vercel project·deployment, tunnel, server, credential과 project metadata 정리 완료
+- 첫 Spike 실패는 Vercel→익명 임시 `ssh -R` tunnel→자가 host 조합만 탈락시키며 직접 API·분리 배포 전체를 탈락시키지 않는 것으로 범위 확정
+- 동일 익명 tunnel 반복 검증은 보류하고, D-05 결과에서 공유 저장소가 남을 때만 outbound-pull 경계 Spike를 검토
+- 월 10,000회 × 1년 합성 감사·dedupe·session 데이터의 SQLite·PostgreSQL database와 export가 모두 40MB 미만임을 측정
+- 두 local engine에서 동일 `operation_id` 32회 동시 제출, transaction 중단·재시도와 foreign key 검증 통과
 
 ## 진행 중
 
 - 예상 사용량과 고정비가 미확정인 항목의 복수 시나리오 유지
-- 실패한 직접 경계 조합이 탈락시키는 범위와 남은 최소 대안 검토 대기
+- 공유 저장소 outbound-pull 역할 조회 Spike의 실행 전 제안 대기
 - 저장소·배포·통신·인증 기술 선택은 필요한 별도 승인 Spike 증거 전까지 보류
 
 ## 다음 작업
 
-`docs/research/spikes/boundary-roundtrip-default-deny/README.md`의 실패 결과를
-D-05·D-07·D-08 통합 검토에 대조해 탈락 범위, 남은 가장 단순한 대안과
-추가 Spike 필요성만 제안합니다. 아직 기술 선택이나 ADR을 작성하지 않습니다.
+`docs/prompts/spike.md` 절차에 따라 공유 저장소 outbound-pull 역할 조회
+Spike의 단일 가설, 최소 합성 데이터, 성공·실패 기준과 정리 방법을 먼저
+제안합니다. 승인 전에는 Spike 문서 작성이나 실행을 하지 않습니다.
 
 ## 차단 요소
 

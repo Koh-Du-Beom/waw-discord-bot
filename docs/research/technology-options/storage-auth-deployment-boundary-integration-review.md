@@ -41,7 +41,7 @@
 
 | ID | 공백 | 문서만으로 답할 수 없는 이유 | 결정에 미치는 영향 |
 |---|---|---|---|
-| `GAP-INT-01` | 월 명령 10,000회의 1년 DB·index·export 크기와 session 부하 | 실제 record 모양과 index 수가 아직 없다. | 관리형 무료 tier와 SQLite 용량·backup 시간 비교 |
+| `GAP-INT-01` | 월 명령 10,000회의 1년 최소 합성 DB·index·export 크기와 조건부 전이는 local SQLite·PostgreSQL에서 검증했다. | 실제 schema와 관리형 공급자의 청구 크기·connection 동작은 아직 없다. | 두 저장소 범주는 유지하며 provider 한도 판단은 보류 |
 | `GAP-INT-02` | Vercel→자가 host의 최소 공개 면적, 왕복 지연과 workload credential 교체 | 실제 network 경로와 host 환경이 정해지지 않았다. | local SQLite 및 bot-side 역할 조회 경계의 성립 여부 |
 | `GAP-INT-03` | 관리형 DB의 web·bot 최소 권한 분리, connection 수명과 장애 동작 | 공급자·driver·runtime 조합이 정해지지 않았다. | 공유 DB가 별도 API보다 실제로 단순한지 여부 |
 | `GAP-INT-04` | 로그인·mutation·고위험 작업의 Discord 오류별 end-to-end 결과 | bot-side 조회와 web session을 연결한 실제 경계가 없다. | `OWN-028`, `OWN-031`의 기본 거부와 사용자 경험 |
@@ -61,7 +61,7 @@
 중복되는 DB·통신·인증 실험을 합쳐도 아래 네 개보다 줄이면 핵심 실패 경로가 빠진다. 각 Spike는 별도 승인 뒤 한 가설만 검증한다.
 
 1. **경계 왕복·기본 거부 — 실행 완료, Failed**: 로컬 인증·cache 계약은 통과했지만 별도 Vercel preview에서 익명 임시 outbound tunnel을 거친 자가 host 호출이 function timeout으로 실패했다. 결과와 정리는 `docs/research/spikes/boundary-roundtrip-default-deny/README.md`에 기록했다.
-2. **저장량·동시 전이**: 월 10,000회 × 1년의 합성 감사·dedupe·session record로 크기와 동시 `operation_id` 조건부 전이를 측정한다. SQLite와 표준 PostgreSQL 의미 차이를 비교하되 제품을 선택하지 않는다.
+2. **저장량·동시 전이 — 실행 완료, Passed**: 월 10,000회 × 1년의 합성 감사·dedupe·session record가 두 local engine에서 40MB 미만이었고, 동시 `operation_id`·rollback·retry·foreign key 기준을 모두 통과했다. 결과는 `docs/research/spikes/storage-volume-concurrent-transition/README.md`에 기록했다.
 3. **빈 Windows 복구**: 외부 암호화 backup 하나로 빈 Windows 후보 host에 영구 데이터와 최소 서비스 상태를 복원하고 무결성 검사까지의 시간을 측정한다. RPO 24시간·RTO 8시간 판정 자료만 만든다.
 4. **OAuth·session 실패 계약**: 운영과 분리된 고정 preview에서 callback 재사용, 잘못된 state/redirect, PKCE 지원 여부, session rotation·expiry와 Discord 역할 제거를 검증한다. 실제 사용자·운영 token은 사용하지 않는다.
 
@@ -69,18 +69,23 @@
 
 ## 6. 다음 단계와 종료 조건
 
-이 검토는 후보를 선택하지 않는다. 다음 단계는 첫 Spike의 실패가 탈락시키는 범위와 남은 가장 단순한 경계를 검토하는 것이다. 이 결과는 익명 임시 tunnel 조합을 통과시키지 못했지만 직접 API나 분리 배포 범주 전체를 자동 탈락시키지는 않는다. 새 Spike 작성과 실행은 별도 승인 전 수행하지 않는다.
+첫 Spike는 **Vercel preview→익명 임시 `ssh -R` tunnel→자가 host 동기 호출 조합**만 탈락시킨다. 직접 API, named managed tunnel과 Vercel 분리 배포 범주 전체는 탈락시키지 않는다. 로컬에서 통과한 서명·replay·credential 교체·cache/default-deny 계약도 특정 인증 기술을 선택하는 근거로 사용하지 않는다.
+
+구조적으로 가장 단순한 잔여 대안은 내부 network 경계를 없애는 단일 지속 server다. Vercel Hobby 사용 의도를 유지하는 조건에서는 D-05에서 공유 관계형 저장소가 살아남을 때 별도 broker 없이 versioned request/result를 outbound-pull하는 경계를 다음 후보로 둔다. 자가 SQLite와 Vercel을 함께 유지해야 할 때만 named 경로의 별도 검증 필요성을 다시 판단한다.
+
+같은 익명 tunnel을 바꿔 반복하는 Spike는 만들지 않는다. 저장량·동시 전이 결과 공유 관계형 저장소가 후보로 남았으므로, 제한 시간·중복·만료·host 장애의 기본 거부를 한 가설로 검증하는 outbound-pull 경계 Spike의 실행 전 제안을 다음 단계로 둔다. 단일 지속 server로 좁혀지면 해당 Spike는 생략한다.
 
 KBO는 허가된 공급 경로가 생길 때까지 연기하며 어떤 활성 저장·배포·통신·인증 경계에도 포함하지 않는다.
 
 ## 7. 정확한 다음 프롬프트
 
 ```text
-필수 문서를 순서대로 읽고
-docs/research/spikes/boundary-roundtrip-default-deny/README.md 결과를
-D-05·D-07·D-08 통합 검토에 대조해.
+필수 문서를 순서대로 읽고 docs/prompts/spike.md 절차를 참고해
+공유 저장소 outbound-pull 역할 조회 Spike의 실행 전 제안서만 작성해.
 
-이 실패가 탈락시키는 범위, 아직 남는 가장 단순한 대안과 추가 Spike가
-정말 필요한지만 제안해. 아직 기술을 선택하거나 ADR, 새 Spike 작성·실행,
-구현 계획 또는 제품 코드를 작성하지 마. KBO는 연기 상태로 유지해.
+단일 가설, 최소 범위, 합성 request/result와 성공·실패 기준,
+필요한 임시 환경, 비용 상한과 정리 방법을 먼저 제안하고 내 승인을 기다려.
+
+아직 Spike 문서 작성·실행, 기술 선택, ADR, 구현 계획 또는 제품 코드를
+작성하지 마. KBO는 연기 상태로 유지해.
 ```
