@@ -60,7 +60,7 @@
 
 중복되는 DB·통신·인증 실험을 합쳐도 아래 네 개보다 줄이면 핵심 실패 경로가 빠진다. 각 Spike는 별도 승인 뒤 한 가설만 검증한다.
 
-1. **경계 왕복·기본 거부**: 합성 actor와 폐기 가능한 credential로 web→bot 역할 조회의 정상, timeout, replay, credential 교체를 재현한다. 5분 cache, mutation 거부와 고위험 즉시 확인 계약을 모두 관측할 수 있어야 한다.
+1. **경계 왕복·기본 거부 — 실행 완료, Failed**: 로컬 인증·cache 계약은 통과했지만 별도 Vercel preview에서 익명 임시 outbound tunnel을 거친 자가 host 호출이 function timeout으로 실패했다. 결과와 정리는 `docs/research/spikes/boundary-roundtrip-default-deny/README.md`에 기록했다.
 2. **저장량·동시 전이**: 월 10,000회 × 1년의 합성 감사·dedupe·session record로 크기와 동시 `operation_id` 조건부 전이를 측정한다. SQLite와 표준 PostgreSQL 의미 차이를 비교하되 제품을 선택하지 않는다.
 3. **빈 Windows 복구**: 외부 암호화 backup 하나로 빈 Windows 후보 host에 영구 데이터와 최소 서비스 상태를 복원하고 무결성 검사까지의 시간을 측정한다. RPO 24시간·RTO 8시간 판정 자료만 만든다.
 4. **OAuth·session 실패 계약**: 운영과 분리된 고정 preview에서 callback 재사용, 잘못된 state/redirect, PKCE 지원 여부, session rotation·expiry와 Discord 역할 제거를 검증한다. 실제 사용자·운영 token은 사용하지 않는다.
@@ -69,18 +69,18 @@
 
 ## 6. 다음 단계와 종료 조건
 
-이 검토는 후보를 선택하지 않는다. 다음 단계는 네 Spike 후보 중 실제로 결정을 가르는 항목의 우선순위와 성공·실패 기준만 제안하는 것이다. Spike 문서 작성과 실행은 별도 승인 전 수행하지 않는다.
+이 검토는 후보를 선택하지 않는다. 다음 단계는 첫 Spike의 실패가 탈락시키는 범위와 남은 가장 단순한 경계를 검토하는 것이다. 이 결과는 익명 임시 tunnel 조합을 통과시키지 못했지만 직접 API나 분리 배포 범주 전체를 자동 탈락시키지는 않는다. 새 Spike 작성과 실행은 별도 승인 전 수행하지 않는다.
 
 KBO는 허가된 공급 경로가 생길 때까지 연기하며 어떤 활성 저장·배포·통신·인증 경계에도 포함하지 않는다.
 
 ## 7. 정확한 다음 프롬프트
 
 ```text
-AGENTS.md의 필수 문서를 순서대로 읽고
-docs/research/technology-options/storage-auth-deployment-boundary-integration-review.md의
-네 최소 Spike 후보 중 실제 기술 결정을 가르는 항목의 우선순위와
-각각의 단일 가설, 성공·실패 기준만 제안해.
+필수 문서를 순서대로 읽고
+docs/research/spikes/boundary-roundtrip-default-deny/README.md 결과를
+D-05·D-07·D-08 통합 검토에 대조해.
 
-아직 기술을 선택하거나 ADR, Spike 문서 작성·실행, 구현 계획 또는
-제품 코드를 작성하지 마. KBO는 연기 상태로 유지해.
+이 실패가 탈락시키는 범위, 아직 남는 가장 단순한 대안과 추가 Spike가
+정말 필요한지만 제안해. 아직 기술을 선택하거나 ADR, 새 Spike 작성·실행,
+구현 계획 또는 제품 코드를 작성하지 마. KBO는 연기 상태로 유지해.
 ```

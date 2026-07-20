@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-D-03·D-05·D-07·D-08 조사·소유자 결정과 경계 통합 검토 완료, 통합 소유자 질문 확인 준비
+D-03·D-05·D-07·D-08 통합 검토와 첫 경계 Spike 완료, 실패 결과의 결정 영향 검토 준비
 
 ## 완료
 
@@ -44,19 +44,21 @@ D-03·D-05·D-07·D-08 조사·소유자 결정과 경계 통합 검토 완료, 
 - `GAP-INT-01`~`GAP-INT-07`, `INT-Q01`~`INT-Q02`와 실행하지 않은 최소 Spike 후보 4개 정리
 - `INT-Q01`~`INT-Q02`를 확정하고 `OWN-032`~`OWN-033`으로 추적
 - host 장애 중 5분 read-only cache와 고위험 작업의 Discord OAuth 재완료 기준 확정
+- 경계 왕복·기본 거부 Spike에서 로컬 서명·replay·key rotation·5분 cache와 기본 거부 계약 검증
+- 별도 Vercel preview→자가 host 임시 outbound tunnel 왕복이 function timeout으로 5초 기준을 충족하지 못해 Spike 실패 판정
+- 임시 Vercel project·deployment, tunnel, server, credential과 project metadata 정리 완료
 
 ## 진행 중
 
 - 예상 사용량과 고정비가 미확정인 항목의 복수 시나리오 유지
-- 최소 Spike 후보의 우선순위와 성공·실패 기준 제안 대기
+- 실패한 직접 경계 조합이 탈락시키는 범위와 남은 최소 대안 검토 대기
 - 저장소·배포·통신·인증 기술 선택은 필요한 별도 승인 Spike 증거 전까지 보류
 
 ## 다음 작업
 
-`docs/research/technology-options/storage-auth-deployment-boundary-integration-review.md`의
-네 최소 Spike 후보 중 실제 기술 결정을 가르는 항목의 우선순위와
-각각의 단일 가설, 성공·실패 기준만 제안합니다. 기술 선택과 Spike 문서
-작성·실행은 별도 승인 전 수행하지 않습니다.
+`docs/research/spikes/boundary-roundtrip-default-deny/README.md`의 실패 결과를
+D-05·D-07·D-08 통합 검토에 대조해 탈락 범위, 남은 가장 단순한 대안과
+추가 Spike 필요성만 제안합니다. 아직 기술 선택이나 ADR을 작성하지 않습니다.
 
 ## 차단 요소
 
@@ -68,6 +70,7 @@ D-03·D-05·D-07·D-08 조사·소유자 결정과 경계 통합 검토 완료, 
 - 자가 host와 대체 Windows 노트북의 사양·환경 재현·절전·재부팅·회선 장애 조건에서 RPO 24시간·RTO 8시간을 달성할 수 있는지 미검증
 - 월 명령 10,000회의 실제 저장·backup 크기와 무료 관리형 DB 한도 충족 여부가 미확정
 - Discord OAuth의 PKCE 지원 범위와 D-05·D-08 경계에 맞는 workload 인증·credential rotation 방식이 미확정
+- 익명 임시 outbound tunnel의 Vercel→자가 host 호출이 function timeout으로 실패했으며 원인이 Vercel egress, tunnel 공급자 경로, 지역 또는 연결 정책 중 어디인지는 분리하지 못함
 
 ## 현재 확정되지 않은 사항
 
