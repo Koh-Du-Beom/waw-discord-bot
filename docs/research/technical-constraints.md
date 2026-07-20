@@ -134,6 +134,9 @@
 | OWN-032 | 결정 | 자가 bot host 장애 중에도 5분 이내의 유효한 역할 cache가 있으면 read-only 조회만 허용한다. cache 만료 뒤에는 인증된 조회 전체를 `unavailable`로 처리하고 변경·고위험 작업은 즉시 거부한다. | host 장애와 Discord 조회 실패에서 stale 권한이 5분을 넘지 않도록 검증한다. |
 | OWN-033 | 결정 | 고위험 작업의 마지막 Discord OAuth 로그인이 15분을 넘으면 OAuth를 다시 완료한다. 이후 현재 역할 조회와 명시적 확인도 모두 요구하며 단순 session 활동은 recent-auth를 갱신하지 않는다. | 재인증 시각을 OAuth 완료 시각으로 고정하고 session 탈취 방어와 실패 경로를 검증한다. |
 | OWN-034 | 결정 | 첫 MVP는 web과 bot을 하나의 지속 server 배포 경계에 두어 현재 역할 조회의 web→bot network 경계를 제거한다. 외부 임대 단일 server와 소유 Mac·Windows 중 실제 host는 D-09에서 비교한다. | `OWN-017`의 개인·비상업·저비용 조건은 유지하지만 Vercel Hobby를 필수 운영 경계로 보지 않는다. 저장소·host·process 인증 기술은 별도로 결정한다. |
+| OWN-035 | 결정 | 소유자는 TypeScript와 Python을 모두 직접 유지보수 가능한 범위로 본다. 친숙도만으로 하나를 선택하지 않고 기술 검증 결과로 결정한다. | D-04에서 두 조합을 공동 최종 후보로 유지하고 Gateway 복구, Go Live 처리, 자원 사용량, 시험성과 공급망 증거를 비교한다. Java·JDA는 두 후보가 기준을 충족하지 못할 때 재평가한다. |
+| OWN-036 | 결정 | 신규 host 비용 0원을 우선해 보유 장비 자가 hosting을 먼저 검증한다. 상시성·보안·RPO/RTO 기준을 충족하지 못할 때 저가 임대 VM으로 돌아간다. | D-09의 첫 검증 순서를 자가 host로 바꾸되 Mac·Windows·ingress 기술은 아직 선택하지 않는다. |
+| OWN-037 | 결정 | Mac 또는 Windows 한 대를 사실상 전용 host로 운용할 수 있고, 절전 방지·전원 복귀·자동 시작과 HTTPS ingress에 필요한 공유기·DNS·tunnel 설정을 허용한다. | 장비·회선의 read-only 사실 확인을 먼저 수행하고 외부 설정 변경과 Spike는 별도 승인 뒤 진행한다. |
 
 ## 가정과 미확인 사항
 
