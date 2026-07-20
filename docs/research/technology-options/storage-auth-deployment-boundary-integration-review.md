@@ -64,6 +64,7 @@
 2. **저장량·동시 전이 — 실행 완료, Passed**: 월 10,000회 × 1년의 합성 감사·dedupe·session record가 두 local engine에서 40MB 미만이었고, 동시 `operation_id`·rollback·retry·foreign key 기준을 모두 통과했다. 결과는 `docs/research/spikes/storage-volume-concurrent-transition/README.md`에 기록했다.
 3. **빈 Windows 복구**: 외부 암호화 backup 하나로 빈 Windows 후보 host에 영구 데이터와 최소 서비스 상태를 복원하고 무결성 검사까지의 시간을 측정한다. RPO 24시간·RTO 8시간 판정 자료만 만든다.
 4. **OAuth·session 실패 계약**: 운영과 분리된 고정 preview에서 callback 재사용, 잘못된 state/redirect, PKCE 지원 여부, session rotation·expiry와 Discord 역할 제거를 검증한다. 실제 사용자·운영 token은 사용하지 않는다.
+5. **공유 저장소 outbound-pull 역할 조회 — 실행 완료, Failed**: local 최소 권한 query와 worker의 request claim/result 기록은 확인했지만 Vercel preview가 pooled·unpooled endpoint 모두에서 약 10초 뒤 timeout됐다. 결과와 정리는 `docs/research/spikes/shared-store-outbound-pull/README.md`에 기록했다.
 
 관리형 DB cold start, provider outage와 무료 tier 한도는 `2`의 후보가 관리형 범주를 계속 통과할 때만 추가한다. queue/event Spike는 일반 변경에 별도 broker가 필요하다는 증거가 생기기 전에는 만들지 않는다.
 
@@ -73,19 +74,21 @@
 
 구조적으로 가장 단순한 잔여 대안은 내부 network 경계를 없애는 단일 지속 server다. Vercel Hobby 사용 의도를 유지하는 조건에서는 D-05에서 공유 관계형 저장소가 살아남을 때 별도 broker 없이 versioned request/result를 outbound-pull하는 경계를 다음 후보로 둔다. 자가 SQLite와 Vercel을 함께 유지해야 할 때만 named 경로의 별도 검증 필요성을 다시 판단한다.
 
-같은 익명 tunnel을 바꿔 반복하는 Spike는 만들지 않는다. 저장량·동시 전이 결과 공유 관계형 저장소가 후보로 남았으므로, 제한 시간·중복·만료·host 장애의 기본 거부를 한 가설로 검증하는 outbound-pull 경계 Spike의 실행 전 제안을 다음 단계로 둔다. 단일 지속 server로 좁혀지면 해당 Spike는 생략한다.
+같은 익명 tunnel을 바꿔 반복하지 않으며, 실패 원인을 더 나누기 위한 DB driver·endpoint 교체 Spike도 만들지 않는다. 공유 저장소는 canonical data와 5분 일반 변경 후보로 남지만 5초 고위험 역할 조회 경계의 근거는 얻지 못했다. 현재 두 경계 Spike가 모두 실패했으므로 다음 단계에서는 단일 지속 server와 Vercel 분리 의도 사이의 결정을 가르는 남은 근거를 검토한다.
 
 KBO는 허가된 공급 경로가 생길 때까지 연기하며 어떤 활성 저장·배포·통신·인증 경계에도 포함하지 않는다.
 
 ## 7. 정확한 다음 프롬프트
 
 ```text
-필수 문서를 순서대로 읽고 docs/prompts/spike.md 절차를 참고해
-공유 저장소 outbound-pull 역할 조회 Spike의 실행 전 제안서만 작성해.
+필수 문서를 순서대로 읽고
+docs/research/spikes/boundary-roundtrip-default-deny/README.md와
+docs/research/spikes/shared-store-outbound-pull/README.md의 실패를 통합 검토해.
 
-단일 가설, 최소 범위, 합성 request/result와 성공·실패 기준,
-필요한 임시 환경, 비용 상한과 정리 방법을 먼저 제안하고 내 승인을 기다려.
+Vercel 분리 배포를 유지할 때 남는 최소 동기 역할 조회 경계와
+단일 지속 server 대안 중 무엇이 실제 결정을 가르는지 제안해.
+추가 network Spike는 정말 필요한 경우에만 하나로 제한해.
 
-아직 Spike 문서 작성·실행, 기술 선택, ADR, 구현 계획 또는 제품 코드를
-작성하지 마. KBO는 연기 상태로 유지해.
+아직 기술 선택, ADR, 새 Spike 작성·실행, 구현 계획 또는 제품 코드를
+작성하지 말고 KBO는 연기 상태로 유지해.
 ```

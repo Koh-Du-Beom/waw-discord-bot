@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-D-03·D-05·D-07·D-08 통합 검토와 경계·저장소 Spike 2개 완료, outbound-pull 경계 Spike 제안 준비
+D-03·D-05·D-07·D-08 통합 검토와 경계·저장소 Spike 3개 완료, 두 경계 실패의 결정 영향 검토 준비
 
 ## 완료
 
@@ -51,18 +51,20 @@ D-03·D-05·D-07·D-08 통합 검토와 경계·저장소 Spike 2개 완료, out
 - 동일 익명 tunnel 반복 검증은 보류하고, D-05 결과에서 공유 저장소가 남을 때만 outbound-pull 경계 Spike를 검토
 - 월 10,000회 × 1년 합성 감사·dedupe·session 데이터의 SQLite·PostgreSQL database와 export가 모두 40MB 미만임을 측정
 - 두 local engine에서 동일 `operation_id` 32회 동시 제출, transaction 중단·재시도와 foreign key 검증 통과
+- 공유 저장소 outbound-pull Spike에서 local DB query와 worker request/result 처리는 확인했지만 Vercel 함수가 pooled·unpooled 모두 timeout되어 실패 판정
+- 임시 Vercel project·deployment, Neon resource·integration, DB role·credential과 local metadata 정리 완료
 
 ## 진행 중
 
 - 예상 사용량과 고정비가 미확정인 항목의 복수 시나리오 유지
-- 공유 저장소 outbound-pull 역할 조회 Spike의 실행 전 제안 대기
+- 직접 tunnel·공유 저장소 동기 왕복 실패를 합친 배포 경계 영향 검토 대기
 - 저장소·배포·통신·인증 기술 선택은 필요한 별도 승인 Spike 증거 전까지 보류
 
 ## 다음 작업
 
-`docs/prompts/spike.md` 절차에 따라 공유 저장소 outbound-pull 역할 조회
-Spike의 단일 가설, 최소 합성 데이터, 성공·실패 기준과 정리 방법을 먼저
-제안합니다. 승인 전에는 Spike 문서 작성이나 실행을 하지 않습니다.
+두 경계 Spike 실패를 통합해 Vercel 분리 배포에 남는 최소 동기 역할 조회
+경계와 단일 지속 server 대안 중 실제 결정을 가르는 항목만 제안합니다.
+추가 network Spike는 필요성이 입증되기 전 만들지 않습니다.
 
 ## 차단 요소
 
@@ -75,6 +77,7 @@ Spike의 단일 가설, 최소 합성 데이터, 성공·실패 기준과 정리
 - 월 명령 10,000회의 실제 저장·backup 크기와 무료 관리형 DB 한도 충족 여부가 미확정
 - Discord OAuth의 PKCE 지원 범위와 D-05·D-08 경계에 맞는 workload 인증·credential rotation 방식이 미확정
 - 익명 임시 outbound tunnel의 Vercel→자가 host 호출이 function timeout으로 실패했으며 원인이 Vercel egress, tunnel 공급자 경로, 지역 또는 연결 정책 중 어디인지는 분리하지 못함
+- 공유 PostgreSQL request/result도 worker 처리와 별개로 Vercel function timeout이 발생해 고위험 현재 역할 조회의 5초 동기 경계가 아직 없음
 
 ## 현재 확정되지 않은 사항
 
