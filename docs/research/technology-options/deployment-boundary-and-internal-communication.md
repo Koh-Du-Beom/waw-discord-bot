@@ -17,6 +17,9 @@
 | `OWN-006`, `OWN-014` | KBO는 허가된 공급 경로가 생길 때까지 연기한다. 활성 배포·통신 용량과 비용에 포함하지 않는다. |
 | `OWN-007`, `OWN-008`, `OWN-015` | 후속 몰랭의 외부 관측과 수동 확인은 실패 격리 대상이지만 이번 조사에서 활성 MVP 부하로 가정하지 않는다. |
 | `OWN-009` | 웹은 백업·복구 상태와 수동 절차만 표시한다. 실제 복구를 웹에서 실행하지 않는다. |
+| `OWN-016`~`OWN-018` | 외부 임대 단일 서버와 소유자가 관리하는 단일 물리 서버를 구분한다. 자가 host는 Mac·Windows로 교체할 수 있고 Windows 노트북을 대체 host 후보로 보유하며, Vercel은 개인·비상업 Hobby 기준으로 조사한다. |
+| `OWN-019`~`OWN-021` | 허용된 영구 데이터 전체의 RPO와 전체 서비스 검증 기준 RTO, 일반 변경의 제한된 비동기 처리, canonical 설정과 stale 표시 가능한 heartbeat를 통신 비교 입력으로 사용한다. |
+| `OWN-022`~`OWN-025` | 자가 host 장애 중 설정·감사 조회 중단을 허용하고 월 명령 10,000회로 data 경계를 검증한다. PITR은 필수가 아니며 요구 충족 중 관리형 DB 무료 tier를 허용한다. |
 | `DEP-001` | 운영 대시보드의 유일한 표준 주소는 `https://waw.dubeom.com`이며 HTTPS와 소유권 검증이 필요하다. |
 | `DEP-002` | 운영/미리보기의 redirect URI, 쿠키, 비밀과 내부 인증정보를 분리한다. |
 | `DEP-003` | 정책의 네 배포 형태를 비용, 운영, 장애 격리, 백업, 보안, 확장성과 종속성으로 비교한다. |
@@ -78,14 +81,14 @@
 
 ## 4. 정책의 네 배포 형태 비교
 
-정책의 1번 “하나의 지속 서버”는 임대 VM 같은 단일 외부 host, 4번 “모두 자체 호스팅”은 소유자가 통제하는 MacBook·로컬 네트워크로 해석한다. 문구만으로 물리 위치가 완전히 고정된 것은 아니므로 이 구분은 조사 가정이며, `D08-Q01` 결정 전에는 형태별 판정이나 잠정 권고의 전제가 확정되지 않는다.
+정책의 1번 “하나의 지속 서버”는 외부 사업자에게 임대한 단일 서버, 4번 “모두 자체 호스팅”은 소유자가 직접 관리하는 단일 물리 서버로 구분한다(`OWN-016`). 형태 4는 MacBook으로 고정하지 않으며 Windows 등 다른 소유 장비로 교체할 수 있다.
 
 | 형태 | 공개 면적·보안 | 장애 격리·복구 | 운영·비용 | 확장·종속성 | 판정 |
 |---|---|---|---|---|---|
 | 1. 봇·웹·데이터를 하나의 지속 서버 | `waw.dubeom.com`용 443만 공개하고 DB를 loopback/private socket으로 제한 가능하다. 웹 침해가 봇 token·DB에 가까워 blast radius가 가장 크므로 process user·secret·DB 권한 분리가 필수다. 내부 network 상호 인증은 줄지만 browser→web 인증은 그대로 필요하다. | 서버·disk·배포 한 번이 전체 장애가 된다. 외부 암호화 backup과 빈 host 복원 절차가 있으면 24h/8h를 목표로 할 수 있지만 자동 충족하지 않는다. | 구성요소와 호출 경계가 가장 적다. 저가 VM과 daily image backup의 공식 가격 사례는 있지만 최소 plan이 실제 memory·지역·IPv4·transfer 요구를 충족하는지와 별도 backup·domain·AI를 합친 총액은 미확인이다. | 수직 확장이 먼저이며 한 host schema/운영에 묶인다. 표준 VM·DB dump를 쓰면 특정 serverless 결합은 적다. | 비용과 단순성의 강한 대안이지만 예산 여유는 실측 전 확정할 수 없다. 단일 장애·침해 경계가 약점이다. |
 | 2. 웹 Vercel, 봇·데이터 지속 서버 | 공개 웹은 Vercel이 맡지만 웹→봇 API 또는 DB 접속 경계가 추가된다. Mac을 지속 서버로 쓰면 직접 API를 공개하지 않는 pull 방식이나 outbound tunnel 후보가 공개 면적상 유리하다. | 웹 배포 장애와 bot process 장애는 분리되지만 Mac·DB는 함께 실패한다. 웹이 살아 있어도 stale 상태만 표시해야 한다. Mac 외부 backup과 대체 host 복원 없이는 8h RTO가 불확실하다. | Vercel Hobby가 허용되는 개인·비상업 조건이면 고정비를 낮출 수 있다. Pro $20이면 총 30,000원 상한 여유가 거의 없어진다. Vercel·Mac·경계 중계 세 운영면이 생긴다. | 웹 독립 배포는 쉽지만 Vercel runtime/network 제약과 중계 공급자 종속이 생길 수 있다. DB는 bot host 용량에 묶인다. | Mac 우선 시나리오에서 가장 먼저 비용·가용성을 검증할 분리 후보다. 확정안은 아니다. |
 | 3. 웹 Vercel, 봇 지속 host, 데이터 관리형 | web과 bot이 같은 관리형 DB를 사용하면 별도 bot API를 없앨 수 있지만 DB가 양쪽 trust domain의 공용 경계가 된다. DB의 인터넷 도달 여부는 공급자와 network option에 따라 다르며, 어느 경우든 credential 분리와 row/table 권한이 핵심이다. queue/event를 더하면 공급자 경계가 추가된다. | Mac host·disk 장애에서 데이터를 분리할 수 있지만 DB·관리 plane·credential 장애는 web과 bot에 함께 전파된다. 관리형 restore window가 RPO를 돕더라도 독립 backup·실제 restore로 8h RTO를 증명해야 한다. | 관리형 DB 대표 가격은 Free $0 또는 간헐적 1GB 기준 약 $15/월이며 paid restore window는 최대 7일인 사례가 있다. Vercel Pro와 함께 쓰면 AI·domain 전에도 예산을 넘길 가능성이 높다. 무료 tier의 6시간 restore history·0.5GB 같은 제한은 운영 요구에 충분하다고 가정할 수 없다. | 구성요소별 확장 여지는 크지만 Vercel+host+DB(+queue/event)의 schema, billing, credential과 공급자 종속이 가장 많다. | host/disk 복구 격리는 강하지만 공통 DB 장애, 30,000원 상한과 운영 복잡성이 차단 조건이다. |
-| 4. 모든 구성요소 자체 호스팅 | 하나의 Mac에서 web을 공개하면 가정망 origin과 관리 plane이 인터넷에 노출될 수 있다. reverse tunnel로 inbound port를 닫을 후보는 있지만 tunnel endpoint 자체에는 엄격한 인증·rate limit이 필요하다. | 전원·절전·회선·공유기·Mac·disk가 공통 장애 영역이다. 소유자가 8시간 안에 물리 접근하지 못하면 RTO 달성이 어렵다. 외부 backup과 대체 장비/복원 절차가 필수다. | 기존 장비와 통상 전기료를 제외하므로 직접 비용은 가장 낮을 수 있으나 OS patch, TLS/tunnel, 모니터링, backup, 원격 복구를 모두 운영한다. 숨은 인적 비용이 가장 크다. | 용량과 uplink가 한정되고 환경 재현성이 낮다. 반면 data와 runtime의 SaaS 종속은 가장 작다. | 조사 기준선으로 유지하되 무인 지속성·8h 복구의 증거 없이는 운영 후보로 승격할 수 없다. |
+| 4. 모든 구성요소 자체 호스팅 | 단일 소유 장비에서 web을 공개하면 가정망 origin과 관리 plane이 인터넷에 노출될 수 있다. reverse tunnel로 inbound port를 닫을 후보는 있지만 tunnel endpoint 자체에는 엄격한 인증·rate limit이 필요하다. | 전원·절전·회선·공유기·host·disk가 공통 장애 영역이다. 소유자가 8시간 안에 물리 접근하지 못하면 RTO 달성이 어렵다. 외부 backup과 대체 장비/복원 절차가 필수다. | 기존 장비와 통상 전기료를 제외하므로 직접 비용은 가장 낮을 수 있으나 OS patch, TLS/tunnel, 모니터링, backup, 원격 복구를 모두 운영한다. 숨은 인적 비용이 가장 크다. | 용량과 uplink가 한정되고 환경 재현성이 낮다. 반면 data와 runtime의 SaaS 종속은 가장 작다. | 조사 기준선으로 유지하되 무인 지속성·8h 복구의 증거 없이는 운영 후보로 승격할 수 없다. |
 
 비용에 사용한 대표 공식 자료는 공급자 선택이 아니라 규모 감각을 위한 사례다. DigitalOcean은 Droplet을 VM으로 설명하고 daily backup을 월 VM 비용의 30%로 제시하며, $4 plan은 2022년 공식 발표 사례이므로 현재 실제 후보 가격은 ADR 직전 다시 확인해야 한다. Neon의 현재 공개 가격은 Free $0, 간헐 부하 1GB의 Launch 예시 약 $15/월, paid restore window 최대 7일이다. 실제 후보 지역·세금·환율·traffic과 GPT 비용은 별도 비용표에서 다시 측정해야 한다. [DigitalOcean Droplet](https://docs.digitalocean.com/products/droplets/details/pricing/), [2022년 $4 plan 발표](https://www.digitalocean.com/blog/new-4-dollar-droplet-updated-pricing), [backup pricing](https://docs.digitalocean.com/products/backups/details/pricing/), [Neon pricing](https://neon.com/pricing)
 
@@ -162,30 +165,25 @@ RPO 24시간은 “하루마다 backup job을 실행”이 아니라 복구 가�
 - 프로젝트는 당분간 단일 guild, 단일 web deployment와 단일 active bot으로 운영한다.
 - 기존 `dubeom.com` 소유 비용 중 이 프로젝트가 부담할 증분 비용은 아직 산정되지 않았다.
 - 첫 MVP의 웹-봇 traffic은 설정·상태·감사 control data이며 Discord 원문과 AI payload가 아니다.
-- 정책의 “지속 서버”와 “자체 호스팅”을 각각 외부 VM과 소유 Mac/가정망으로 구분했다.
+- 정책의 “지속 서버”와 “자체 호스팅”은 각각 외부 임대 단일 서버와 소유자가 관리하는 단일 물리 서버를 뜻한다. 자가 host의 운영체제와 장비는 고정하지 않는다.
 
 ### 미확인·차단 항목
 
-1. Vercel Hobby의 개인·비상업 조건이 실제 운영 목적에 맞는지와 Pro가 필요할 때 원화 총액이 얼마인지.
-2. Mac 모델, macOS version, 유선 전원·network, 덮개 상태, 자동 login 없이 daemon 실행, OS update/reboot와 외부에서 8시간 안에 복구할 담당자·대체 host가 있는지.
-3. 월 GPT budget, domain 증분 비용, DB/backup 크기와 내부 작업량. 이것 없이는 형태별 30,000원 합계 판정이 불가능하다.
-4. D-05가 정할 저장소가 web과 bot의 동시 접근, 조건부 전이, credential 분리와 외부 backup을 어떤 비용으로 지원하는지.
-5. 고위험 변경을 비동기로 허용할지, 사용자가 `accepted` 뒤 `applied`를 기다릴 UX를 허용할지.
-6. web→bot live 호출이 정말 필요한지. 설정 canonical state와 heartbeat만으로 충분하면 direct API 공개 면적을 제거할 수 있다.
-7. 상호 인증, credential rotation/revoke, workload별 권한과 운영/미리보기 분리는 D-07에서 결정해야 한다.
-8. RPO 24시간이 보호할 데이터에 설정·감사·운영 구성 중 무엇이 포함되며, RTO 8시간 완료를 bot Ready, web 접근, data 검증 중 어디까지로 판단할지.
-9. 일반/고위험 변경의 동기 대기 상한, 비동기 최대 적용 지연, 만료 뒤 폐기·재요청 규칙과 결과·dedupe 기록 보존 기간.
+1. 자가 host와 대체 Windows 노트북의 사양, 전원·network, 무인 실행, OS update/reboot, 환경 재현과 실제 복원 시간.
+2. 월 GPT budget, domain 증분 비용, 월 명령 10,000회의 실제 DB/backup 크기와 내부 작업량. 이것 없이는 형태별 30,000원 합계 판정이 불가능하다.
+3. D-05 후보 중 어느 저장소가 web과 bot의 동시 접근, 조건부 전이, credential 분리와 외부 backup을 요구 비용 안에서 검증할지는 미확정이다.
+4. 상호 인증, credential rotation/revoke, workload별 권한과 운영/미리보기 분리는 D-07에서 결정해야 한다.
 
-### 사용자 결정 질문
+### 확정된 사용자 결정
 
-| ID | 질문 | 결정 영향 |
+| ID | 결정 | 연결된 소유자 결정 |
 |---|---|---|
-| `D08-Q01` | 형태 1을 외부 임대 단일 서버, 형태 4를 MacBook 중심 자가 호스팅으로 구분해도 되는가? 형태 4는 한 Mac으로 한정하는가? | 네 형태의 비용·RTO 비교와 잠정 권고의 의미 |
-| `D08-Q02` | 이 프로젝트는 Vercel Hobby의 개인·비상업 조건에 해당하는가, 아니면 Pro 비용을 필수로 잡아야 하는가? | 월 3만 원 성립 가능성 |
-| `D08-Q03` | Mac 장애 때 8시간 안에 직접 대응할 수 있고 사전 준비된 대체 host를 둘 것인가? | 형태 2·4의 RTO 검증 가능성 |
-| `D08-Q04` | RPO가 보호할 data 범위와 RTO 완료 상태를 어디까지로 정의할 것인가? | backup 범위와 복구 시험 합격 기준 |
-| `D08-Q05` | 일반·고위험 변경의 비동기 `accepted → applied`를 허용하는가? 허용한다면 최대 지연·만료·결과 조회 기간은 얼마인가? | API/queue/DB/event 적합성·dedupe 보존 |
-| `D08-Q06` | live bot control/health가 필요한가, 아니면 canonical 설정과 stale 표시 가능한 heartbeat로 충분한가? | direct API 필요 여부와 공개 면적 |
+| `D08-Q01` | 형태 1은 외부 임대 단일 서버, 형태 4는 OS 비종속의 소유 단일 물리 서버로 구분한다. | `OWN-016` |
+| `D08-Q02` | 개인·비상업 운영이므로 Vercel Hobby를 비용 기준으로 사용한다. | `OWN-017` |
+| `D08-Q03` | 8시간 내 직접 대응할 수 있고 Windows 노트북을 대체 host 후보로 보유한다. | `OWN-018` |
+| `D08-Q04` | 허용된 영구 데이터 전체를 보호하고 봇·웹·데이터 검증 완료를 RTO 완료로 본다. | `OWN-019` |
+| `D08-Q05` | 일반 변경은 5분 내 비동기 적용·10분 후 만료, 고위험 변경은 즉시 확인 실패 시 거부하며 결과·dedupe 기록은 1년 보존한다. | `OWN-020` |
+| `D08-Q06` | live control·즉시 조회 없이 canonical 설정과 stale 표시 가능한 heartbeat를 사용한다. | `OWN-021` |
 
 ### 후속 Spike 후보 — 이번 작업에서는 실행·작성하지 않음
 
@@ -197,9 +195,9 @@ RPO 24시간은 “하루마다 backup job을 실행”이 아니라 복구 가�
 
 ## 9. 잠정 권고와 가장 강한 대안
 
-### 잠정 권고 — 결정 전 검증 순서
+### 잠정 권고 — 후속 연구 전 검증 순서
 
-MacBook 우선 정책을 존중해 **형태 2(Vercel 웹 + MacBook의 봇·데이터)**를 첫 검증 대상으로 두되 배포 기술로 확정하지 않는다. 웹-봇 경계는 Discord 원문이 없는 좁은 control plane으로 제한하고, Mac에 public inbound port를 직접 열지 않는 **outbound pull queue 또는 이미 필요한 공유 저장소의 versioned inbox/state**를 우선 비교한다. live health처럼 즉시성이 필요한 최소 read만 짧은 timeout의 직접 경계가 필요한지 검증한다.
+자가 호스트 우선 정책을 존중해 **형태 2(Vercel 웹 + 소유 단일 서버의 봇·데이터)**를 첫 검증 대상으로 두되 배포 기술로 확정하지 않는다. 웹-봇 경계는 Discord 원문이 없는 좁은 control plane으로 제한하고, 자가 host에 public inbound port를 직접 열지 않는 **outbound pull queue 또는 이미 필요한 공유 저장소의 versioned inbox/state**를 우선 비교한다. live control과 즉시 상태 조회는 요구하지 않으며 canonical 설정과 stale 표시 가능한 heartbeat로 충분한지 검증한다.
 
 이 잠정 방향은 인증 기술을 고르지 않는다. 어떤 방식이든 양 workload 신원 확인, 최소 권한, credential 폐기·교체와 환경 분리는 D-07 결정 항목이다. 공유 저장소 사용 여부도 D-05가 결정되기 전에 확정하지 않는다.
 
@@ -222,18 +220,15 @@ MacBook 우선 정책을 존중해 **형태 2(Vercel 웹 + MacBook의 봇·데�
 - Vercel 유료 plan과 필요한 통신/backup을 포함한 총액이 GPT 예산을 침해하거나 30,000원을 초과함
 - D-05 연구에서 관리형 저장소가 예산 안에서 외부 backup·조건부 전이·권한 분리를 크게 단순화함
 - 보안 검토에서 Vercel→Mac 경계를 필요한 수준으로 좁히려면 예산 밖의 network/auth 기능이 필요함
-- live bot control이 실제 제품 요구가 아니어서 웹과 봇이 canonical data만 공유해도 충분함
+- 후속 제품 요구에서 live bot control이나 즉시 상태 조회가 필수가 됨
 - 단일 VM이 외부 backup 복원 포함 RPO/RTO와 blast-radius 통제를 더 낮은 총비용으로 입증함
 
 ## 10. 정확한 다음 프롬프트
 
 ```text
 AGENTS.md의 필수 문서를 읽고
-docs/research/technology-options/deployment-boundary-and-internal-communication.md의
-D08-Q01~D08-Q06을 하나씩 사용자에게 질문해.
-
-각 답변을 받은 뒤 결정된 항목만 별도 소유자 결정 입력으로 정리하고
-PROJECT_STATUS.md를 실제 상태에 맞게 갱신해.
-아직 배포·통신·인증 기술을 선택하거나 D-05, D-07, ADR, Spike, 제품 코드를 작성하지 마.
+docs/prompts/research.md 절차에 따라 D-05 영구 저장소 후보를 조사해.
+OWN-016~OWN-021과 D-03·D-08의 경계를 입력으로 사용하되
+아직 저장소·배포·통신·인증 기술을 선택하거나 D-07, ADR, Spike, 구현 계획 또는 제품 코드를 작성하지 마.
 KBO는 연기 상태로 유지해.
 ```
