@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-D-09 소유자 입력 확정, 자가 host 읽기 전용 적합성 확인 준비
+D-09 저가 외부 임대 VM 우선순위 확정, 공급자·plan 조사 준비
 
 ## 완료
 
@@ -69,19 +69,22 @@ D-09 소유자 입력 확정, 자가 host 읽기 전용 적합성 확인 준비
 - `D09-Q01`~`D09-Q02`를 확정하고 `OWN-036`~`OWN-037`로 추적
 - 신규 host 비용 0원을 우선해 보유 장비 자가 hosting을 먼저 검증하고 필수 기준 실패 시 저가 임대 VM으로 돌아가기로 확정
 - 장비 한 대의 전용 운용과 필요한 전원·자동 시작·공유기·DNS·tunnel 설정을 허용하되 구체 host·ingress 기술 선택은 보류
+- Mac 읽기 전용 확인에서 M5·16GB·충분한 disk와 정상 battery·FileVault·Discord outbound를 확인
+- Mac의 AC sleep 활성, firewall 비활성, 보안 update 지연과 정전 후 자동 부팅 미지원 및 교육장 회선 미승인을 확인하되 실제 공인 IP는 비기록
+- `OWN-038`로 `OWN-036`의 우선순위를 대체하고 저가 외부 임대 VM을 첫 검증 범주, Mac과 LG Gram 16을 fallback으로 확정
 
 ## 진행 중
 
 - 예상 사용량과 고정비가 미확정인 항목의 복수 시나리오 유지
-- Mac·Windows 장비와 가정 회선의 읽기 전용 적합성 확인 대기
+- 저가 외부 임대 VM 공급자·region·1GB급 plan과 총비용 비교 대기
 - TypeScript·Python 후보의 Gateway·Go Live·자원·시험성·공급망 검증 대기
 - 저장소·배포·통신·인증 기술 선택은 필요한 별도 승인 Spike 증거 전까지 보류
 
 ## 다음 작업
 
-`GAP-D09-01`~`GAP-D09-02`를 줄이기 위한 읽기 전용 확인 절차를 먼저 제안합니다.
-현재 Mac과 사용자가 제공할 Windows 최소 정보의 통과·탈락 기준을 합의한 뒤에만
-확인하며, 설정 변경·network 공개·Spike·기술 선택은 별도 단계로 유지합니다.
+`docs/prompts/research.md` 절차에 따라 D-09 저가 외부 임대 VM 공급자·plan 후보를
+월 30,000원 총예산, 인접 region, 1GB급 자원, static HTTPS ingress, backup과
+이전 가능성으로 비교하되 공급자·OS·plan은 선택하지 않습니다.
 
 ## 차단 요소
 
@@ -90,7 +93,7 @@ D-09 소유자 입력 확정, 자가 host 읽기 전용 적합성 확인 준비
 - Riot Production/RSO 승인 가능성과 시작·종료 5분 감지는 미확정
 - 예상 사용자 수, 메시지량, 월 요약 요청 수와 동시 게임 수가 미확정이므로 외부 API 비용·처리량은 복수 사용량 시나리오로 유지
 - 단일 server host, GPT API, 도메인과 외부 백업을 합친 원화 비용이 월 3만 원을 충족하는지 미확정
-- 자가 host와 대체 Windows 노트북의 사양·환경 재현·절전·재부팅·회선 장애 조건에서 RPO 24시간·RTO 8시간을 달성할 수 있는지 미검증
+- 자가 Mac은 hardware가 충분하지만 정전 후 자동 부팅 미지원이며 교육장 회선은 서면 승인 전 운영 경로에서 제외
 - 월 명령 10,000회의 실제 저장·backup 크기와 무료 관리형 DB 한도 충족 여부가 미확정
 - Discord OAuth의 PKCE 지원 범위와 D-05·D-08 경계에 맞는 workload 인증·credential rotation 방식이 미확정
 - 익명 임시 outbound tunnel의 Vercel→자가 host 호출이 function timeout으로 실패했으며 원인이 Vercel egress, tunnel 공급자 경로, 지역 또는 연결 정책 중 어디인지는 분리하지 못함
@@ -111,6 +114,6 @@ D-09 소유자 입력 확정, 자가 host 읽기 전용 적합성 확인 준비
 - 같은 host의 web·bot process/module 분리와 secret 권한 방식
 - 선택 host에서 D-04 후보별 bot+최소 web의 idle/peak memory와 event-loop pause
 - 실제 Gateway 단절·Resume, Go Live reconciliation과 배포 중 단일 bot 실행 검증
-- 보유 Mac·Windows의 사양·battery·전원 복귀와 가정 회선의 public HTTPS ingress 가능성
+- 저가 VM의 1GB급 bot+web 자원 여유와 VM·backup·domain·GPT 원화 총액
 - KBO 기능 재개 시 30분 지연 측정 시작점
 - Riot 5분 감지 실패 시 완화할 목표 또는 수동 경로의 장기 정책

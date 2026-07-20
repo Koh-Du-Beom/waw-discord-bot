@@ -7,7 +7,7 @@
 
 ## 1. 입력과 통과 기준
 
-이 조사는 D-04와 D-08, `OWN-005`, `OWN-016`~`OWN-021`, `OWN-034`~`OWN-037`을 입력으로 사용한다. web과 bot은 하나의 지속 server 배포 경계에 두지만 같은 process인지는 결정하지 않는다.
+이 조사는 D-04와 D-08, `OWN-005`, `OWN-016`~`OWN-021`, `OWN-034`~`OWN-038`을 입력으로 사용한다. web과 bot은 하나의 지속 server 배포 경계에 두지만 같은 process인지는 결정하지 않는다.
 
 | 요구사항·결정 | D-09 통과 기준 |
 |---|---|
@@ -104,10 +104,29 @@ Oracle Always Free compute는 만료되지 않는 무료 resource 범주를 제�
 
 ## 6. 사실·추론·가정·미확인 사항
 
+### 읽기 전용 자가 host 확인 결과
+
+2026-07-20에 설정 변경, network 공개와 credential 출력 없이 현재 Mac을 확인했다. 정전 후 자동 시작은 사용자가 관리자 읽기 전용 명령으로 확인했으며 실제 공인 IP는 기록하지 않는다.
+
+| 항목 | 결과 | 영향 |
+|---|---|---|
+| hardware | Apple M5 10-core, RAM 16GB, system disk 약 389GiB 여유 | 후속 runtime 측정을 진행할 자원은 있음 |
+| battery·전원 | AC 연결, cycle 34, condition Normal, maximum capacity 100% | 짧은 정전 완충 가능 |
+| 무인 전원 복귀 | 이 Mac에서 `Restart After Power Failure` 미지원 | 완전 방전 뒤 물리 개입 필요 |
+| 현재 sleep | AC power에서도 automatic sleep 활성 | 그대로는 지속 host 부적합; 변경은 실행하지 않음 |
+| OS | macOS 26.1, 확인 당시 최신 보안 release 26.5.2보다 이전 | 운영 전 보안 update 필요; 실행하지 않음. [Apple security releases](https://support.apple.com/en-us/100100) |
+| disk 암호화 | FileVault 활성 | 통과 |
+| firewall | application firewall 비활성 | 그대로는 public host 부적합; 변경은 실행하지 않음 |
+| outbound | Discord HTTPS 200 응답 | outbound 기본 경로 통과 |
+| ingress 회선 | 교육장 소유 공인 회선이며 운영 허가 없음 | 서면 승인 전 운영 경로에서 제외; 주소는 비기록 |
+| Windows fallback | LG Gram 16, 상시 전원 연결 가능 | Mac 실패 시 추가 확인하며 지금은 상세 조사 생략 |
+
+이 결과는 Mac hardware 자체를 탈락시키지 않지만 현재 위치의 승인되지 않은 회선과 무인 전원 복귀 제약 때문에 첫 운영 host로 검증하는 이점을 없앤다. 사용자는 비용 없는 자가 host 우선 결정을 철회하고 저가 임대 VM 범주를 우선하기로 했다.
+
 ### 추론
 
-- **B는 소유자 입력에 따른 첫 검증 범주**다. 직접비 0원과 기존 장비 활용이라는 `OWN-005`, `OWN-036`에 맞지만 실제 ingress와 무인 전원 복귀가 통과해야 한다.
-- **A는 가장 강한 대안**이다. 최소 월 비용이 생기지만 static public ingress와 data-center 전원·회선으로 자가 host의 가장 큰 미확인 세 가지를 제거한다. 이는 Lightsail·Linux 또는 VM 공급자 선택이 아니다.
+- **A는 갱신된 첫 검증 범주**다. 최소 월 비용이 생기지만 static public ingress와 data-center 전원·회선으로 확인된 자가 host 제약을 제거한다. 이는 Lightsail·Linux 또는 VM 공급자 선택이 아니다.
+- **B는 가장 강한 fallback**이다. hardware는 충분하지만 교육장 회선 승인, sleep·firewall·OS update와 완전 방전 뒤 물리 복구가 필요하다.
 - **C는 복구 대체 환경으로 우선 가치가 있다.** primary로도 가능하지만 B와 같은 가정망 위험에 Windows service·update 검증이 더해지므로 현재 증거로 B보다 단순하다고 볼 수 없다.
 
 ### 가정
@@ -121,14 +140,14 @@ Oracle Always Free compute는 만료되지 않는 무료 resource 범주를 제�
 
 | ID | 공백 | 결정 영향 | 필요한 후속 증거 |
 |---|---|---|---|
-| `GAP-D09-01` | Mac·Windows의 실제 사양, battery, sleep/lid, power-loss boot | 자가 host 상시성 | read-only 장비 확인 뒤 통제 가능한 항목 목록 |
-| `GAP-D09-02` | 가정 회선의 CGNAT/public IP, inbound 허용과 `waw.dubeom.com` HTTPS 경로 | 자가 host 가능성 | credential 없는 network 확인; 외부 변경 전 승인 |
+| `GAP-D09-01` | Mac은 확인 완료: hardware 충분, battery 정상, sleep 활성, 정전 후 자동 부팅 미지원. Windows는 fallback 전까지 상세 확인 연기 | 자가 host 상시성 | 첫 VM 결정에는 추가 증거 불필요; 자가 host 재개 시 Windows 포함 재검토 |
+| `GAP-D09-02` | 현재 교육장 회선은 운영 허가가 없고 실제 주소는 비기록. 다른 자가 회선은 미확인 | 자가 host 가능성 | 교육장 관리자 서면 승인 또는 별도 허용 회선이 생길 때만 재개 |
 | `GAP-D09-03` | TypeScript·Python bot+최소 web+후보 store의 idle/peak RAM·event-loop pause | VM 크기·비용 | 후보 축소 뒤 합성 workload 측정 |
 | `GAP-D09-04` | process crash, OS reboot, update와 배포 중 singleton 복구 | `OPS-001`, `OPS-002` | host/runtime 결정 뒤 한 장애 Spike |
 | `GAP-D09-05` | 외부 backup에서 빈 Windows 또는 새 VM으로 전체 복구 시간 | RPO 24h·RTO 8h | D-12와 결합한 복구 리허설 |
 | `GAP-D09-06` | VM·GPT·domain·backup의 원화 총액과 환율 여유 | 월 30,000원 | 공급자 shortlist와 실제 요약 사용량 뒤 계산 |
 
-이번 작업에서는 Spike를 작성하거나 실행하지 않는다. `GAP-D09-01`과 `GAP-D09-02`는 후보를 탈락시킬 수 있는 값싼 read-only 확인이며, 이를 통과한 경우에만 자가 host 장애 Spike가 의미가 있다. `GAP-D09-03`~`05`는 runtime·store·backup 후보를 좁힌 뒤 하나의 최소 복구·단일 실행 검증으로 결합할 수 있다.
+이번 작업에서는 Spike를 작성하거나 실행하지 않는다. `GAP-D09-01`과 `GAP-D09-02`는 첫 VM 결정에서 더 확인할 필요가 없으며 자가 host를 다시 열 때만 재검토한다. `GAP-D09-03`~`05`는 runtime·store·backup 후보를 좁힌 뒤 하나의 최소 복구·단일 실행 검증으로 결합할 수 있다.
 
 ## 7. 확정된 소유자 입력
 
@@ -136,29 +155,30 @@ Oracle Always Free compute는 만료되지 않는 무료 resource 범주를 제�
 |---|---|---|
 | `D09-Q01` / `OWN-036` | 신규 host 비용 0원을 우선해 자가 hosting을 먼저 검증하고, 필수 기준 실패 시 저가 임대 VM으로 돌아간다. | 보유 Mac·Windows를 첫 검증 범주로, 외부 임대 VM을 가장 강한 fallback으로 둔다. |
 | `D09-Q02` / `OWN-037` | 장비 한 대를 사실상 전용 host로 두고 필요한 전원·자동 시작·공유기·DNS·tunnel 설정을 허용한다. | 자가 host의 운영 전제는 충족했지만 장비·회선 사실과 구체 기술은 별도로 검증한다. |
+| 후속 결정 / `OWN-038` | 확인된 자가 host 제약 때문에 저가 외부 임대 VM 범주를 우선하고 Mac·LG Gram 16은 fallback으로 둔다. | `OWN-036`의 검증 순서를 대체한다. 공급자·region·OS·plan은 아직 선택하지 않는다. |
 
-이 입력은 Mac·Windows, ingress 방식 또는 다른 기술의 최종 선택이 아니다. 읽기 전용 장비·회선 확인이 먼저이며 외부 설정 변경이나 Spike 권한을 포함하지 않는다.
+`OWN-038`은 host 범주 우선순위만 갱신한다. 구체 VM 공급자·region·OS·plan, ingress 방식 또는 다른 기술의 선택이 아니며 배포나 Spike 권한을 포함하지 않는다.
 
 ## 8. 잠정 결론
 
-- **첫 검증 범주:** 보유 장비 자가 hosting. Mac과 Windows 중 실제 primary는 사양·battery·전원 복귀·service 운영의 read-only 확인 뒤 정한다.
-- **가장 강한 fallback:** 저가 외부 임대 Linux VM. 자가 장비나 회선이 배제 기준에 걸릴 때 월 $5~$7 기준선으로 돌아간다.
-- **복구 후보:** primary로 정하지 않은 보유 장비 또는 새 VM. 실제 복구 환경은 D-12에서 검증한다.
+- **첫 검증 범주:** 저가 외부 임대 VM. 월 $5~$7의 기존 기준선에서 1GB급을 포함해 실제 bot+web 자원과 총예산을 비교한다.
+- **가장 강한 fallback:** 보유 Mac. hardware는 충분하지만 운영 위치·전원 복귀·현재 보안 설정을 해결한 뒤에만 재개한다.
+- **추가 fallback:** LG Gram 16. Mac과 VM이 실패하기 전에는 상세 확인하지 않는다.
 - **주요 위험:** 저사양 VM의 memory 부족, 자가 host의 sleep·회선·물리 장애, web 침해의 bot token 확산, snapshot을 독립 backup으로 오해하는 것, 배포 중 bot 중복 실행이다.
 - **필요 검증:** 자가 장비와 회선의 read-only 사실 확인, 후보 host의 실제 자원 측정, crash/reboot/deploy singleton, 외부 backup의 빈 환경 복구다.
-- **뒤집는 조건:** 자가 회선·물리 상시성·보안·8시간 복구 중 하나라도 배제 기준에 걸리면 임대 VM을 첫 후보로 되돌린다. Windows가 Mac보다 사양·전원 복귀·service 운영에서 명확히 우수하면 Windows를 primary 검증 대상으로 삼을 수 있다.
+- **뒤집는 조건:** VM·backup·domain·GPT 총액이 월 30,000원을 넘거나 1GB급에서 workload가 안정적으로 동작하지 않으면 더 큰 VM과 자가 host를 함께 재평가한다. Mac 운영 위치에 승인된 안정적 회선과 무인 전원 복귀 대안이 생기면 자가 host를 다시 열 수 있다.
 
 host, OS, runtime, SDK, 저장소와 인증 기술은 선택하지 않았다. KBO는 허가된 공급 경로와 재표시 권리가 확인될 때까지 연기한다.
 
 ## 9. 정확한 다음 프롬프트
 
 ```text
-필수 문서를 순서대로 읽고
-docs/research/technology-options/single-persistent-server-hosting-options.md의
-GAP-D09-01과 GAP-D09-02를 줄이기 위한 읽기 전용 확인 절차만 제안해.
-현재 Mac에서 안전하게 확인 가능한 장비·전원·회선 정보와
-사용자가 Windows에서 알려줘야 할 최소 정보, 확인 결과의 통과·탈락 기준을 정리하고
-내 승인을 기다려. 아직 설정 변경, credential 조회·출력, network 공개, Spike 작성·실행,
-host·OS·언어·runtime·SDK·저장소·인증 기술 선택, ADR, 구현 계획 또는 제품 코드를 작성하지 마.
+필수 문서를 순서대로 읽고 docs/prompts/research.md 절차에 따라
+D-09 저가 외부 임대 VM 공급자·plan 후보를 좁혀 조사해.
+월 30,000원 총예산, 서울 또는 인접 region, static HTTPS ingress,
+1GB급 기준선, TypeScript·Python 호환성, snapshot과 독립 backup 비용,
+보안 update·관측·이전 가능성을 비교해.
+아직 공급자·region·OS·plan·runtime·SDK·저장소·인증 기술을 선택하거나
+소유자 질문, ADR, Spike 작성·실행, 구현 계획 또는 제품 코드를 작성하지 마.
 KBO는 연기 상태로 유지해.
 ```
