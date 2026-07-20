@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-초기 기술 조사 준비 완료
+활성 범위 외부 플랫폼 제품 계약 확정, KBO 시간 기준 보류, 데이터 흐름·위협 모델 준비
 
 ## 완료
 
@@ -18,20 +18,32 @@
 - 초기 기술 제약사항과 안정적인 요구사항 ID 추출
 - 요구사항 추적표, 기술 결정 지도와 증거 기반 조사 순서 작성
 - `OWN-001`~`OWN-009` 제품·운영 조사 입력 확정
+- Discord Gateway·메시지 조회·Go Live·OAuth 공식 가능성과 제약 조사
+- Riot 계정 연결과 솔로 랭크 시작·종료 감지 가능성 조사
+- KBO 데이터 공급·재표시 권리·갱신 SLA 가능성 조사
+- 대화 요약 API의 컨텍스트·지연·비용·보존 제약 조사
+- 네 외부 플랫폼 조사의 중복, 요구사항 공백, 가정 경계와 사용자 결정 항목 통합 검토
+- `ODR-001`~`ODR-005`, `ODR-007` 소유자 결정 확정 및 `OWN-010`~`OWN-015`로 추적
+- KBO 기능을 허가된 공급 경로 확보 전까지 연기
 
 ## 진행 중
 
-- 외부 플랫폼 가능성 조사 시작 준비
+- D-03 데이터 흐름·위협 모델의 입력 범위 정리
+- 예상 사용량과 고정비가 미확정인 항목의 복수 시나리오 유지
 
 ## 다음 작업
 
-`docs/research/technology-options/initial-decision-map.md`의 1단계에 따라
-Discord, Riot, KBO와 요약 API의 공식 지원 범위와 제약을 서로 독립된 연구 문서로 조사합니다.
+`docs/research/technical-constraints.md`의 `OWN-001`~`OWN-015`와
+`docs/research/technology-options/external-platform-integration-review.md`를 입력으로 사용해
+`docs/research/technology-options/initial-decision-map.md`의 2단계인 D-03 데이터 흐름과
+위협 모델을 별도 연구 작업으로 작성합니다.
 
 ## 차단 요소
 
 - `codex-settings/scripts/install.sh`는 Codex 사용자 환경에 Ponytail과 Superpowers 플러그인을 설치하므로 프로젝트 외부 변경 승인 전에는 실행하지 않음
-- 예상 사용자 수, 메시지량과 동시 게임 수가 미확정이므로 외부 API 비용·처리량은 복수 사용량 시나리오로 조사해야 함
+- KBO 기능은 자동 접근·Discord 재표시 권리와 공급자 갱신 정보를 서면으로 확인할 때까지 연기하며, 30분 측정 기준도 함께 보류
+- Riot Production/RSO 승인 가능성과 시작·종료 5분 감지는 미확정
+- 예상 사용자 수, 메시지량, 월 요약 요청 수와 동시 게임 수가 미확정이므로 외부 API 비용·처리량은 복수 사용량 시나리오로 유지
 
 ## 현재 확정되지 않은 사항
 
@@ -44,3 +56,5 @@ Discord, Riot, KBO와 요약 API의 공식 지원 범위와 제약을 서로 독
 - Riot 및 KBO 데이터 공급 방식
 - 요약 모델 공급자
 - 백업과 모니터링 도구
+- KBO 기능 재개 시 30분 지연 측정 시작점
+- Riot 5분 감지 실패 시 완화할 목표 또는 수동 경로의 장기 정책
