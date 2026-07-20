@@ -65,6 +65,7 @@
 3. **빈 Windows 복구**: 외부 암호화 backup 하나로 빈 Windows 후보 host에 영구 데이터와 최소 서비스 상태를 복원하고 무결성 검사까지의 시간을 측정한다. RPO 24시간·RTO 8시간 판정 자료만 만든다.
 4. **OAuth·session 실패 계약**: 운영과 분리된 고정 preview에서 callback 재사용, 잘못된 state/redirect, PKCE 지원 여부, session rotation·expiry와 Discord 역할 제거를 검증한다. 실제 사용자·운영 token은 사용하지 않는다.
 5. **공유 저장소 outbound-pull 역할 조회 — 실행 완료, Failed**: local 최소 권한 query와 worker의 request claim/result 기록은 확인했지만 Vercel preview가 pooled·unpooled endpoint 모두에서 약 10초 뒤 timeout됐다. 결과와 정리는 `docs/research/spikes/shared-store-outbound-pull/README.md`에 기록했다.
+6. **Named managed tunnel — 실행 완료, Failed**: 계정 고정 ngrok endpoint는 local 유효 요청을 463ms에 처리하고 Vercel 연결도 tunnel에 도달했지만 Vercel preview는 약 10초 뒤 timeout됐다. 결과는 `docs/research/spikes/named-managed-tunnel/README.md`에 기록했다.
 
 관리형 DB cold start, provider outage와 무료 tier 한도는 `2`의 후보가 관리형 범주를 계속 통과할 때만 추가한다. queue/event Spike는 일반 변경에 별도 broker가 필요하다는 증거가 생기기 전에는 만들지 않는다.
 
@@ -74,21 +75,20 @@
 
 구조적으로 가장 단순한 잔여 대안은 내부 network 경계를 없애는 단일 지속 server다. Vercel Hobby 사용 의도를 유지하는 조건에서는 D-05에서 공유 관계형 저장소가 살아남을 때 별도 broker 없이 versioned request/result를 outbound-pull하는 경계를 다음 후보로 둔다. 자가 SQLite와 Vercel을 함께 유지해야 할 때만 named 경로의 별도 검증 필요성을 다시 판단한다.
 
-같은 익명 tunnel을 바꿔 반복하지 않으며, 실패 원인을 더 나누기 위한 DB driver·endpoint 교체 Spike도 만들지 않는다. 공유 저장소는 canonical data와 5분 일반 변경 후보로 남지만 5초 고위험 역할 조회 경계의 근거는 얻지 못했다. 현재 두 경계 Spike가 모두 실패했으므로 다음 단계에서는 단일 지속 server와 Vercel 분리 의도 사이의 결정을 가르는 남은 근거를 검토한다.
+같은 tunnel 공급자나 DB endpoint를 바꾸는 추가 network Spike는 만들지 않는다. 공유 저장소는 canonical data와 5분 일반 변경 후보로 남지만 5초 고위험 역할 조회 경계의 근거는 얻지 못했다. 세 경계 Spike가 모두 실패했으므로 다음 단계는 Vercel Hobby를 필수 배포 경계로 유지할지, 단일 지속 server로 내부 network 경계를 제거할지 소유자가 결정하는 것이다.
 
 KBO는 허가된 공급 경로가 생길 때까지 연기하며 어떤 활성 저장·배포·통신·인증 경계에도 포함하지 않는다.
 
 ## 7. 정확한 다음 프롬프트
 
 ```text
-필수 문서를 순서대로 읽고
-docs/research/spikes/boundary-roundtrip-default-deny/README.md와
-docs/research/spikes/shared-store-outbound-pull/README.md의 실패를 통합 검토해.
+필수 문서를 순서대로 읽고 D-05·D-07·D-08 통합 검토와
+세 경계 Spike 실패 결과를 대조해.
 
-Vercel 분리 배포를 유지할 때 남는 최소 동기 역할 조회 경계와
-단일 지속 server 대안 중 무엇이 실제 결정을 가르는지 제안해.
-추가 network Spike는 정말 필요한 경우에만 하나로 제한해.
+Vercel Hobby 분리 배포를 필수로 유지할지, 단일 지속 server로
+web·bot을 합쳐 동기 역할 조회의 network 경계를 제거할지 나에게 물어봐.
+질문에는 각 선택의 영향과 권장안을 짧게 설명하고 내 답을 기다려.
 
-아직 기술 선택, ADR, 새 Spike 작성·실행, 구현 계획 또는 제품 코드를
+아직 기술 선택, ADR, 추가 Spike 작성·실행, 구현 계획 또는 제품 코드를
 작성하지 말고 KBO는 연기 상태로 유지해.
 ```

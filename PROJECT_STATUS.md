@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-D-03·D-05·D-07·D-08 통합 검토와 경계·저장소 Spike 3개 완료, 두 경계 실패의 결정 영향 검토 준비
+D-03·D-05·D-07·D-08 통합 검토와 경계·저장소 Spike 4개 완료, 배포 경계 소유자 결정 준비
 
 ## 완료
 
@@ -53,18 +53,20 @@ D-03·D-05·D-07·D-08 통합 검토와 경계·저장소 Spike 3개 완료, 두
 - 두 local engine에서 동일 `operation_id` 32회 동시 제출, transaction 중단·재시도와 foreign key 검증 통과
 - 공유 저장소 outbound-pull Spike에서 local DB query와 worker request/result 처리는 확인했지만 Vercel 함수가 pooled·unpooled 모두 timeout되어 실패 판정
 - 임시 Vercel project·deployment, Neon resource·integration, DB role·credential과 local metadata 정리 완료
+- named ngrok endpoint는 local 이중 인증 요청을 463ms에 처리했지만 Vercel preview가 function timeout되어 세 번째 경계 Spike도 실패 판정
+- ngrok·Vercel 시험 endpoint, project·deployment, agent·server와 모든 local credential·metadata 정리 완료
 
 ## 진행 중
 
 - 예상 사용량과 고정비가 미확정인 항목의 복수 시나리오 유지
-- 직접 tunnel·공유 저장소 동기 왕복 실패를 합친 배포 경계 영향 검토 대기
+- Vercel Hobby 분리 배포 유지와 단일 지속 server 대안 사이 소유자 결정 대기
 - 저장소·배포·통신·인증 기술 선택은 필요한 별도 승인 Spike 증거 전까지 보류
 
 ## 다음 작업
 
-두 경계 Spike 실패를 통합해 Vercel 분리 배포에 남는 최소 동기 역할 조회
-경계와 단일 지속 server 대안 중 실제 결정을 가르는 항목만 제안합니다.
-추가 network Spike는 필요성이 입증되기 전 만들지 않습니다.
+세 경계 Spike 실패를 근거로 Vercel Hobby 분리 배포를 필수로 유지할지,
+단일 지속 server에서 web·bot을 합칠지 소유자에게 묻습니다. 추가 network
+Spike는 만들지 않습니다.
 
 ## 차단 요소
 
@@ -78,6 +80,7 @@ D-03·D-05·D-07·D-08 통합 검토와 경계·저장소 Spike 3개 완료, 두
 - Discord OAuth의 PKCE 지원 범위와 D-05·D-08 경계에 맞는 workload 인증·credential rotation 방식이 미확정
 - 익명 임시 outbound tunnel의 Vercel→자가 host 호출이 function timeout으로 실패했으며 원인이 Vercel egress, tunnel 공급자 경로, 지역 또는 연결 정책 중 어디인지는 분리하지 못함
 - 공유 PostgreSQL request/result도 worker 처리와 별개로 Vercel function timeout이 발생해 고위험 현재 역할 조회의 5초 동기 경계가 아직 없음
+- 계정 고정 managed tunnel도 local 왕복은 성공했지만 Vercel function timeout으로 실패해 공급자 교체만으로 추가 검증할 근거가 낮음
 
 ## 현재 확정되지 않은 사항
 
