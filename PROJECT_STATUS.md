@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-D-03·D-05·D-07·D-08 통합 검토와 경계·저장소 Spike 4개 완료, 배포 경계 소유자 결정 준비
+D-03·D-05·D-07·D-08 통합 검토와 경계·저장소 Spike 4개 완료, D-09 단일 server 호스팅 조사 준비
 
 ## 완료
 
@@ -32,7 +32,7 @@ D-03·D-05·D-07·D-08 통합 검토와 경계·저장소 Spike 4개 완료, 배
 - 외부 임대 단일 서버와 OS 비종속 자가 단일 서버의 경계, Vercel Hobby 비용 기준과 Windows 대체 host 후보 확정
 - RPO/RTO 판정 범위, 일반 변경의 제한된 비동기 처리와 heartbeat 기반 상태 요구 확정
 - SQLite, 자가 PostgreSQL과 관리형 PostgreSQL의 무결성·접근 경계·백업·복구·비용·이식성 비교
-- 관리형 PostgreSQL을 첫 검증 후보, 자가 SQLite를 가장 강한 대안으로 정리하되 저장소 선택은 보류
+- 초기 분리 배포 가정에서는 관리형 PostgreSQL을 첫 검증 후보로 두었고, `OWN-034` 이후 단일 server 경계에서는 자가 SQLite를 첫 검증 후보로 재정렬하되 저장소 선택은 보류
 - `D05-Q01`~`D05-Q04`를 확정하고 `OWN-022`~`OWN-025`로 추적
 - 장애 중 dashboard 허용 범위, 월 명령 10,000회, PITR 비필수와 조건부 관리형 무료 tier 허용 확정
 - Discord OAuth identity, 현재 guild/role 검증, server-side session과 workload 인증 경계 후보 비교
@@ -55,18 +55,21 @@ D-03·D-05·D-07·D-08 통합 검토와 경계·저장소 Spike 4개 완료, 배
 - 임시 Vercel project·deployment, Neon resource·integration, DB role·credential과 local metadata 정리 완료
 - named ngrok endpoint는 local 이중 인증 요청을 463ms에 처리했지만 Vercel preview가 function timeout되어 세 번째 경계 Spike도 실패 판정
 - ngrok·Vercel 시험 endpoint, project·deployment, agent·server와 모든 local credential·metadata 정리 완료
+- `INT-Q03`을 확정하고 `OWN-034`로 추적
+- 첫 MVP의 web·bot을 단일 지속 server 경계에 두고 public web→bot network 경계를 제거하기로 확정
+- Vercel Hobby 필수 배포 의도는 철회하되 개인·비상업·저비용 조건은 유지하고 임대 server와 소유 Mac·Windows 선택은 D-09로 이관
 
 ## 진행 중
 
 - 예상 사용량과 고정비가 미확정인 항목의 복수 시나리오 유지
-- Vercel Hobby 분리 배포 유지와 단일 지속 server 대안 사이 소유자 결정 대기
+- 외부 임대 server와 소유 Mac·대체 Windows의 D-09 비교 대기
 - 저장소·배포·통신·인증 기술 선택은 필요한 별도 승인 Spike 증거 전까지 보류
 
 ## 다음 작업
 
-세 경계 Spike 실패를 근거로 Vercel Hobby 분리 배포를 필수로 유지할지,
-단일 지속 server에서 web·bot을 합칠지 소유자에게 묻습니다. 추가 network
-Spike는 만들지 않습니다.
+`docs/prompts/research.md` 절차에 따라 D-09 단일 지속 server 호스팅 후보를
+조사합니다. 외부 임대 server와 소유 Mac·대체 Windows를 비용·상시성·보안·복구로
+비교하되 host·runtime·저장소·인증 기술은 선택하지 않습니다.
 
 ## 차단 요소
 
@@ -74,7 +77,7 @@ Spike는 만들지 않습니다.
 - KBO 기능은 자동 접근·Discord 재표시 권리와 공급자 갱신 정보를 서면으로 확인할 때까지 연기하며, 30분 측정 기준도 함께 보류
 - Riot Production/RSO 승인 가능성과 시작·종료 5분 감지는 미확정
 - 예상 사용자 수, 메시지량, 월 요약 요청 수와 동시 게임 수가 미확정이므로 외부 API 비용·처리량은 복수 사용량 시나리오로 유지
-- Vercel Hobby, GPT API, 도메인, 외부 백업을 합친 원화 비용이 월 3만 원을 충족하는지 미확정
+- 단일 server host, GPT API, 도메인과 외부 백업을 합친 원화 비용이 월 3만 원을 충족하는지 미확정
 - 자가 host와 대체 Windows 노트북의 사양·환경 재현·절전·재부팅·회선 장애 조건에서 RPO 24시간·RTO 8시간을 달성할 수 있는지 미검증
 - 월 명령 10,000회의 실제 저장·backup 크기와 무료 관리형 DB 한도 충족 여부가 미확정
 - Discord OAuth의 PKCE 지원 범위와 D-05·D-08 경계에 맞는 workload 인증·credential rotation 방식이 미확정
@@ -89,10 +92,10 @@ Spike는 만들지 않습니다.
 - 대시보드 프레임워크
 - 데이터 저장소
 - 봇 실행 환경
-- 대시보드 배포 환경
+- 단일 지속 server의 임대·소유 host 및 운영체제
 - Riot 및 KBO 데이터 공급 방식
 - 요약 모델 공급자
 - 백업과 모니터링 도구
-- 웹-봇 내부 통신 방식과 상호 인증 기술
+- 같은 host의 web·bot process/module 분리와 secret 권한 방식
 - KBO 기능 재개 시 30분 지연 측정 시작점
 - Riot 5분 감지 실패 시 완화할 목표 또는 수동 경로의 장기 정책

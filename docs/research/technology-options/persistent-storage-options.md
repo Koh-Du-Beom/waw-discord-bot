@@ -15,7 +15,7 @@
 | `OPS-004`~`OPS-008` | 플랫폼 기본 로그만 믿지 않고, 독립·암호화 백업과 실제 복구, 마이그레이션 전 백업과 롤백을 검증해야 한다. |
 | `INT-001`~`INT-003` | 공유 저장소가 통신 경계가 될 경우 workload별 권한, timeout, 재시도, 안전한 실패와 최소 공개 면적이 필요하다. |
 | `OWN-004` | 운영 로그는 30일, 감사·설정 변경·몰랭 이력은 1년 보존한다. |
-| `OWN-016`~`OWN-018` | 외부 임대 서버와 OS 비종속 자가 단일 서버를 구분하며, 현재 Windows 노트북을 대체 host 후보로 보유한다. Vercel은 Hobby 기준이다. |
+| `OWN-016`~`OWN-018`, `OWN-034` | 외부 임대 서버와 OS 비종속 자가 단일 서버를 구분하며 현재 Windows 노트북을 대체 host 후보로 보유한다. 첫 MVP의 web·bot은 같은 지속 server 경계에 둔다. |
 | `OWN-019` | 허용된 영구 데이터 전체의 RPO는 24시간이며, 봇·웹·데이터 무결성 검증까지 8시간 안에 완료해야 한다. |
 | `OWN-020`, `OWN-021` | 일반 변경은 5분 안에 적용하고 10분 뒤 만료한다. 결과·dedupe 기록은 1년 보존하며 live control 없이 canonical 설정과 heartbeat를 사용한다. |
 | `OWN-022`~`OWN-025` | 자가 host 장애 중 설정·감사 조회 중단을 허용하고, 월 명령 10,000회로 크기를 검증한다. PITR은 필수가 아니며 조건부로 관리형 DB 무료 tier를 허용한다. |
@@ -32,7 +32,7 @@ D-03의 데이터 경계를 유지한다. 저장 가능한 것은 최소 식별�
 6. 외부 암호화 backup을 24시간 안에 만들고 빈 대체 host에서 8시간 안에 복구·무결성 검증할 수 있는가.
 7. schema migration, 사전 backup, 이전 version rollback 또는 forward repair를 재현할 수 있는가.
 8. 표준 SQL dump나 안정된 export로 다른 환경에 이동할 수 있는가.
-9. Vercel Hobby, GPT, domain과 backup 비용을 남긴 채 월 30,000원 상한을 지킬 수 있는가.
+9. host, GPT, domain과 backup 비용을 합쳐 월 30,000원 상한을 지킬 수 있는가.
 10. 소규모 단일 guild에 필요한 운영량보다 많은 구성요소를 만들지 않는가.
 
 ## 3. 현실적인 후보
@@ -124,7 +124,7 @@ PostgreSQL server를 봇과 같은 자가 host 또는 외부 임대 단일 서�
 
 - 첫 MVP는 단일 guild, 단일 active bot과 소수 운영자이며 write concurrency는 낮다.
 - 원문 메시지와 AI 중간물은 저장하지 않아 database 증가량의 대부분은 감사·운영 event다.
-- Vercel web에서 정상 운영 중 설정과 감사 조회가 필요하다. 자가 host 장애 중에는 해당 조회와 변경을 중단하고 마지막 heartbeat·관측 시각 또는 `unavailable`만 표시할 수 있다.
+- web과 bot은 같은 지속 server 경계에서 정상 운영 중 설정과 감사를 조회한다. host 장애 중에는 해당 조회와 변경을 중단하고 `unavailable`로 표시할 수 있다.
 - 관리형 PostgreSQL 후보는 표준 PostgreSQL 기능을 기준으로 비교하며 Neon 고유 기능을 필수 요구로 삼지 않는다.
 
 ### 미확인 사항
@@ -132,7 +132,7 @@ PostgreSQL server를 봇과 같은 자가 host 또는 외부 임대 단일 서�
 1. 월 명령 10,000회에서 평균 record·index 크기와 1년 뒤 database/export 크기.
 2. 외부 backup 위치·가격·암호화·보존은 D-12에서 정해야 한다.
 3. SQLite의 동시 write, PostgreSQL의 조건부 전이와 각 후보의 빈 Windows host 복원 시간은 측정하지 않았다.
-4. 정상 운영 중 Vercel web과 local store를 연결할 안전한 경계는 D-07·D-08 결정 전까지 미확정이다.
+4. 단일 host 안의 web·bot process와 저장소 권한을 얼마나 분리할지는 runtime·저장소 결정 전까지 미확정이다.
 
 ### 확정된 사용자 결정
 
@@ -155,11 +155,11 @@ PostgreSQL server를 봇과 같은 자가 host 또는 외부 임대 단일 서�
 
 ### 잠정 권고 — 선택 아님
 
-**관리형 PostgreSQL을 첫 검증 후보**로 둔다. 이유는 Vercel web과 자가 host bot이 표준 관계형 transaction과 별도 role을 공유하면서 자가 host·disk 장애에서 canonical data를 분리할 수 있기 때문이다. 무료 tier 사용은 허용되지만 Neon Free는 비용 가설을 시험할 대표 사례일 뿐 운영 plan으로 확정하지 않는다. 독립 외부 backup, 월 명령 10,000회의 1년 감사 수용 여부, public database 경계와 빈 host 복구를 검증하지 못하면 채택할 수 없다.
+**자가 host SQLite를 첫 검증 후보**로 둔다. 단일 guild·낮은 concurrency와 web·bot 단일 server 경계에서는 별도 DB server·network credential 없이 가장 작은 운영 단위를 만들며 저장량·동시 전이 Spike도 통과했다. 외부 snapshot, 빈 Windows 복구와 8시간 RTO를 검증하지 못하면 채택할 수 없다.
 
 ### 가장 강한 대안
 
-**자가 호스트 SQLite**가 가장 강한 대안이다. 단일 guild·낮은 concurrency와 단일 소유 server에는 운영 구성요소와 현금 비용이 가장 적다. 자가 host 장애 중 dashboard의 설정·감사 접근 중단이 허용되므로, 정상 운영 중 Vercel→data 경계를 안전하게 별도 해결하고 외부 snapshot 복구가 8시간 안에 검증되면 PostgreSQL server를 운영할 이유가 줄어든다.
+**관리형 PostgreSQL**이 가장 강한 대안이다. host·disk 장애에서 canonical data를 분리하고 DB role로 process 권한을 나눌 수 있다. 대신 public provider credential, 독립 backup, 무료 tier 조건과 비용 경계가 추가되므로 D-09·D-12에서 그 격리 이점이 운영 복잡성보다 큰지 검증해야 한다.
 
 자가 PostgreSQL은 두 후보의 장점을 자동으로 합치지 않는다. 관리형 비용은 피하지만 SQLite보다 운영할 것이 많고 자가 host 장애도 분리하지 못하므로, DB client 동시성이나 세분화된 DB role이 SQLite로 충족되지 않을 때의 후보다.
 
@@ -183,9 +183,10 @@ PostgreSQL server를 봇과 같은 자가 host 또는 외부 임대 단일 서�
 ## 9. 정확한 다음 프롬프트
 
 ```text
-AGENTS.md의 필수 문서를 순서대로 읽고
-docs/prompts/research.md 절차에 따라 D-07 인증·인가·세션 후보를 조사해.
-OWN-013, OWN-016~OWN-025와 D-03·D-05·D-08의 경계를 입력으로 사용하되
-아직 인증·저장소·배포·통신 기술을 선택하거나 ADR, Spike,
+필수 문서를 순서대로 읽고 docs/prompts/research.md 절차에 따라
+D-09 단일 지속 server 호스팅 후보를 조사해.
+OWN-005, OWN-016~OWN-021, OWN-034와 D-08의 단일 server 경계를 입력으로 사용하고
+외부 임대 server와 소유 Mac·대체 Windows를 비용·상시성·보안·복구로 비교해.
+아직 host·runtime·저장소·인증 기술을 선택하거나 ADR, Spike,
 구현 계획 또는 제품 코드를 작성하지 마. KBO는 연기 상태로 유지해.
 ```

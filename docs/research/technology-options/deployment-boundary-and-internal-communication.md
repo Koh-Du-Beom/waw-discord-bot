@@ -20,7 +20,7 @@
 | `OWN-016`~`OWN-018` | 외부 임대 단일 서버와 소유자가 관리하는 단일 물리 서버를 구분한다. 자가 host는 Mac·Windows로 교체할 수 있고 Windows 노트북을 대체 host 후보로 보유하며, Vercel은 개인·비상업 Hobby 기준으로 조사한다. |
 | `OWN-019`~`OWN-021` | 허용된 영구 데이터 전체의 RPO와 전체 서비스 검증 기준 RTO, 일반 변경의 제한된 비동기 처리, canonical 설정과 stale 표시 가능한 heartbeat를 통신 비교 입력으로 사용한다. |
 | `OWN-022`~`OWN-025` | 자가 host 장애 중 설정·감사 조회 중단을 허용하고 월 명령 10,000회로 data 경계를 검증한다. PITR은 필수가 아니며 요구 충족 중 관리형 DB 무료 tier를 허용한다. |
-| `OWN-026`~`OWN-033` | Discord OAuth만 사용하되 user token은 보존하지 않고 bot-side 역할 조회를 사용한다. host 장애 중 5분 read-only cache, preview 분리와 고위험 OAuth 재인증·현재 역할·명시적 확인을 경계 입력으로 사용한다. |
+| `OWN-026`~`OWN-034` | Discord OAuth만 사용하되 user token은 보존하지 않고 bot-side 역할 조회를 사용한다. host 장애 중 5분 read-only cache, preview 분리와 고위험 OAuth 재인증·현재 역할·명시적 확인을 적용하며 첫 MVP는 web·bot 단일 지속 server 경계를 사용한다. |
 | `DEP-001` | 운영 대시보드의 유일한 표준 주소는 `https://waw.dubeom.com`이며 HTTPS와 소유권 검증이 필요하다. |
 | `DEP-002` | 운영/미리보기의 redirect URI, 쿠키, 비밀과 내부 인증정보를 분리한다. |
 | `DEP-003` | 정책의 네 배포 형태를 비용, 운영, 장애 격리, 백업, 보안, 확장성과 종속성으로 비교한다. |
@@ -185,6 +185,7 @@ RPO 24시간은 “하루마다 backup job을 실행”이 아니라 복구 가�
 | `D08-Q04` | 허용된 영구 데이터 전체를 보호하고 봇·웹·데이터 검증 완료를 RTO 완료로 본다. | `OWN-019` |
 | `D08-Q05` | 일반 변경은 5분 내 비동기 적용·10분 후 만료, 고위험 변경은 즉시 확인 실패 시 거부하며 결과·dedupe 기록은 1년 보존한다. | `OWN-020` |
 | `D08-Q06` | live control·즉시 조회 없이 canonical 설정과 stale 표시 가능한 heartbeat를 사용한다. | `OWN-021` |
+| `INT-Q03` | 첫 MVP는 web·bot을 단일 지속 server 경계에 두고 임대 server와 소유 Mac·Windows 중 실제 host는 D-09에서 비교한다. | `OWN-034` |
 
 ### 후속 Spike 후보 — 이번 작업에서는 실행·작성하지 않음
 
@@ -196,15 +197,15 @@ RPO 24시간은 “하루마다 backup job을 실행”이 아니라 복구 가�
 
 ## 9. 잠정 권고와 가장 강한 대안
 
-### 잠정 권고 — 후속 연구 전 검증 순서
+### 잠정 권고 — 선택 아님
 
-자가 호스트 우선 정책을 존중해 **형태 2(Vercel 웹 + 소유 단일 서버의 봇·데이터)**를 첫 검증 대상으로 두되 배포 기술로 확정하지 않는다. 웹-봇 경계는 Discord 원문이 없는 좁은 control plane으로 제한하고, 자가 host에 public inbound port를 직접 열지 않는 **outbound pull queue 또는 이미 필요한 공유 저장소의 versioned inbox/state**를 우선 비교한다. live control과 즉시 상태 조회는 요구하지 않으며 canonical 설정과 stale 표시 가능한 heartbeat로 충분한지 검증한다.
+**web·bot 단일 지속 server 배포 경계**를 첫 MVP의 검증 범위로 둔다. 이는 형태 1의 외부 임대 server나 형태 4의 소유 Mac·Windows 중 하나를 아직 고르지 않는다. 같은 host 안에서 현재 역할 조회를 local process/module 경계로 제한하고 `waw.dubeom.com:443` 외의 public 관리 endpoint와 별도 tunnel·queue를 만들지 않는다.
 
-이 잠정 방향은 인증 기술을 고르지 않는다. 어떤 방식이든 양 workload 신원 확인, 최소 권한, credential 폐기·교체와 환경 분리를 지켜야 한다. 공유 저장소 사용 여부와 구체 workload 인증 수단은 D-05·D-08 통합 검토 전 확정하지 않는다.
+이 결정은 host, runtime, process 구성, 저장소와 인증 기술을 고르지 않는다. web 침해가 bot token과 data로 확산되지 않도록 process 권한·secret 접근을 분리하고, 단일 host 장애의 RPO 24시간·RTO 8시간은 D-09·D-12에서 검증한다.
 
 ### 가장 강한 대안
 
-**형태 1의 소형 지속 VM 단일 배포**가 가장 강한 대안이다. 공개 endpoint를 `waw.dubeom.com:443` 하나로 줄이고 내부 통신 broker를 없애며 저가 고정비 후보를 비교할 수 있다. 실제 plan 용량과 GPT·domain·외부 backup을 합친 30,000원 충족 여부는 미확인이다. Mac 전원·회선·물리 접근 위험도 줄이는 대신 web 침해가 bot secret과 data에 미치는 blast radius, 단일 host 장애와 외부 backup 복원은 형태 2보다 엄격히 검증해야 한다.
+**Vercel web + 지속 bot host 분리 배포**가 가장 강한 대안으로 남지만 첫 MVP 우선 경계에서는 제외한다. 서로 다른 세 경계 Spike가 모두 5초 동기 역할 조회를 통과하지 못했고 tunnel·DB polling·credential 운영면이 추가됐다. 향후 web 독립 확장이 실제 요구가 되거나 검증 가능한 연결 경로가 생길 때만 다시 연다.
 
 ### 주요 위험
 
@@ -227,9 +228,10 @@ RPO 24시간은 “하루마다 backup job을 실행”이 아니라 복구 가�
 ## 10. 정확한 다음 프롬프트
 
 ```text
-AGENTS.md의 필수 문서를 읽고
-docs/prompts/research.md 절차에 따라 D-05 영구 저장소 후보를 조사해.
-OWN-016~OWN-021과 D-03·D-08의 경계를 입력으로 사용하되
-아직 저장소·배포·통신·인증 기술을 선택하거나 D-07, ADR, Spike, 구현 계획 또는 제품 코드를 작성하지 마.
+필수 문서를 순서대로 읽고 docs/prompts/research.md 절차에 따라
+D-09 단일 지속 server 호스팅 후보를 조사해.
+OWN-005, OWN-016~OWN-021, OWN-034와 D-08의 단일 server 경계를 입력으로 사용하고
+외부 임대 server와 소유 Mac·대체 Windows를 비용·상시성·보안·복구로 비교해.
+아직 host·runtime·저장소·인증 기술을 선택하거나 ADR, Spike, 구현 계획 또는 제품 코드를 작성하지 마.
 KBO는 연기 상태로 유지해.
 ```

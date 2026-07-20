@@ -16,7 +16,7 @@
 | `OWN-002`, `OWN-013` | 단일 guild에서 guild owner는 관리자다. 그 외에는 설정된 운영자·관리자 role만 인정하며 Discord `ADMINISTRATOR` bit만으로 승격하지 않는다. 고위험 작업 직전 현재 role을 다시 조회한다. |
 | `OWN-020`, `OWN-021` | 고위험 변경은 즉시 적용 확인이 불가능하면 실패하며 live bot control은 요구하지 않는다. |
 | `OWN-022` | 자가 host 장애 중 설정·감사 조회와 변경 중단을 허용하고 신뢰할 최근 상태가 없으면 `unavailable`로 표시한다. |
-| `OWN-026`~`OWN-033` | Discord OAuth만 허용하고, 1일 유휴·7일 절대 세션, 5분 read-only 역할 cache, Discord user token 비보존, preview 분리와 고위험 OAuth 재인증 계약을 적용한다. |
+| `OWN-026`~`OWN-034` | Discord OAuth만 허용하고, 1일 유휴·7일 절대 세션, 5분 read-only 역할 cache, Discord user token 비보존, preview 분리와 고위험 OAuth 재인증 계약을 적용한다. web·bot은 첫 MVP에서 같은 지속 server 경계에 둔다. |
 | D-03 | browser는 불신 경계다. OAuth·session secret은 필요한 최소 기간만 보호 저장할 수 있으나 로그·감사·URL·화면·평문 backup에는 넣지 않는다. |
 
 인증(authentication), 제품 인가(authorization), session, workload 인증을 분리한다. Discord 로그인 성공은 user ID를 증명할 뿐 허용 guild·현재 role·작업 권한을 자동으로 증명하지 않는다. browser session은 web→bot 또는 web→DB credential로 재사용하지 않는다.
@@ -185,7 +185,7 @@ Browser에는 추측 불가능한 session ID만 host-only cookie로 두고 ident
 ### 미확인 사항
 
 1. Discord가 이 confidential web flow에서 PKCE를 공식적으로 지원·강제하는지.
-2. D-05·D-08 transport가 정해지지 않아 workload identity 방식과 rotation 절차는 미확정이다.
+2. 같은 host 안의 web·bot을 별도 process로 나눌지와 process별 secret·저장소 권한은 runtime·저장소 결정 전까지 미확정이다.
 
 ## 9. 필요한 검증 — 이번 작업에서는 실행·작성하지 않음
 
@@ -201,7 +201,7 @@ Browser에는 추측 불가능한 session ID만 host-only cookie로 두고 ident
 
 **Discord Authorization Code의 `identify` + bot-side current member 조회 + server-side opaque session**을 첫 검증 조합으로 둔다. user OAuth access token은 identity 조회에만 일시 사용하고 프로젝트 저장소에 보존하지 않으며 refresh token도 저장하지 않는다. 일반 요청은 최대 5분 role cache에서 read-only만 허용하고, 변경과 고위험 작업은 확정된 기본 거부 조건을 유지한다.
 
-이 조합은 Discord identity와 제품 role policy를 분리하고 browser에 임의 session ID만 남긴다. 다만 web→bot role verification 경계가 D-08의 public surface·workload 인증 요구를 예산 안에서 충족하지 못하면 선택할 수 없다.
+이 조합은 Discord identity와 제품 role policy를 분리하고 browser에 임의 session ID만 남긴다. web·bot 단일 지속 server 경계에서는 역할 조회를 public network에 노출하지 않고 local process/module 호출로 제한한다. 구체 process 격리와 bot token 접근 권한은 runtime·구현 계획 전 별도로 결정한다.
 
 ### 가장 강한 대안
 
@@ -221,7 +221,7 @@ Browser에는 추측 불가능한 session ID만 host-only cookie로 두고 ident
 
 ### 권고를 뒤집는 조건
 
-- bot-side role 조회를 위한 web→bot 경계를 최소 공개 면적과 예산 안에서 인증할 수 없음
+- 같은 host의 web 침해가 bot token과 role 조회 권한으로 확산되지 않도록 process·secret 권한을 충분히 분리할 수 없음
 - Discord OAuth token을 보관하지 않고는 요구된 role 재검증 UX를 충족할 수 없음
 - 검증된 관리형 auth가 token 최소화·즉시 폐기·환경 분리와 Discord role adapter를 더 적은 총운영비로 제공함
 - 짧은 session만 허용되어 stateless token도 별도 denylist 없이 권한 상실 기준을 충족함
@@ -230,9 +230,10 @@ Browser에는 추측 불가능한 session ID만 host-only cookie로 두고 ident
 ## 11. 정확한 다음 프롬프트
 
 ```text
-AGENTS.md의 필수 문서를 순서대로 읽고 D-05·D-07·D-08 연구와
-OWN-016~OWN-031을 통합 검토해. 저장소·배포·내부 통신·인증 경계에서
-남은 충돌, 증거 공백, 소유자 질문과 필요한 최소 Spike 후보만 정리해.
-아직 기술 선택, ADR, Spike 실행, 구현 계획 또는 제품 코드를 작성하지 마.
-KBO는 연기 상태로 유지해.
+필수 문서를 순서대로 읽고 docs/prompts/research.md 절차에 따라
+D-09 단일 지속 server 호스팅 후보를 조사해.
+OWN-005, OWN-016~OWN-021, OWN-034와 D-08의 단일 server 경계를 입력으로 사용하고
+외부 임대 server와 소유 Mac·대체 Windows를 비용·상시성·보안·복구로 비교해.
+아직 host·runtime·저장소·인증 기술을 선택하거나 ADR, Spike,
+구현 계획 또는 제품 코드를 작성하지 마. KBO는 연기 상태로 유지해.
 ```

@@ -128,17 +128,18 @@
 | OWN-026 | 결정 | 대시보드 로그인은 Discord OAuth만 허용하고 별도 로그인은 제공하지 않는다. | Discord identity와 계정 연결 경계를 하나로 제한하되 OAuth 성공과 제품 인가를 분리한다. |
 | OWN-027 | 결정 | 대시보드 세션은 마지막 활동 후 1일, 최초 로그인 후 최대 7일 중 먼저 도달한 시점에 만료한다. | session store·cookie·재인증 검증 기준으로 사용한다. |
 | OWN-028 | 결정 | 일반 역할 cache는 최대 5분이다. 유효한 cache에서는 read-only 조회만 허용하고 Discord 재조회 실패 시 변경은 거부한다. cache가 5분을 넘으면 조회도 `unavailable`로 처리하며 고위험 작업은 항상 현재 역할을 조회한다. | 권한 상실 반영 시간, Discord 장애 시 안전한 실패와 cache 무효화를 검증한다. |
-| OWN-029 | 결정 | Discord user access/refresh token은 프로젝트에 지속 저장하지 않는다. OAuth access token은 로그인 identity 확인에만 일시 사용하고 이후 자체 server-side session과 bot-side member 조회를 사용한다. | user token 장기 보존을 배제하고 web→bot 역할 조회 경계와 session 폐기를 비교한다. |
+| OWN-029 | 결정 | Discord user access/refresh token은 프로젝트에 지속 저장하지 않는다. OAuth access token은 로그인 identity 확인에만 일시 사용하고 이후 자체 server-side session과 bot-side member 조회를 사용한다. | user token 장기 보존을 배제하고 같은 server의 local bot-side 역할 조회와 session 폐기를 검증한다. |
 | OWN-030 | 결정 | 임의 Vercel Preview에서는 Discord 로그인과 변경 기능을 끈다. 인증 검증이 필요할 때만 고정 preview에 운영과 분리된 Discord app·credential을 사용한다. | redirect URI, cookie, secret과 data credential의 환경 분리를 검증한다. |
 | OWN-031 | 결정 | 권한·복구 관련 고위험 작업은 15분 이내 로그인, 현재 Discord 역할 강제 조회와 명시적 사용자 확인을 모두 요구한다. | recent-auth·role 조회·CSRF·감사 중 하나라도 실패하면 기본 거부한다. |
 | OWN-032 | 결정 | 자가 bot host 장애 중에도 5분 이내의 유효한 역할 cache가 있으면 read-only 조회만 허용한다. cache 만료 뒤에는 인증된 조회 전체를 `unavailable`로 처리하고 변경·고위험 작업은 즉시 거부한다. | host 장애와 Discord 조회 실패에서 stale 권한이 5분을 넘지 않도록 검증한다. |
 | OWN-033 | 결정 | 고위험 작업의 마지막 Discord OAuth 로그인이 15분을 넘으면 OAuth를 다시 완료한다. 이후 현재 역할 조회와 명시적 확인도 모두 요구하며 단순 session 활동은 recent-auth를 갱신하지 않는다. | 재인증 시각을 OAuth 완료 시각으로 고정하고 session 탈취 방어와 실패 경로를 검증한다. |
+| OWN-034 | 결정 | 첫 MVP는 web과 bot을 하나의 지속 server 배포 경계에 두어 현재 역할 조회의 web→bot network 경계를 제거한다. 외부 임대 단일 server와 소유 Mac·Windows 중 실제 host는 D-09에서 비교한다. | `OWN-017`의 개인·비상업·저비용 조건은 유지하지만 Vercel Hobby를 필수 운영 경계로 보지 않는다. 저장소·host·process 인증 기술은 별도로 결정한다. |
 
 ## 가정과 미확인 사항
 
 - 단일 개인 Discord 서버용 소규모 시스템이며 첫해 월 명령은 최대 10,000회로 검증한다. 예상 사용자 수, 메시지량과 동시 게임 수는 미확인이다.
 - 현재 저장소에는 제품 코드, Accepted ADR, 승인 구현 계획과 기존 런타임 의존성이 없다.
-- `waw.dubeom.com` 소유권, DNS 공급자, 기존 Vercel 프로젝트와 운영 계정 상태는 확인하지 않았다.
+- `waw.dubeom.com` 소유권과 실제 단일 server 연결 방식은 확인하지 않았다. 현재 DNS nameserver가 가비아라는 사실만 경계 Spike 준비 중 확인했다.
 - KBO 30분 지연의 측정 시작점은 KBO 기능 재개와 허가된 공급자의 시각 필드 확인 전까지 미결정이다.
 - 외부 API 계약과 2026년 현재 지원 상태는 이 문서에서 사실로 확정하지 않았다. 각 조사 단계에서 공식 자료로 확인한다.
 - 연구 중 설치나 배포는 하지 않는다. 문서만으로 불충분할 때 별도 승인된 Spike가 최소한의 폐기 가능한 자원을 사용할 수 있다.
