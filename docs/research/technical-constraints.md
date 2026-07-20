@@ -131,6 +131,8 @@
 | OWN-029 | 결정 | Discord user access/refresh token은 프로젝트에 지속 저장하지 않는다. OAuth access token은 로그인 identity 확인에만 일시 사용하고 이후 자체 server-side session과 bot-side member 조회를 사용한다. | user token 장기 보존을 배제하고 web→bot 역할 조회 경계와 session 폐기를 비교한다. |
 | OWN-030 | 결정 | 임의 Vercel Preview에서는 Discord 로그인과 변경 기능을 끈다. 인증 검증이 필요할 때만 고정 preview에 운영과 분리된 Discord app·credential을 사용한다. | redirect URI, cookie, secret과 data credential의 환경 분리를 검증한다. |
 | OWN-031 | 결정 | 권한·복구 관련 고위험 작업은 15분 이내 로그인, 현재 Discord 역할 강제 조회와 명시적 사용자 확인을 모두 요구한다. | recent-auth·role 조회·CSRF·감사 중 하나라도 실패하면 기본 거부한다. |
+| OWN-032 | 결정 | 자가 bot host 장애 중에도 5분 이내의 유효한 역할 cache가 있으면 read-only 조회만 허용한다. cache 만료 뒤에는 인증된 조회 전체를 `unavailable`로 처리하고 변경·고위험 작업은 즉시 거부한다. | host 장애와 Discord 조회 실패에서 stale 권한이 5분을 넘지 않도록 검증한다. |
+| OWN-033 | 결정 | 고위험 작업의 마지막 Discord OAuth 로그인이 15분을 넘으면 OAuth를 다시 완료한다. 이후 현재 역할 조회와 명시적 확인도 모두 요구하며 단순 session 활동은 recent-auth를 갱신하지 않는다. | 재인증 시각을 OAuth 완료 시각으로 고정하고 session 탈취 방어와 실패 경로를 검증한다. |
 
 ## 가정과 미확인 사항
 

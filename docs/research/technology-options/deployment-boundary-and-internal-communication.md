@@ -20,7 +20,7 @@
 | `OWN-016`~`OWN-018` | 외부 임대 단일 서버와 소유자가 관리하는 단일 물리 서버를 구분한다. 자가 host는 Mac·Windows로 교체할 수 있고 Windows 노트북을 대체 host 후보로 보유하며, Vercel은 개인·비상업 Hobby 기준으로 조사한다. |
 | `OWN-019`~`OWN-021` | 허용된 영구 데이터 전체의 RPO와 전체 서비스 검증 기준 RTO, 일반 변경의 제한된 비동기 처리, canonical 설정과 stale 표시 가능한 heartbeat를 통신 비교 입력으로 사용한다. |
 | `OWN-022`~`OWN-025` | 자가 host 장애 중 설정·감사 조회 중단을 허용하고 월 명령 10,000회로 data 경계를 검증한다. PITR은 필수가 아니며 요구 충족 중 관리형 DB 무료 tier를 허용한다. |
-| `OWN-026`~`OWN-031` | Discord OAuth만 사용하되 user token은 보존하지 않고 bot-side 역할 조회를 사용한다. 5분 read-only cache, preview 분리와 고위험 15분 recent-auth·현재 역할·명시적 확인을 경계 입력으로 사용한다. |
+| `OWN-026`~`OWN-033` | Discord OAuth만 사용하되 user token은 보존하지 않고 bot-side 역할 조회를 사용한다. host 장애 중 5분 read-only cache, preview 분리와 고위험 OAuth 재인증·현재 역할·명시적 확인을 경계 입력으로 사용한다. |
 | `DEP-001` | 운영 대시보드의 유일한 표준 주소는 `https://waw.dubeom.com`이며 HTTPS와 소유권 검증이 필요하다. |
 | `DEP-002` | 운영/미리보기의 redirect URI, 쿠키, 비밀과 내부 인증정보를 분리한다. |
 | `DEP-003` | 정책의 네 배포 형태를 비용, 운영, 장애 격리, 백업, 보안, 확장성과 종속성으로 비교한다. |
@@ -49,7 +49,7 @@
 - 모든 변경 의도에는 전역적으로 안정적인 `operation_id`, actor, 허용 guild, 대상, 생성 시각, 만료 시각, schema version과 상관관계 ID가 필요하다.
 - 생성/승인과 실행 결과는 분리한다. timeout은 “실패가 확정됨”이 아니라 “결과 미확인”일 수 있으므로 동일 `operation_id` 조회 또는 재시도가 가능해야 한다.
 - 중복 방지는 transport의 “정확히 한 번” 주장에 맡기지 않고 영구 결과 또는 조건부 상태 전이로 검증한다. Discord interaction ID처럼 원천의 안정 ID가 있으면 포함한다.
-- 권한은 브라우저 판단을 신뢰하지 않는다. bot-side 현재 역할 조회를 사용하며 최대 5분 cache는 read-only에만 유효하다. 변경 조회 실패는 거부하고 고위험 작업은 15분 이내 로그인·현재 역할·명시적 확인을 모두 요구한다.
+- 권한은 브라우저 판단을 신뢰하지 않는다. bot-side 현재 역할 조회를 사용하며 host 장애 중 최대 5분 cache는 read-only에만 유효하다. 만료 뒤 인증된 조회는 `unavailable`이고 변경은 즉시 거부한다. 고위험 작업은 15분 이내 Discord OAuth 완료·현재 역할·명시적 확인을 모두 요구한다.
 - 내부 요청 body, queue/event payload, 저장소 행과 로그에 Discord 원문, OAuth code, token, session identifier 또는 비밀을 넣지 않는다.
 - 웹이 봇 상태를 읽지 못하면 최근 성공 상태를 현재 상태처럼 표시하지 않고 `stale/unknown`과 마지막 관측 시각을 표시한다.
 - 설정 변경이 안전하게 전달되지 않았으면 적용 완료로 응답하지 않는다. 비동기 접수라면 `accepted`와 `applied`를 명확히 구분한다.

@@ -16,7 +16,7 @@
 | `OWN-002`, `OWN-013` | 단일 guild에서 guild owner는 관리자다. 그 외에는 설정된 운영자·관리자 role만 인정하며 Discord `ADMINISTRATOR` bit만으로 승격하지 않는다. 고위험 작업 직전 현재 role을 다시 조회한다. |
 | `OWN-020`, `OWN-021` | 고위험 변경은 즉시 적용 확인이 불가능하면 실패하며 live bot control은 요구하지 않는다. |
 | `OWN-022` | 자가 host 장애 중 설정·감사 조회와 변경 중단을 허용하고 신뢰할 최근 상태가 없으면 `unavailable`로 표시한다. |
-| `OWN-026`~`OWN-031` | Discord OAuth만 허용하고, 1일 유휴·7일 절대 세션, 5분 역할 cache, Discord user token 비보존, preview 분리와 고위험 recent-auth 계약을 적용한다. |
+| `OWN-026`~`OWN-033` | Discord OAuth만 허용하고, 1일 유휴·7일 절대 세션, 5분 read-only 역할 cache, Discord user token 비보존, preview 분리와 고위험 OAuth 재인증 계약을 적용한다. |
 | D-03 | browser는 불신 경계다. OAuth·session secret은 필요한 최소 기간만 보호 저장할 수 있으나 로그·감사·URL·화면·평문 backup에는 넣지 않는다. |
 
 인증(authentication), 제품 인가(authorization), session, workload 인증을 분리한다. Discord 로그인 성공은 user ID를 증명할 뿐 허용 guild·현재 role·작업 권한을 자동으로 증명하지 않는다. browser session은 web→bot 또는 web→DB credential로 재사용하지 않는다.
@@ -155,6 +155,8 @@ Browser에는 추측 불가능한 session ID만 host-only cookie로 두고 ident
 - session 발급·재발급·폐기와 login 실패는 actor가 확인된 범위, 시각, event type, outcome과 reason만 감사한다. session ID, OAuth code/token, cookie, raw header, IP와 User-Agent는 기본 저장하지 않는다.
 - 보호 요청은 session 존재뿐 아니라 현재 server-side authorization tier와 허용 guild를 검사한다. role 조회 timeout·Discord 401/403/404/429·internal auth 실패는 권한 승인으로 승격하지 않는다.
 - 고위험 작업은 현재 Discord member/owner/roles를 강제 재조회하고 관리자 tier와 CSRF를 다시 확인한 뒤에만 실행한다. 역할 조회와 감사 선행 기록 중 하나라도 실패하면 전체 거부한다.
+- 자가 bot host 장애 중에는 5분 이내의 유효한 역할 cache로 read-only만 허용한다. 만료 뒤 인증된 조회도 `unavailable`이며 mutation과 고위험 작업은 즉시 거부한다.
+- 고위험 작업의 마지막 Discord OAuth 완료 시각이 15분을 넘으면 OAuth를 다시 완료한다. 단순 session 활동은 이 시각을 갱신하지 않으며, 재인증 뒤에도 현재 역할 조회와 명시적 확인을 생략하지 않는다.
 
 ## 7. Workload 인증 후보와 D-05·D-08 영향
 
