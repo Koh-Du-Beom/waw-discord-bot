@@ -87,7 +87,7 @@
 ## 추적성 공백과 충돌
 
 - 현재 문서 사이에 직접적인 정책 충돌은 발견되지 않았다.
-- Discord OAuth는 “사용할 수 있음”으로 표현되어 있지만 대시보드 접근은 Discord 서버와 역할을 검증해야 한다. 인증 방식 확정 전, Discord OAuth가 필수인지 대체 인증도 허용되는지 소유자 확인이 필요하다.
+- 대시보드 로그인은 Discord OAuth만 허용한다. OAuth 로그인 성공 자체는 인가가 아니며, 허용 guild와 현재 역할을 서버에서 별도로 검증한다.
 - 시간 범위 전체 요약은 요청 시작 시점에 명령 위치에서 봇이 접근할 수 있는 메시지를 기준으로 한다. 수집 중 삭제·편집·권한 변경으로 완전성을 보장할 수 없으면 부분 결과 없이 전체 요청을 실패시킨다.
 - 원문은 프로젝트 DB·파일·로그에 영구 저장하지 않는다. 학습에 사용되지 않는 유료 API 설정에서 공급자의 제한적인 안전성 보존은 고지를 전제로 허용하며, 별도 상태 저장은 끄고 ZDR이 현실적으로 가능하면 우선 검토한다.
 - KBO 기능은 허가된 공급 경로가 생길 때까지 연기한다. DB 저장 여부와 무관하게 서면 허가 없는 웹 크롤링이나 소비자 앱 내부 API를 운영 경로로 사용하지 않는다.
@@ -125,6 +125,12 @@
 | OWN-023 | 결정 | 첫해 저장량과 비용은 월 명령 10,000회를 상한 시나리오로 검증한다. | 감사 attempt/outcome과 1년 dedupe 보존을 포함한 database·index·export 크기 및 Free tier 적합성을 계산한다. |
 | OWN-024 | 결정 | PITR은 첫 MVP의 필수 요구로 두지 않는다. 전체 장애는 24시간 외부 backup으로 복구하고 잘못된 설정·관리자 작업은 감사된 설정 변경 이력과 이전 값으로 되돌린다. | `OPS-005`~`OPS-007`을 만족하는 snapshot/dump와 변경 이력 복구를 우선 검증하고 WAL·관리형 PITR은 필수 후보 기능에서 제외한다. |
 | OWN-025 | 결정 | 용량·보안·복구 요구를 충족하는 동안 관리형 database의 무료 tier 사용을 허용한다. 조건 변경이나 한도 초과 시 표준 export로 이전할 수 있어야 한다. | `DAT-004`와 비용 비교에서 관리형 PostgreSQL을 후보로 유지하되 무료 tier를 운영 보장으로 간주하지 않는다. |
+| OWN-026 | 결정 | 대시보드 로그인은 Discord OAuth만 허용하고 별도 로그인은 제공하지 않는다. | Discord identity와 계정 연결 경계를 하나로 제한하되 OAuth 성공과 제품 인가를 분리한다. |
+| OWN-027 | 결정 | 대시보드 세션은 마지막 활동 후 1일, 최초 로그인 후 최대 7일 중 먼저 도달한 시점에 만료한다. | session store·cookie·재인증 검증 기준으로 사용한다. |
+| OWN-028 | 결정 | 일반 역할 cache는 최대 5분이다. 유효한 cache에서는 read-only 조회만 허용하고 Discord 재조회 실패 시 변경은 거부한다. cache가 5분을 넘으면 조회도 `unavailable`로 처리하며 고위험 작업은 항상 현재 역할을 조회한다. | 권한 상실 반영 시간, Discord 장애 시 안전한 실패와 cache 무효화를 검증한다. |
+| OWN-029 | 결정 | Discord user access/refresh token은 프로젝트에 지속 저장하지 않는다. OAuth access token은 로그인 identity 확인에만 일시 사용하고 이후 자체 server-side session과 bot-side member 조회를 사용한다. | user token 장기 보존을 배제하고 web→bot 역할 조회 경계와 session 폐기를 비교한다. |
+| OWN-030 | 결정 | 임의 Vercel Preview에서는 Discord 로그인과 변경 기능을 끈다. 인증 검증이 필요할 때만 고정 preview에 운영과 분리된 Discord app·credential을 사용한다. | redirect URI, cookie, secret과 data credential의 환경 분리를 검증한다. |
+| OWN-031 | 결정 | 권한·복구 관련 고위험 작업은 15분 이내 로그인, 현재 Discord 역할 강제 조회와 명시적 사용자 확인을 모두 요구한다. | recent-auth·role 조회·CSRF·감사 중 하나라도 실패하면 기본 거부한다. |
 
 ## 가정과 미확인 사항
 

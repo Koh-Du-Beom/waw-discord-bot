@@ -108,9 +108,9 @@
 
 ### 5.4 OAuth와 권한 변경
 
-- 대시보드의 서버 측 인가는 OAuth callback 때 한 번만 role을 복사하는 방식으로는 SEC-005를 충족하지 못한다. 보호 요청 시 현재 member/roles를 조회하거나, 짧은 cache TTL과 Guild Member/Role 이벤트 무효화를 결합하고 고위험 작업에서 강제 재조회하는 후보를 후속 위협 모델에서 비교해야 한다.
+- 대시보드의 서버 측 인가는 OAuth callback 때 한 번만 role을 복사하는 방식으로는 SEC-005를 충족하지 못한다. 일반 read-only 요청은 최대 5분의 유효한 role cache만 허용하고, 변경은 Discord 재조회 실패 시 거부하며 고위험 작업은 항상 현재 member/roles를 조회한다 (`OWN-028`).
 - 단일 허용 guild ID를 서버 설정으로 고정하고, 그 guild의 Member 조회 실패·탈퇴·role 미일치를 기본 거부하면 SEC-001과 OWN-002의 경계를 단순하게 유지할 수 있다.
-- Discord role ID 두 개를 제품의 운영자/관리자 tier로 직접 매핑할지, `ADMINISTRATOR` 보유자를 자동 관리자 취급할지는 공식 API 문제가 아니라 미확정 제품 인가 정책이다.
+- guild owner는 관리자이며, 그 외에는 설정된 운영자·관리자 role만 인정하고 `ADMINISTRATOR` bit만으로 승격하지 않는다 (`OWN-013`).
 
 ### 5.5 SDK 검증 조건
 
@@ -130,7 +130,7 @@
 |---|---|---|---|
 | 24시간 메시지 | HTTP `Get Channel Messages` cursor pagination | Gateway 수신 cache 또는 Search endpoint | HTTP history가 과거 범위와 명시적 pagination을 공식 지원한다. Gateway-only는 공백이 있고 Search는 완전성 경고가 있다. 삭제·비가시 메시지는 어느 쪽도 복원하지 못한다. |
 | Go Live | `VOICE_STATE_UPDATE.self_stream` + 현재 Voice State HTTP 대조 | Presence Activity type 1 추정 | Voice State가 Go Live를 직접 명명한다. Presence streaming은 Twitch/YouTube용이므로 대안에서 제외한다. |
-| 대시보드 인가 | OAuth `guilds.members.read`로 요청 시 현재 member/roles 확인 | bot token의 `Get Guild Member` + Gateway cache | 둘 다 공식 경로다. 전자는 로그인 사용자 동의·token 수명, 후자는 bot 권한·서비스 경계를 가진다. 재검증 주기와 고위험 작업 정책은 별도 결정이다. |
+| 대시보드 인가 | OAuth `guilds.members.read`로 요청 시 현재 member/roles 확인 | bot token의 `Get Guild Member` + 짧은 cache | 둘 다 공식 경로다. 소유자 결정은 Discord user token을 보존하지 않고 후자를 첫 검증 경로로 사용하며, 5분 read-only cache와 고위험 강제 재조회를 요구한다. 기술 선택은 아니다. |
 | 일반 bot SDK | 검증된 커뮤니티 SDK | Discord HTTP/Gateway 직접 구현 | SDK는 연결/rate-limit 복잡도를 줄일 수 있으나 공급망과 기능 지연을 검증해야 한다. 직접 구현은 의존성 대신 프로토콜·운영 책임이 커진다. 선택하지 않는다. |
 | 단일 활성 실행 | 배포 계층에서 하나의 Gateway owner 보장 | 중복 인스턴스를 허용하고 downstream 멱등성만 적용 | Discord가 단일 owner를 제공하지 않으며 중복 명령·스케줄 실행을 막아야 하므로 OPS-002에는 외부 조정 검증이 필요하다. 구체 방식은 D-09 범위다. |
 
@@ -148,8 +148,7 @@
 - 삭제·편집·권한 변경이 동시 발생할 때 FUN-004가 요구하는 “누락 없음”의 제품 계약
 - Discord의 현재 Voice State HTTP endpoint가 비접속 사용자와 권한 부족에 반환하는 정확한 status/body, `self_stream` 누락 의미
 - Gateway Resume 가능 시간 창과 장시간 단절 뒤 Go Live 전환 복구 가능성
-- 운영자/관리자 role ID 매핑과 guild owner/`ADMINISTRATOR` 자동 승인 여부
-- OAuth member 재조회 주기, token 보관·refresh 범위와 고위험 작업의 강제 재검증 조건
+- bot-side member 조회의 web→bot 경계와 cache 무효화가 `OWN-028`의 5분·기본 거부 조건을 충족하는지
 - `MESSAGE_CONTENT` 사용이 단일 개인 guild에서 계속 허용되는 조건과 향후 verification/app review 영향
 - Discord 메시지를 외부 요약 API inference로 전송할 때 필요한 사용자 고지·동의, 공급자 보존과 Discord 정책 적합성
 - 예상 channel/thread/message 수에서 24시간 수집이 OWN-003의 2분 목표와 HTTP rate limit을 만족하는지
@@ -167,7 +166,7 @@
 
 ### 잠정 권고
 
-후속 연구의 가능성 기준선은 문서화된 Gateway/HTTP/OAuth/Voice State만 사용한다. 메시지는 HTTP history pagination, Go Live는 Voice State `self_stream`, 대시보드 인가는 현재 guild member/roles의 서버 측 재확인을 기준으로 삼되, SDK·배포·재검증 방식은 선택하지 않는다.
+후속 연구의 가능성 기준선은 문서화된 Gateway/HTTP/OAuth/Voice State만 사용한다. 메시지는 HTTP history pagination, Go Live는 Voice State `self_stream`, 대시보드는 Discord OAuth identity와 bot-side current member 조회를 기준으로 삼되 SDK·배포·내부 인증 기술은 선택하지 않는다.
 
 ### 가장 강한 대안
 
@@ -187,7 +186,7 @@
 - 필요한 channel/thread의 `MESSAGE_CONTENT`, `VIEW_CHANNEL`, `READ_MESSAGE_HISTORY`를 허용할 수 없음
 - Discord 정책 또는 App Review가 요청별 요약을 위한 메시지 내용 처리를 허용하지 않음
 - 실제 24시간 사용량이 rate limit과 2분 목표 안에서 수집되지 않음
-- OAuth member/role 재조회가 요구된 권한 변경 반영 시간 또는 token 최소화 정책을 충족하지 못함
+- bot-side member/role 조회가 요구된 5분 cache·고위험 즉시 재검증 또는 token 최소화 정책을 충족하지 못함
 
 ## 10. 공식 출처
 

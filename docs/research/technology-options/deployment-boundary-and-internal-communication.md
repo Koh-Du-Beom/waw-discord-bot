@@ -20,6 +20,7 @@
 | `OWN-016`~`OWN-018` | 외부 임대 단일 서버와 소유자가 관리하는 단일 물리 서버를 구분한다. 자가 host는 Mac·Windows로 교체할 수 있고 Windows 노트북을 대체 host 후보로 보유하며, Vercel은 개인·비상업 Hobby 기준으로 조사한다. |
 | `OWN-019`~`OWN-021` | 허용된 영구 데이터 전체의 RPO와 전체 서비스 검증 기준 RTO, 일반 변경의 제한된 비동기 처리, canonical 설정과 stale 표시 가능한 heartbeat를 통신 비교 입력으로 사용한다. |
 | `OWN-022`~`OWN-025` | 자가 host 장애 중 설정·감사 조회 중단을 허용하고 월 명령 10,000회로 data 경계를 검증한다. PITR은 필수가 아니며 요구 충족 중 관리형 DB 무료 tier를 허용한다. |
+| `OWN-026`~`OWN-031` | Discord OAuth만 사용하되 user token은 보존하지 않고 bot-side 역할 조회를 사용한다. 5분 read-only cache, preview 분리와 고위험 15분 recent-auth·현재 역할·명시적 확인을 경계 입력으로 사용한다. |
 | `DEP-001` | 운영 대시보드의 유일한 표준 주소는 `https://waw.dubeom.com`이며 HTTPS와 소유권 검증이 필요하다. |
 | `DEP-002` | 운영/미리보기의 redirect URI, 쿠키, 비밀과 내부 인증정보를 분리한다. |
 | `DEP-003` | 정책의 네 배포 형태를 비용, 운영, 장애 격리, 백업, 보안, 확장성과 종속성으로 비교한다. |
@@ -48,7 +49,7 @@
 - 모든 변경 의도에는 전역적으로 안정적인 `operation_id`, actor, 허용 guild, 대상, 생성 시각, 만료 시각, schema version과 상관관계 ID가 필요하다.
 - 생성/승인과 실행 결과는 분리한다. timeout은 “실패가 확정됨”이 아니라 “결과 미확인”일 수 있으므로 동일 `operation_id` 조회 또는 재시도가 가능해야 한다.
 - 중복 방지는 transport의 “정확히 한 번” 주장에 맡기지 않고 영구 결과 또는 조건부 상태 전이로 검증한다. Discord interaction ID처럼 원천의 안정 ID가 있으면 포함한다.
-- 권한은 브라우저 판단을 신뢰하지 않는다. 웹이 승인한 actor·guild·role 문맥과 봇이 실행할 수 있는 기능을 각각 최소화하며 고위험 역할 재검증 정책은 D-07에서 정한다.
+- 권한은 브라우저 판단을 신뢰하지 않는다. bot-side 현재 역할 조회를 사용하며 최대 5분 cache는 read-only에만 유효하다. 변경 조회 실패는 거부하고 고위험 작업은 15분 이내 로그인·현재 역할·명시적 확인을 모두 요구한다.
 - 내부 요청 body, queue/event payload, 저장소 행과 로그에 Discord 원문, OAuth code, token, session identifier 또는 비밀을 넣지 않는다.
 - 웹이 봇 상태를 읽지 못하면 최근 성공 상태를 현재 상태처럼 표시하지 않고 `stale/unknown`과 마지막 관측 시각을 표시한다.
 - 설정 변경이 안전하게 전달되지 않았으면 적용 완료로 응답하지 않는다. 비동기 접수라면 `accepted`와 `applied`를 명확히 구분한다.
@@ -105,7 +106,7 @@
 
 ## 5. 웹-봇 내부 통신 방식 비교
 
-여기서 “상호 인증”은 직접 API라면 웹과 봇이 상대 workload identity와 허용 권한을 검증하고, broker·공유 DB·event 방식이라면 각 workload와 중계자가 서로의 identity와 권한을 검증한다는 최소 요구다. 중계자의 ACL을 원 발신자 인증으로 충분히 인정할지, payload 수준 발신자·환경·만료 검증까지 요구할지는 **D-07에서 공식 근거와 위협 모델로 비교·결정**한다. mTLS, 서명 token, service identity proxy 등 구체 수단과 rotation·revoke 방식도 이 문서에서는 선택하지 않는다.
+여기서 “상호 인증”은 직접 API라면 웹과 봇이 상대 workload identity와 허용 권한을 검증하고, broker·공유 DB·event 방식이라면 각 workload와 중계자가 서로의 identity와 권한을 검증한다는 최소 요구다. D-07은 browser session과 workload credential을 분리하고 환경별 최소 권한·rotation·revoke를 요구한다. 중계자 ACL과 payload 검증의 구체 조합, mTLS·서명 token·service identity proxy 등 수단은 D-05·D-08 경계가 정해지기 전 선택하지 않는다.
 
 | 방식 | 공개 면적·상호 인증 | 멱등성·timeout | 장애 격리 | 운영 비용·적합성 |
 |---|---|---|---|---|
@@ -172,7 +173,7 @@ RPO 24시간은 “하루마다 backup job을 실행”이 아니라 복구 가�
 1. 자가 host와 대체 Windows 노트북의 사양, 전원·network, 무인 실행, OS update/reboot, 환경 재현과 실제 복원 시간.
 2. 월 GPT budget, domain 증분 비용, 월 명령 10,000회의 실제 DB/backup 크기와 내부 작업량. 이것 없이는 형태별 30,000원 합계 판정이 불가능하다.
 3. D-05 후보 중 어느 저장소가 web과 bot의 동시 접근, 조건부 전이, credential 분리와 외부 backup을 요구 비용 안에서 검증할지는 미확정이다.
-4. 상호 인증, credential rotation/revoke, workload별 권한과 운영/미리보기 분리는 D-07에서 결정해야 한다.
+4. browser session과 workload credential 분리, credential rotation/revoke, workload별 최소 권한과 운영/미리보기 분리는 확정됐다. 구체 workload 인증 수단은 D-05·D-08 경계와 함께 검증해야 한다.
 
 ### 확정된 사용자 결정
 
@@ -199,7 +200,7 @@ RPO 24시간은 “하루마다 backup job을 실행”이 아니라 복구 가�
 
 자가 호스트 우선 정책을 존중해 **형태 2(Vercel 웹 + 소유 단일 서버의 봇·데이터)**를 첫 검증 대상으로 두되 배포 기술로 확정하지 않는다. 웹-봇 경계는 Discord 원문이 없는 좁은 control plane으로 제한하고, 자가 host에 public inbound port를 직접 열지 않는 **outbound pull queue 또는 이미 필요한 공유 저장소의 versioned inbox/state**를 우선 비교한다. live control과 즉시 상태 조회는 요구하지 않으며 canonical 설정과 stale 표시 가능한 heartbeat로 충분한지 검증한다.
 
-이 잠정 방향은 인증 기술을 고르지 않는다. 어떤 방식이든 양 workload 신원 확인, 최소 권한, credential 폐기·교체와 환경 분리는 D-07 결정 항목이다. 공유 저장소 사용 여부도 D-05가 결정되기 전에 확정하지 않는다.
+이 잠정 방향은 인증 기술을 고르지 않는다. 어떤 방식이든 양 workload 신원 확인, 최소 권한, credential 폐기·교체와 환경 분리를 지켜야 한다. 공유 저장소 사용 여부와 구체 workload 인증 수단은 D-05·D-08 통합 검토 전 확정하지 않는다.
 
 ### 가장 강한 대안
 
