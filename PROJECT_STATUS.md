@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-D-05 Supabase Free PostgreSQL 저장소 결정 Accepted; D-07 인증 결정·backup/restore 계획 대기
+Accepted architecture 기준 구현 계획 정합화 및 Task 1 local contract 구현 준비
 
 ## 완료
 
