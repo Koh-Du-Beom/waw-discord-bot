@@ -67,6 +67,16 @@
 
 환경별 비밀정보를 분리하고, 최소 권한과 정기 교체 절차를 정의합니다.
 
+### 첫 MVP capability 경계
+
+| 주체 | 주입받는 capability | 금지 capability |
+|---|---|---|
+| web runtime | local command service, opaque session 검증 결과 | Discord bot token, Supabase migration/backup credential |
+| bot runtime | Discord bot token, current member/role reader | browser cookie/session ID, OAuth code/token |
+| migration/backup job | 별도 최소 DB/backup credential | Discord bot token, browser session credential |
+
+같은 Lightsail host라도 capability를 명시적으로 주입하고, web과 bot module은 서로의 비밀값을 읽지 않는다. 실제 process account·environment-file permission과 Supabase workload별 DB role은 production credential을 만들기 전 별도 검증한다.
+
 ## 6. OAuth와 세션
 
 - OAuth `state` 검증
