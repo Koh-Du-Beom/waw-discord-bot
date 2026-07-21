@@ -77,6 +77,7 @@ D-09 서울 1GB runtime 수용량 Spike 실행 승인 대기
 - 서울 Lightsail을 잠정 첫 검증 후보, 도쿄 Akamai를 가장 강한 외부 대안으로 두되 공급자·region·OS·plan 선택은 보류
 - 세 공급자 동시 비교를 생략하고 서울 1GB fixture에서 TypeScript·Python을 순차 비교하는 최소 runtime 수용량 Spike 제안 작성; VM 생성·실행은 미승인
 - 서울 Lightsail 1GB Spike의 읽기 전용 사전 확인, 비운영 SSH key, 생성·firewall·측정·HTTPS 확인·삭제와 잔존 과금 resource 검사 runbook 작성; 실행은 미승인
+- D-09 TypeScript·Python 폐기 가능 harness의 문법과 3초 local 합성 self-check 통과; VM system metric과 60분 안정성은 미검증
 
 ## 진행 중
 
@@ -89,7 +90,8 @@ D-09 서울 1GB runtime 수용량 Spike 실행 승인 대기
 
 서울 Lightsail 1GB 임시 VM 한 대, 최대 USD 3 지출, 현재 관리 단말 `/32`의
 임시 SSH와 합성 HTTPS endpoint 공개, 비운영 SSH key 사용 및 시험 후 모든
-resource 삭제 범위의 승인을 받은 뒤 harness를 local 검증하고 Spike를 실행합니다.
+resource 삭제 범위의 승인을 받은 뒤 Spike를 실행합니다. Harness의 local 합성
+self-check는 완료했으며 VM system metric 수집은 실행 전 최종 점검합니다.
 
 ## 차단 요소
 

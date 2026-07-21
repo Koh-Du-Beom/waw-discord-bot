@@ -1,6 +1,6 @@
 # 1GB runtime 수용량 Spike 제안
 
-- 상태: Proposed — 미실행, VM 생성 승인 아님
+- 상태: Proposed — local 합성 self-check 완료, VM 미실행·생성 승인 아님
 - 제안일: 2026-07-21
 - 연결 요구사항: `OPS-001`~`OPS-004`, `OWN-005`, `OWN-017`, `OWN-023`, `OWN-034`, `OWN-035`, `GAP-D09-03`, `GAP-D09-06`
 - 제품 코드 또는 기술 선택: 없음
@@ -83,6 +83,18 @@ TypeScript와 Python이 모두 하나 이상의 기준을 위반하거나 결과
 
 이 문서는 Spike 실행 승인이 아니다. 다음 승인에서는 서울 Lightsail 1GB 임시 VM 생성, 최대 USD 3 지출, 비운영 SSH key 사용과 시험 후 resource 삭제만 허용하면 된다. runtime·SDK·host 선택, ADR과 제품 구현은 포함하지 않는다.
 
+## local 합성 self-check
+
+2026-07-21에 macOS local 환경에서 두 harness의 문법과 3초 합성 실행을 검증했다. 두 runtime 모두 event accounting, 요청 완료, 오류율, HTTP p95, scheduler p99와 peak RSS의 application-level 검증을 통과했다. 이는 fixture가 실행되고 결과 검증기가 실패를 판정할 수 있다는 확인일 뿐, 1GB Linux VM의 system available memory·swap·CPU p95나 60분 안정성의 증거가 아니다.
+
+```bash
+node --check harness.mjs
+python3 -m py_compile harness.py verify.py
+sh -n run-runtime-harness.sh
+./run-runtime-harness.sh typescript 3 | python3 verify.py
+./run-runtime-harness.sh python 3 | python3 verify.py
+```
+
 ## 실행 runbook
 
 아래 명령은 실행 승인 뒤에만 사용한다. AWS profile은 별도 최소 권한 profile을 사용하고 access key, account ID와 결제 정보는 출력하거나 저장소에 기록하지 않는다. `set -x`와 AWS CLI `--debug`는 사용하지 않는다.
@@ -149,14 +161,14 @@ curl --fail --silent --show-error --output /dev/null https://gateway.discord.gg/
 fixture는 같은 합성 event 파일과 40MB 이하 store를 사용한다. TypeScript와 Python harness는 동시에 실행하지 않으며 각 후보마다 다음 순서를 반복한다.
 
 ```bash
-/usr/bin/time -v ./run-runtime-harness.sh typescript 60m | tee typescript-summary.log
-./verify-runtime-result.sh typescript-summary.log
+/usr/bin/time -v ./run-runtime-harness.sh typescript 3600 | tee typescript-summary.json
+python3 verify.py < typescript-summary.json
 sudo sync
-/usr/bin/time -v ./run-runtime-harness.sh python 60m | tee python-summary.log
-./verify-runtime-result.sh python-summary.log
+/usr/bin/time -v ./run-runtime-harness.sh python 3600 | tee python-summary.json
+python3 verify.py < python-summary.json
 ```
 
-`run-runtime-harness.sh`와 `verify-runtime-result.sh`는 실행 승인 뒤 repository에 추가해 local 합성 self-check를 먼저 통과시킨 폐기 가능한 fixture만 전송한다. summary에는 timestamp, runtime/version, RSS·CPU·available memory·HTTP latency/error·scheduler delay와 event count만 남기고 hostname, public IP, SSH path, credential, 실제 사용자 데이터는 남기지 않는다. 한 후보가 끝나면 process와 port가 사라졌는지 확인한 뒤 다음 후보를 시작한다.
+`run-runtime-harness.sh`와 `verify.py`는 local 합성 self-check를 통과시킨 폐기 가능한 fixture다. JSON summary에는 runtime/version, application peak RSS·HTTP latency/error·scheduler delay와 event count만 남긴다. VM의 CPU p95, system available memory와 swap은 별도 OS 측정으로 수집해야 하며 hostname, public IP, SSH path, credential과 실제 사용자 데이터는 기록하지 않는다. 한 후보가 끝나면 process와 port가 사라졌는지 확인한 뒤 다음 후보를 시작한다.
 
 ### 5. 임시 HTTPS 확인
 
