@@ -169,12 +169,19 @@ ssh -i "$SPIKE_LOCAL_DIR/id_rsa" -o IdentitiesOnly=yes -o StrictHostKeyChecking=
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y ca-certificates curl git jq openssl sysstat time
+sudo apt-get install -y ca-certificates curl git jq openssl sysstat time xz-utils
+curl --fail --silent --show-error --remote-name https://nodejs.org/dist/v22.23.1/node-v22.23.1-linux-x64.tar.xz
+printf '%s  %s\n' '9749e988f437343b7fa832c69ded82a312e41a03116d766797ac14f6f9eee578' 'node-v22.23.1-linux-x64.tar.xz' | sha256sum --check
+sudo tar -xJf node-v22.23.1-linux-x64.tar.xz -C /opt
+rm -f node-v22.23.1-linux-x64.tar.xz
+export PATH="/opt/node-v22.23.1-linux-x64/bin:$PATH"
 uname -a
 free -m
 df -h /
 curl --fail --silent --show-error --output /dev/null https://discord.com/api/v10/gateway
 ```
+
+Ubuntu 기본 Node 18은 현재 D-04 TypeScript 후보의 Node 22.12+ 경계를 충족하지 않는다. 따라서 Node 공식 `latest-v22.x` manifest에서 2026-07-21 확인한 v22.23.1 Linux x64 archive와 SHA-256을 fixture로 고정한다. 이는 제품 runtime version 선택이 아니며 ADR 전 지원 상태를 다시 확인한다. [Node.js v22.23.1 downloads](https://nodejs.org/dist/v22.23.1/), [official checksums](https://nodejs.org/dist/v22.23.1/SHASUMS256.txt)
 
 fixture는 같은 합성 event 파일과 40MB 이하 store를 사용한다. TypeScript와 Python harness는 동시에 실행하지 않으며 각 후보마다 다음 순서를 반복한다.
 
