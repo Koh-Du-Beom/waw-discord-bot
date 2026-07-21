@@ -17,6 +17,8 @@
 
 Orca browser download hook은 선택된 object를 expected local path에 전달하지 못했다. 따라서 이 실행은 S3 upload/list/delete와 cleanup만 증명하며 downloaded-byte checksum, wrong-identity failure, valid-identity decrypt, empty PostgreSQL restore, backup-only writer deny 및 lifecycle prefix scope는 증명하지 않는다.
 
+같은 hook 한계는 temporary self-managed access-key CSV download에도 재현됐다. key secret을 local file·log·문서에 저장하지 않았고, access key를 즉시 비활성화·삭제한 뒤 IAM console의 key count `0`을 확인했다. 따라서 S3 CLI byte-checksum verifier는 실행하지 않았다. self access-key IAM policy attachment는 owner가 console에서 제거해야 한다.
+
 ## Local restore companion
 
 `run-local-postgres-restore.zsh`는 Docker의 disposable PostgreSQL 16 source/target 두 개와 synthetic fixture만 사용한다. source custom dump를 `age`로 encrypt/decrypt하여 target empty database에 restore하고 row count와 invariant를 확인한다. trap이 containers와 temporary key/archive를 지운다. 실행 전에는 `postgres:16-alpine` image가 필요하며, AWS/Supabase/production credential을 사용하지 않는다.
