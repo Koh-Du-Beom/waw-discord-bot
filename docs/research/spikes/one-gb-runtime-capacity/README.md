@@ -140,11 +140,10 @@ SPIKE_BUNDLE='<사전 확인한 active 1GB public IPv4 bundleId>'
 SPIKE_LOCAL_DIR="$(mktemp -d /tmp/waw-capacity-spike.XXXXXX)"
 chmod 700 "$SPIKE_LOCAL_DIR"
 ssh-keygen -q -t rsa -b 3072 -N '' -C "$SPIKE_KEY" -f "$SPIKE_LOCAL_DIR/id_rsa"
-openssl base64 -A -in "$SPIKE_LOCAL_DIR/id_rsa.pub" -out "$SPIKE_LOCAL_DIR/id_rsa.pub.b64"
-aws lightsail import-key-pair --profile waw-spike --region "$SPIKE_REGION" --key-pair-name "$SPIKE_KEY" --public-key-base64 "file://$SPIKE_LOCAL_DIR/id_rsa.pub.b64"
+aws lightsail import-key-pair --profile waw-spike --region "$SPIKE_REGION" --key-pair-name "$SPIKE_KEY" --public-key-base64 "file://$SPIKE_LOCAL_DIR/id_rsa.pub"
 ```
 
-private key는 `mktemp`가 만든 mode 700 임시 directory에만 두고 저장소, shell history 인자, 문서와 원격 VM에 복사하지 않는다. Lightsail CLI의 `publicKeyBase64`는 binary `fileb://`가 아니라 base64 text string을 요구하므로 public key를 별도 text file로 변환해 `file://`로 읽는다. Public key만 Lightsail에 올리며 시험 종료 시 local key와 provider key를 모두 삭제한다.
+private key는 `mktemp`가 만든 mode 700 임시 directory에만 두고 저장소, shell history 인자, 문서와 원격 VM에 복사하지 않는다. Lightsail CLI의 `publicKeyBase64`는 binary `fileb://`나 사용자가 다시 base64-encoding한 text가 아니라 OpenSSH public key 원문 string을 `file://`로 읽을 때 성공함을 import→delete probe로 확인했다. Public key만 Lightsail에 올리며 시험 종료 시 local key와 provider key를 모두 삭제한다.
 
 ### 3. 생성과 최소 firewall
 
