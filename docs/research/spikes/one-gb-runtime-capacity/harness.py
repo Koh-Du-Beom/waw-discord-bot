@@ -50,8 +50,13 @@ def monitor_scheduler():
         expected += 0.01
         now = time.monotonic()
         scheduler_delays.append(max(0, (now - expected) * 1000))
-        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        rss_samples.append(rss / 1024 / 1024 if sys.platform == "darwin" else rss / 1024)
+        if sys.platform.startswith("linux"):
+            with open("/proc/self/status", encoding="utf-8") as status:
+                rss_kib = next(int(line.split()[1]) for line in status if line.startswith("VmRSS:"))
+            rss_samples.append(rss_kib / 1024)
+        else:
+            rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            rss_samples.append(rss / 1024 / 1024 if sys.platform == "darwin" else rss / 1024)
         expected = now
 
 

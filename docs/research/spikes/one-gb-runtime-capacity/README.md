@@ -190,10 +190,22 @@ python3 verify.py < python-summary.json
 
 ### 5. 임시 HTTPS 확인
 
+Runtime 측정이 모두 끝난 뒤 VM에서 1일 self-signed certificate와 폐기 가능한 health server를 준비한다. Private key는 VM의 mode 700 임시 directory 밖으로 복사하지 않고 health 확인 직후 server·certificate·key를 제거한다.
+
+```bash
+HTTPS_DIR="$(mktemp -d /tmp/waw-https.XXXXXX)"
+chmod 700 "$HTTPS_DIR"
+openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 1 -subj '/CN=waw-capacity-spike' -keyout "$HTTPS_DIR/key.pem" -out "$HTTPS_DIR/cert.pem"
+sudo node ./https-health.mjs 443 "$HTTPS_DIR/cert.pem" "$HTTPS_DIR/key.pem" &
+HTTPS_PID=$!
+```
+
 ```bash
 aws lightsail open-instance-public-ports --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE" --port-info fromPort=443,toPort=443,protocol=tcp
 for attempt in 1 2 3 4 5; do curl --insecure --fail --silent --show-error --output /dev/null --write-out '%{http_code} %{time_total}\n' "https://$SPIKE_HOST/health"; done
 aws lightsail close-instance-public-ports --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE" --port-info fromPort=443,toPort=443,protocol=tcp
+sudo kill "$HTTPS_PID"
+rm -rf "$HTTPS_DIR"
 ```
 
 자체 서명 시험 certificate라서 이 단계에만 `--insecure`를 허용한다. 운영 TLS, DNS 또는 인증 방식의 근거로 사용하지 않는다.
