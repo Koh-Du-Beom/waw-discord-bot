@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-PLAN-0001 Task 1~5 local foundation 구현 완료; D-13 `age` backup encryption Accepted; synthetic encryption·S3 restore Spike 준비
+PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest verifier 완료, Task 2 AWS disposable Spike credential gate 대기
 
 ## 완료
 
@@ -110,6 +110,8 @@ PLAN-0001 Task 1~5 local foundation 구현 완료; D-13 `age` backup encryption 
 - D-13 backup encryption 도구를 `age`, OpenSSL passphrase, S3 SSE-KMS-only로 비교하고 public recipient/offline identity 기반 Proposed `ADR-0009`를 작성
 - `ADR-0009` Accepted: `age` public-recipient encryption을 사용하고 runtime에는 public recipient만, private identity는 owner offline custody에 보관
 - synthetic `age` recipient encryption contract에서 temporary key·SQL의 gzip encrypt/decrypt byte round trip과 archive secret marker 부재를 확인하고 temporary directory 자동 정리
+- `PLAN-0002` S3 encrypted backup/restore 계획 작성: local manifest verifier, disposable S3 restore Spike, production job·rehearsal을 credential gate별 bounded task로 분리
+- PLAN-0002 Task 1의 archive manifest verifier를 추가해 non-secret metadata만으로 hash·schema version·retention·row count·invariant 검증을 수행하고 valid/invalid 합성 unit test 4개 통과
 
 ## 진행 중
 
@@ -121,9 +123,8 @@ PLAN-0001 Task 1~5 local foundation 구현 완료; D-13 `age` backup encryption 
 
 ## 다음 작업
 
-로컬 foundation Task 1~5와 `ADR-0008`·`ADR-0009`을 완료했습니다. 다음은 synthetic age
-encryption contract와 S3 IAM·bucket을 이용한 disposable encrypted restore Spike를 수행하는
-일입니다.
+로컬 foundation Task 1~5와 `ADR-0008`·`ADR-0009`, PLAN-0002 Task 1을 완료했습니다. 다음은
+owner AWS login 뒤 disposable S3 restore Spike(Task 2)를 수행하는 일입니다.
 
 ## 차단 요소
 
