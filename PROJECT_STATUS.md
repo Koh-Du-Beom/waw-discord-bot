@@ -82,6 +82,7 @@ D-09 서울 1GB runtime 수용량 Approved Spike 실행 준비
 - AWS 공식 IAM 자료 기준 서울 region·필요 action·Spike tag로 제한한 임시 최소 권한 정책과 IAM으로 제한되지 않는 key pair·bundle·blueprint·CIDR 경계 문서화
 - 첫 `aws login` 검증에서 `waw-spike` profile이 IAM 사용자가 아닌 root console session으로 연결된 것을 감지해 resource 생성 없이 즉시 logout·cache 무효화
 - 재인증 뒤 최소 권한 `waw-spike-operator` identity 확인; 서울 Ubuntu 24.04 LTS와 public IPv4 `micro_3_0` 2 vCPU·1GB·40GB·월 USD 7 fixture 사전 확인 통과
+- 첫 생성 시도는 Lightsail `publicKeyBase64`에 `fileb://` bytes를 전달한 runbook 결함으로 key import 전에 실패; VM·key·local private key가 없음을 확인하고 base64 text `file://` 방식으로 수정
 
 ## 진행 중
 
