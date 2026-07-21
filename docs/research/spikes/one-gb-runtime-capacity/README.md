@@ -83,6 +83,19 @@ TypeScript와 Python이 모두 하나 이상의 기준을 위반하거나 결과
 
 이 문서는 Spike 실행 승인이 아니다. 다음 승인에서는 서울 Lightsail 1GB 임시 VM 생성, 최대 USD 3 지출, 비운영 SSH key 사용과 시험 후 resource 삭제만 허용하면 된다. runtime·SDK·host 선택, ADR과 제품 구현은 포함하지 않는다.
 
+### 임시 IAM 경계
+
+사용자는 root credential이나 장기 관리자 access key 대신 임시 human session을 사용하고, 그 session에는 [`iam-policy.json`](./iam-policy.json)의 Spike 전용 정책만 부여한다. AWS는 human user에 federation과 temporary credential 사용, least privilege와 MFA를 권장하며 Lightsail은 temporary credential을 지원한다.
+
+정책은 서울 region의 필요한 조회, instance 생성·port 변경·삭제와 일회성 key pair import·삭제만 허용한다. 생성·변경·삭제 instance에는 `purpose=waw-capacity-spike` tag를 요구한다. 다음 한계는 IAM만으로 닫히지 않으므로 실행 절차에서 검증한다.
+
+- `ImportKeyPair`와 account inventory 조회 일부는 resource-level permission을 지원하지 않아 `Resource: "*"`가 필요하다.
+- `TagResource` 허용은 tagged instance 생성의 종속 권한이지만, 기존 resource에 같은 tag를 추가할 가능성을 완전히 제거하지 못한다. 이 임시 session으로 기존 resource를 변경하지 않고 Spike 직후 session과 정책 연결을 폐기한다.
+- 허용 bundle을 정확히 1GB·USD 7 이하로, blueprint를 Ubuntu LTS로, firewall source를 현재 관리 단말 `/32`로 제한하는 IAM condition은 사용하지 않는다. 생성 전 조회 결과와 생성 후 port state를 별도로 판정한다.
+- policy는 static IP, snapshot, disk, DNS, backup 생성 action을 허용하지 않는다.
+
+공식 근거: [AWS IAM 보안 모범 사례](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html), [Lightsail의 temporary credential·tag authorization 지원](https://docs.aws.amazon.com/lightsail/latest/userguide/security_iam_service-with-iam.html), [Lightsail action·resource·condition 표](https://docs.aws.amazon.com/service-authorization/latest/reference/list_lightsail.html), [tag 기반 access control 예시](https://docs.aws.amazon.com/lightsail/latest/userguide/amazon-lightsail-controlling-access-using-tags.html)
+
 ## local 합성 self-check
 
 2026-07-21에 macOS local 환경에서 두 harness의 문법과 3초 합성 실행을 검증했다. 두 runtime 모두 event accounting, 요청 완료, 오류율, HTTP p95, scheduler p99와 RSS p95의 application-level 검증을 통과했다. 합성 `/proc` fixture로 Linux metric parser를 단위 검증했고, available memory가 128MiB 아래에서 60초 지속된 결과를 verifier가 실패 처리하는 것도 확인했다. 이는 fixture와 판정 경로의 확인일 뿐, 1GB Linux VM의 실제 system metric이나 60분 안정성의 증거가 아니다.
