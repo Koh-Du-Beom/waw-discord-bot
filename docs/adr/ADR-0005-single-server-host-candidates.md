@@ -1,6 +1,6 @@
 # ADR-0005: 단일 지속 server host 후보
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-21
 - Owners: 프로젝트 소유자
 - Related requirements: `OWN-005`, `OWN-016`~`OWN-021`, `OWN-034`, `OWN-036`~`OWN-038`, `OPS-001`~`OPS-008`
@@ -28,7 +28,7 @@
 
 ## Decision
 
-최종 host 선택은 보류한다. 첫 운영 후보는 서울 Lightsail 외부 임대 VM으로 유지하고, MacBook을 비용 절감 fallback, Windows를 복구 fallback으로 둔다. 다음 증거가 확보되기 전에는 어느 후보도 production host로 Accepted하지 않는다.
+서울 Lightsail 외부 임대 VM을 첫 운영 후보로 선택한다. MacBook은 회사 측 결정·회선·물리 접근 조건이 많아 운영 후보에서 제외한다. 대체 Windows 노트북은 복구 fallback 및 비용 절감 대안으로 유지한다. 다음 증거는 운영 배포 전 별도 검증한다.
 
 - 선택 host에서 Node·web+bot idle/peak memory와 event-loop pause
 - 재부팅·crash·배포 중 singleton, health와 복구 시간
@@ -38,9 +38,9 @@
 
 ## Rationale
 
-Lightsail은 이미 승인된 임시 비용 범위와 Linux capacity 증거가 있어 가장 빠른 다음 검증 경로다. Mac과 Windows는 신규 provider 결정을 피할 수 있지만 물리 전원·회선·원격 복구 증거가 부족하다. 이 ADR은 기존 D-09 shortlist를 유지하며 provider·region·OS의 최종 Accepted 결정을 다음 Spike 뒤로 남긴다.
+Lightsail은 이미 승인된 임시 비용 범위와 Linux capacity 증거가 있어 가장 빠른 운영 경로다. MacBook은 회사 측 승인·회선·물리 접근 부담으로 제외하고, Windows는 복구·비용 절감 fallback으로 남긴다.
 
 ## Approval
 
-- Owner decision: Pending — 서울 Lightsail 우선 후보와 Mac·Windows fallback 범위 승인 필요
-- Approved date: Pending
+- Owner decision: Approved — 서울 Lightsail primary, Windows recovery/cost fallback, MacBook excluded
+- Approved date: 2026-07-21
