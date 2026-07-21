@@ -112,7 +112,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest ve
 - synthetic `age` recipient encryption contract에서 temporary key·SQL의 gzip encrypt/decrypt byte round trip과 archive secret marker 부재를 확인하고 temporary directory 자동 정리
 - `PLAN-0002` S3 encrypted backup/restore 계획 작성: local manifest verifier, disposable S3 restore Spike, production job·rehearsal을 credential gate별 bounded task로 분리
 - PLAN-0002 Task 1의 archive manifest verifier를 추가해 non-secret metadata만으로 hash·schema version·retention·row count·invariant 검증을 수행하고 valid/invalid 합성 unit test 4개 통과
-- PLAN-0002 Task 2의 disposable S3 transport Spike에서 client-side encrypted synthetic archive 1개 생성·upload·object 목록 확인·object/bucket 삭제와 최종 bucket count 0을 확인; Orca download hook 한계로 downloaded-byte checksum·decrypt·empty PostgreSQL restore와 least-privilege IAM/lifecycle 검증은 미완료로 기록
+- PLAN-0002 Task 2의 disposable S3 transport Spike에서 client-side encrypted synthetic archive 1개 생성·upload·object 목록 확인·object/bucket 삭제와 최종 bucket count 0을 확인; local Docker PostgreSQL 16 empty-target companion에서 encrypted dump byte round trip·row count·invariant restore를 확인하고 containers/temp artifacts를 삭제. Orca download hook 한계로 S3 downloaded-byte checksum 및 Windows/new-host restore와 least-privilege IAM/lifecycle 검증은 미완료로 기록
 
 ## 진행 중
 
