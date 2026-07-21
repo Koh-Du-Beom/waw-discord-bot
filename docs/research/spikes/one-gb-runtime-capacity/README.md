@@ -134,8 +134,8 @@ aws lightsail get-bundles --include-inactive --profile waw-spike --region ap-nor
 SPIKE_REGION=ap-northeast-2
 SPIKE_ZONE=ap-northeast-2a
 SPIKE_RUN_ID="$(date -u +%Y%m%d%H%M%S)"
-SPIKE_INSTANCE="waw-capacity-spike-$SPIKE_RUN_ID"
-SPIKE_KEY="waw-capacity-spike-$SPIKE_RUN_ID"
+SPIKE_INSTANCE="waw-capacity-spike-$SPIKE_RUN_ID-vm"
+SPIKE_KEY="waw-capacity-spike-$SPIKE_RUN_ID-key"
 SPIKE_BLUEPRINT='<사전 확인한 active Ubuntu LTS blueprintId>'
 SPIKE_BUNDLE='<사전 확인한 active 1GB public IPv4 bundleId>'
 SPIKE_LOCAL_DIR="$(mktemp -d /tmp/waw-capacity-spike.XXXXXX)"
@@ -145,7 +145,7 @@ aws lightsail import-key-pair --profile waw-spike --region "$SPIKE_REGION" --key
 ```
 
 private key는 `mktemp`가 만든 mode 700 임시 directory에만 두고 저장소, shell history 인자, 문서와 원격 VM에 복사하지 않는다. Lightsail CLI의 `publicKeyBase64`는 binary `fileb://`나 사용자가 다시 base64-encoding한 text가 아니라 OpenSSH public key 원문 string을 `file://`로 읽을 때 성공함을 import→delete probe로 확인했다. Public key만 Lightsail에 올리며 시험 종료 시 local key와 provider key를 모두 삭제한다.
-Instance와 key 이름은 삭제 직후 같은 이름이 재사용되지 않는 Lightsail 충돌을 피하고 실행 단위를 추적하도록 UTC timestamp suffix를 사용한다.
+Lightsail active resource의 교차 type 이름 namespace 충돌을 피하도록 instance와 key에 각각 `-vm`, `-key` suffix를 붙이고, 삭제 직후 이름 재사용 충돌을 피하며 실행 단위를 추적하도록 UTC timestamp를 포함한다.
 
 ### 3. 생성과 최소 firewall
 
