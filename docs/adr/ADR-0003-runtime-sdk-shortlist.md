@@ -1,6 +1,6 @@
 # ADR-0003: Discord bot runtime·SDK shortlist
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-21
 - Owners: 프로젝트 소유자
 - Related requirements: `OWN-035`, `OPS-001`~`OPS-003`, `FUN-010`~`FUN-015`, `SEC-001`~`SEC-010`
@@ -63,5 +63,5 @@ clean-install Spike, dependency audit/lock 검토, 합성 adapter test, 선택 h
 
 ## Approval
 
-- Owner decision: Pending — 최종 runtime·SDK 선택 및 후속 Spike 범위 승인 필요
-- Approved date: Pending
+- Owner decision: Approved — Node/discord.js와 Python/discord.py shortlist 유지 및 credential 없는 clean-install/Gateway Spike 범위 승인. 최종 runtime·SDK 선택은 별도 ADR로 남김.
+- Approved date: 2026-07-21
