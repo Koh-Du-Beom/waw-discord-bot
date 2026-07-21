@@ -57,7 +57,7 @@ Supabase Free PostgreSQL의 logical dump를 24시간마다 S3에 client-side enc
 - 통과: disposable bucket 생성, 331-byte client-side encrypted synthetic archive upload, object count `1`, object delete, bucket delete, final bucket count `0`, local temporary artifact 삭제.
 - 통과: local Docker PostgreSQL 16 source/empty-target companion에서 encrypted custom dump의 byte round trip, restore row count `2`와 invariant를 확인하고 containers/temp artifacts를 삭제했다.
 - 미통과/미검증: Orca browser download hook이 expected local path에 파일을 전달하지 못해 downloaded-byte checksum과 decrypt/restore verifier를 실행하지 못했다. temporary least-privilege IAM principal, lifecycle prefix scope, wrong-identity failure와 empty PostgreSQL restore도 아직 실행하지 않았다.
-- 정리: CSV download로 같은 hook 한계를 재현한 temporary self-managed access key는 secret을 저장하지 않은 채 비활성화·삭제했고 access-key count `0`을 확인했다. temporary self access-key IAM policy attachment의 제거는 owner console action으로 남아 있다.
+- 정리: CSV download로 같은 hook 한계를 재현한 temporary self-managed access key는 secret을 저장하지 않은 채 비활성화·삭제했고 access-key count `0`을 확인했다. owner가 temporary self access-key IAM policy attachment를 제거했고 새 console session의 `iam:ListAccessKeys` deny로 확인했다.
 - 판정: Task 2는 **partial**이며 완료가 아니다. local container restore는 Windows/new-host recovery evidence를 대체하지 않는다. production source·Supabase project·production credential에는 접근하지 않았다.
 
 ### Task 3 — Production backup job and first restore rehearsal

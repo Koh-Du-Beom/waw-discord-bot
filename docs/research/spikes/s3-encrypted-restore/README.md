@@ -17,7 +17,7 @@
 
 Orca browser download hook은 선택된 object를 expected local path에 전달하지 못했다. 따라서 이 실행은 S3 upload/list/delete와 cleanup만 증명하며 downloaded-byte checksum, wrong-identity failure, valid-identity decrypt, empty PostgreSQL restore, backup-only writer deny 및 lifecycle prefix scope는 증명하지 않는다.
 
-같은 hook 한계는 temporary self-managed access-key CSV download에도 재현됐다. key secret을 local file·log·문서에 저장하지 않았고, access key를 즉시 비활성화·삭제한 뒤 IAM console의 key count `0`을 확인했다. 따라서 S3 CLI byte-checksum verifier는 실행하지 않았다. self access-key IAM policy attachment는 owner가 console에서 제거해야 한다.
+같은 hook 한계는 temporary self-managed access-key CSV download에도 재현됐다. key secret을 local file·log·문서에 저장하지 않았고, access key를 즉시 비활성화·삭제한 뒤 IAM console의 key count `0`을 확인했다. 따라서 S3 CLI byte-checksum verifier는 실행하지 않았다. owner가 temporary self access-key IAM policy attachment를 제거했고, 새 console session에서 `iam:ListAccessKeys`가 다시 denied인 것으로 제거를 확인했다.
 
 ## Local restore companion
 
