@@ -1,6 +1,6 @@
 # PLAN-0002: S3 암호화 PostgreSQL backup과 restore 검증
 
-- Status: Ready for implementation
+- Status: In progress — Task 1 complete; Task 2 S3 transport/cleanup partial
 - Date: 2026-07-21
 - Owner: Project owner
 - Related ADRs: [`ADR-0006`](../adr/ADR-0006-supabase-free-postgresql-storage.md), [`ADR-0008`](../adr/ADR-0008-encrypted-postgresql-backup-storage.md), [`ADR-0009`](../adr/ADR-0009-age-recipient-backup-encryption.md)
@@ -51,6 +51,12 @@ Supabase Free PostgreSQL의 logical dump를 24시간마다 S3에 client-side enc
 - 테스트: writer의 read/delete/policy-change deny, encrypted object upload/download, wrong identity deny, valid identity restore, lifecycle prefix scope review
 - 완료 기준: no production data/credential exposure, verifier pass, cleanup evidence, elapsed time < 8h
 - 롤백: disposable objects, bucket, IAM principal/policy와 local artifacts를 same-run cleanup; any cleanup failure is recorded and escalated
+
+#### 2026-07-21 실행 결과
+
+- 통과: disposable bucket 생성, 331-byte client-side encrypted synthetic archive upload, object count `1`, object delete, bucket delete, final bucket count `0`, local temporary artifact 삭제.
+- 미통과/미검증: Orca browser download hook이 expected local path에 파일을 전달하지 못해 downloaded-byte checksum과 decrypt/restore verifier를 실행하지 못했다. temporary least-privilege IAM principal, lifecycle prefix scope, wrong-identity failure와 empty PostgreSQL restore도 아직 실행하지 않았다.
+- 판정: Task 2는 **partial**이며 완료가 아니다. production source·Supabase project·production credential에는 접근하지 않았다.
 
 ### Task 3 — Production backup job and first restore rehearsal
 

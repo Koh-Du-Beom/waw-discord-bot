@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest verifier 완료, Task 2 AWS disposable Spike credential gate 대기
+PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest verifier 완료, Task 2 S3 transport·cleanup partial 완료 및 download/decrypt/empty-PostgreSQL restore verifier 대기
 
 ## 완료
 
@@ -112,6 +112,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest ve
 - synthetic `age` recipient encryption contract에서 temporary key·SQL의 gzip encrypt/decrypt byte round trip과 archive secret marker 부재를 확인하고 temporary directory 자동 정리
 - `PLAN-0002` S3 encrypted backup/restore 계획 작성: local manifest verifier, disposable S3 restore Spike, production job·rehearsal을 credential gate별 bounded task로 분리
 - PLAN-0002 Task 1의 archive manifest verifier를 추가해 non-secret metadata만으로 hash·schema version·retention·row count·invariant 검증을 수행하고 valid/invalid 합성 unit test 4개 통과
+- PLAN-0002 Task 2의 disposable S3 transport Spike에서 client-side encrypted synthetic archive 1개 생성·upload·object 목록 확인·object/bucket 삭제와 최종 bucket count 0을 확인; Orca download hook 한계로 downloaded-byte checksum·decrypt·empty PostgreSQL restore와 least-privilege IAM/lifecycle 검증은 미완료로 기록
 
 ## 진행 중
 
@@ -123,8 +124,8 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest ve
 
 ## 다음 작업
 
-로컬 foundation Task 1~5와 `ADR-0008`·`ADR-0009`, PLAN-0002 Task 1을 완료했습니다. 다음은
-owner AWS login 뒤 disposable S3 restore Spike(Task 2)를 수행하는 일입니다.
+로컬 foundation Task 1~5와 `ADR-0008`·`ADR-0009`, PLAN-0002 Task 1 및 Task 2의 S3 transport·cleanup 부분을 완료했습니다. 다음은
+empty Windows/new-host PostgreSQL fixture에서 disposable archive를 download·decrypt·restore하고 verifier를 실행하는 Task 2 잔여 작업입니다.
 
 ## 차단 요소
 
@@ -141,7 +142,7 @@ owner AWS login 뒤 disposable S3 restore Spike(Task 2)를 수행하는 일입�
 - 익명 임시 outbound tunnel의 Vercel→자가 host 호출이 function timeout으로 실패했으며 원인이 Vercel egress, tunnel 공급자 경로, 지역 또는 연결 정책 중 어디인지는 분리하지 못함
 - 공유 PostgreSQL request/result도 worker 처리와 별개로 Vercel function timeout이 발생해 고위험 현재 역할 조회의 5초 동기 경계가 아직 없음
 - 계정 고정 managed tunnel도 local 왕복은 성공했지만 Vercel function timeout으로 실패해 공급자 교체만으로 추가 검증할 근거가 낮음
-- S3 backup IAM·bucket 생성과 disposable encrypted restore Spike에는 실제 AWS login/credential 입력이 필요
+- S3 upload/delete와 disposable bucket cleanup은 검증했지만, download hook 한계로 byte checksum·decrypt·empty PostgreSQL restore 및 backup-only IAM/lifecycle policy 검증은 남아 있음
 
 ## 현재 확정되지 않은 사항
 
