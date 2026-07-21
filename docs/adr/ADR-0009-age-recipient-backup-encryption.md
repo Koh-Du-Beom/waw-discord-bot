@@ -1,6 +1,6 @@
 # ADR-0009: age recipient 기반 backup archive 암호화
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-21
 - Owners: 프로젝트 소유자
 - Related requirements: `SEC-007`, `SEC-008`, `DAT-004`, `OPS-005`, `OPS-006`, `ADR-0008`
@@ -26,7 +26,7 @@ runtime은 recipient public key로 encrypt만 하고, owner가 가진 secret ide
 
 S3 provider-side encryption은 유용한 at-rest layer지만 AWS read/KMS decrypt authority를 가진 principal에 archive plaintext recovery를 맡긴다. `ADR-0008`의 client-side encryption boundary를 대체하지 않는다.
 
-## Proposed decision
+## Decision
 
 Option A를 채택한다.
 
@@ -56,5 +56,5 @@ archive format version과 recipient fingerprint을 manifest에 기록한다. key
 
 ## Approval
 
-- Owner decision: Pending
-- Approved date: Pending
+- Owner decision: Approved — age public-recipient encryption with offline owner-held identity
+- Approved date: 2026-07-21
