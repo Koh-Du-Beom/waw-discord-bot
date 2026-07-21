@@ -148,6 +148,14 @@
 - 중복 봇 인스턴스 방지
 - 변경 이력 갱신
 
+### Health와 singleton 판정
+
+- `/health`가 `healthy`를 반환하려면 web process, storage, bot process와 Discord Gateway가 모두 정상이어야 한다.
+- Gateway가 disconnected/unknown이면 web과 storage가 살아 있어도 `degraded`로 표시한다.
+- web process 또는 canonical storage가 없으면 `unavailable`로 표시한다.
+- bot 시작은 singleton lease를 먼저 claim하고, 이미 claim된 경우 두 번째 process는 Gateway 연결을 시작하지 않고 실패한다.
+- 실제 process lease, crash/restart, Discord Resume과 Lightsail reboot 측정은 production credential·host 승인 뒤 별도 runbook으로 검증한다.
+
 ## 11. 롤백
 
 릴리스 전 다음을 정의합니다.

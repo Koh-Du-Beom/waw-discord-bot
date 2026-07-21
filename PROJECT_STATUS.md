@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-PLAN-0001 Task 4 process/module capability 경계 구현 완료; Task 5 health/singleton 관측 진행 예정
+PLAN-0001 Task 1~5 local foundation 구현 완료; actual Supabase/Discord/host 운영 검증 계획 준비
 
 ## 완료
 
@@ -95,6 +95,7 @@ PLAN-0001 Task 4 process/module capability 경계 구현 완료; Task 5 health/s
 - versioned Supabase PostgreSQL migration 초안과 session hash·revocation·idle/absolute expiry persistence contract를 추가해 합성 단위 시험 4개를 통과; remote database에는 연결·변경하지 않아 Task 2 완료
 - OAuth state hash·single-use/expiry, 5분 read-only role cache, mutation default-deny, high-risk recent-auth·CSRF·explicit confirmation contract를 추가해 합성 단위 시험 6개를 통과; Discord OAuth credential·network 호출 없이 Task 3 완료
 - web·bot·migration/backup의 capability 표와 TypeScript capability injection contract를 추가해 web의 bot token/role reader 접근과 bot의 browser command 접근을 합성 시험 3개로 차단; Task 4 완료
+- health/singleton contract를 추가해 Gateway disconnected 시 `degraded`, storage failure 시 `unavailable`, duplicate bot lease claim 거부를 합성 시험 4개로 검증; 실제 Gateway/host 없이 Task 5 완료
 - Orca 앱 설치·CLI 연결과 active worktree comment 갱신 완료
 - 최신 fixture의 중복 실행을 process inventory로 폐기하고 30초 Node·Python smoke 및 4개 verifier unit test 통과
 - 서울 Lightsail 임시 VM에서 Node 60분 수용량 측정 완료; 13개 verifier 기준 모두 통과
