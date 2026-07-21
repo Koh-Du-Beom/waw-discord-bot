@@ -169,7 +169,7 @@ Supabase Free는 관리형 PostgreSQL을 제공하는 별도 후보다. 이번 �
 - SQLite Online Backup 또는 PostgreSQL dump로 만든 암호화 외부 copy를 빈 Windows 노트북에 복원하고 8시간 RTO와 무결성 검사를 측정한다.
 - Vercel preview·production과 bot에 서로 다른 최소 권한 role을 주고 교차 접근이 거부되는지 검증한다.
 - 관리형 후보의 scale-to-zero 뒤 첫 query, connection pooling, outage와 0.5GB 초과 시 동작을 실제 예상량으로 측정한다.
-- Supabase Free 후보는 owner 승인 후 별도 disposable project(`waw-storage-spike-20260721`)를 생성했다. 기존 production 프로젝트는 사용하지 않았다. SQL Editor 접근과 RLS 경고까지 확인했으나, 브라우저의 이전 Colab 편집 내용이 쿼리에 혼입되어 합성 SQL은 syntax error로 실행되지 않았다. 데이터 변경·테이블 생성은 확인되지 않았으며, 새 빈 SQL query에서 재시도해야 한다.
+- Supabase Free 후보는 owner 승인 후 별도 disposable project(`waw-storage-spike-20260721`)를 생성했다. 기존 production 프로젝트는 사용하지 않았다. Orca 내장 브라우저의 새 query에서 RLS를 활성화한 합성 SQL을 실행해 10,000행·10,000 unique operation·관계 크기 1,864 kB를 확인했다. 결과 확인 후 project settings의 삭제 화면까지 이동했으나, UI 삭제 확인 동작은 아직 완료하지 못했다.
 
 ## 8. 잠정 권고와 가장 강한 대안
 

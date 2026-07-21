@@ -88,7 +88,7 @@ D-05 저장소 후보 검증 준비 중 (Supabase Free disposable project 생성
 - 실행 VM 생성·관리 단말 `/32` SSH 제한 성공; `gateway.discord.gg` root의 정상 404를 실패로 본 outbound probe를 credential 없는 `discord.com/api/v10/gateway` 200 경로로 수정
 - VM 10초 smoke에서 TypeScript·Python의 application·Linux system 기준 전체 통과; Python Linux RSS를 누적 peak가 아닌 실제 `VmRSS` p95로 보정하고 임시 self-signed HTTPS health fixture local 검증 완료
 - Ubuntu 기본 Node 18의 D-04 후보 부적합을 발견해 진행 중 장기 측정을 참고 폐기; 공식 SHA-256으로 검증한 Node 22.23.1과 보정 Python fixture의 VM 10초 smoke 전체 통과
-- Supabase Free 검증용 별도 disposable project `waw-storage-spike-20260721` 생성 완료; 기존 production project는 사용하지 않음. DB password는 채팅·문서에 기록하지 않음. SQL Editor의 이전 Colab 텍스트 혼입으로 합성 SQL은 syntax error로 중단됐고 데이터 변경은 확인되지 않음
+- Supabase Free 검증용 별도 disposable project `waw-storage-spike-20260721` 생성 완료; 기존 production project는 사용하지 않음. Orca 내장 브라우저에서 RLS 활성화 합성 SQL 10,000행 검증(10,000 unique operation, 1,864 kB) 완료. DB password는 채팅·문서에 기록하지 않음. project settings 삭제 화면까지 이동했으나 삭제 확인은 미완료
 - Orca 앱 설치·CLI 연결과 active worktree comment 갱신 완료
 - 최신 fixture의 중복 실행을 process inventory로 폐기하고 30초 Node·Python smoke 및 4개 verifier unit test 통과
 - 서울 Lightsail 임시 VM에서 Node 60분 수용량 측정 완료; 13개 verifier 기준 모두 통과
