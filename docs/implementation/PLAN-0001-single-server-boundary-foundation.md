@@ -2,7 +2,7 @@
 
 - Status: Draft
 - Related requirements: `OWN-034`, `OWN-026`~`OWN-033`, `OPS-001`~`OPS-008`, `SEC-007`~`SEC-010`
-- Related ADRs: [`ADR-0001`](../adr/ADR-0001-single-persistent-server-boundary.md)
+- Related ADRs: [`ADR-0001`](../adr/ADR-0001-single-persistent-server-boundary.md), [`ADR-0004`](../adr/ADR-0004-typescript-node-discordjs.md), [`ADR-0005`](../adr/ADR-0005-single-server-host-candidates.md), [`ADR-0006`](../adr/ADR-0006-supabase-free-postgresql-storage.md)
 - Owner: Project owner
 
 ## 목표
@@ -22,7 +22,7 @@
 - Discord Gateway 실제 credential, OAuth client secret과 운영 데이터
 - Node/Python/SDK 최종 선택과 production dependency 추가
 - host/provider/OS, TLS certificate 발급, DNS 변경과 운영 배포
-- SQLite/PostgreSQL/managed DB 선택, backup 제품과 실제 복구
+- backup 저장소 선택과 실제 복구 실행
 - KBO 기능과 Riot Production/RSO 연동
 
 ## 선행 조건
@@ -30,7 +30,8 @@
 - D-08 ADR-0001 Accepted
 - D-04 runtime/SDK clean-install 및 Gateway disconnect/Resume Spike 결과
 - D-09 host capacity Spike와 비용·복구 결과
-- D-05·D-07의 저장소·session·workload 인증 후보에 대한 별도 Accepted 결정
+- D-05 ADR-0006 Accepted
+- D-07 session·workload 인증 후보에 대한 별도 Accepted 결정
 - 테스트에서 사용할 비밀 없는 합성 Discord role/event fixture
 
 ## 작업
