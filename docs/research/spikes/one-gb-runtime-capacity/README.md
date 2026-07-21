@@ -173,7 +173,7 @@ sudo apt-get install -y ca-certificates curl git jq openssl sysstat time
 uname -a
 free -m
 df -h /
-curl --fail --silent --show-error --output /dev/null https://gateway.discord.gg/
+curl --fail --silent --show-error --output /dev/null https://discord.com/api/v10/gateway
 ```
 
 fixture는 같은 합성 event 파일과 40MB 이하 store를 사용한다. TypeScript와 Python harness는 동시에 실행하지 않으며 각 후보마다 다음 순서를 반복한다.
