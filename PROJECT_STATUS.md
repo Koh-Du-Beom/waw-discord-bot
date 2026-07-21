@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-PLAN-0001 Task 2 Supabase persistence contract 구현 완료; Task 3 OAuth/session authorization contract 진행 예정
+PLAN-0001 Task 3 OAuth/session authorization contract 구현 완료; Task 4 process/module 권한 경계 진행 예정
 
 ## 완료
 
@@ -93,6 +93,7 @@ PLAN-0001 Task 2 Supabase persistence contract 구현 완료; Task 3 OAuth/sessi
 - `ADR-0007` Discord OAuth `identify`·bot-side current member 조회·opaque server-side session 인증 경계를 Accepted; token 미보존, 1일 idle/7일 absolute session, 5분 read-only role cache와 고위험 recent-auth 계약 확정
 - TypeScript Node 24 workspace와 local command contract를 추가해 valid/expired/malformed/duplicate operation의 합성 단위 시험 4개를 통과; 외부 credential·network·Supabase 연결 없이 Task 1 완료
 - versioned Supabase PostgreSQL migration 초안과 session hash·revocation·idle/absolute expiry persistence contract를 추가해 합성 단위 시험 4개를 통과; remote database에는 연결·변경하지 않아 Task 2 완료
+- OAuth state hash·single-use/expiry, 5분 read-only role cache, mutation default-deny, high-risk recent-auth·CSRF·explicit confirmation contract를 추가해 합성 단위 시험 6개를 통과; Discord OAuth credential·network 호출 없이 Task 3 완료
 - Orca 앱 설치·CLI 연결과 active worktree comment 갱신 완료
 - 최신 fixture의 중복 실행을 process inventory로 폐기하고 30초 Node·Python smoke 및 4개 verifier unit test 통과
 - 서울 Lightsail 임시 VM에서 Node 60분 수용량 측정 완료; 13개 verifier 기준 모두 통과
