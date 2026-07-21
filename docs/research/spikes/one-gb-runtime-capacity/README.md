@@ -1,6 +1,6 @@
 # 1GB runtime 수용량 Spike 제안
 
-- 상태: Proposed — local 합성 self-check 완료, VM 미실행·생성 승인 아님
+- 상태: Approved Spike — local self-check·AWS 최소 권한 identity·서울 fixture 사전 확인 완료, VM 미실행
 - 제안일: 2026-07-21
 - 연결 요구사항: `OPS-001`~`OPS-004`, `OWN-005`, `OWN-017`, `OWN-023`, `OWN-034`, `OWN-035`, `GAP-D09-03`, `GAP-D09-06`
 - 제품 코드 또는 기술 선택: 없음
@@ -120,11 +120,13 @@ python3 -m unittest test_metrics.py
 ```bash
 aws sts get-caller-identity --profile waw-spike
 aws lightsail get-regions --include-availability-zones --profile waw-spike --query 'regions[?name==`ap-northeast-2`]'
-aws lightsail get-blueprints --include-inactive --profile waw-spike --region ap-northeast-2 --query 'blueprints[?platform==`LINUX_UNIX`].[blueprintId,name,version,active]'
-aws lightsail get-bundles --include-inactive --profile waw-spike --region ap-northeast-2 --query 'bundles[?ramSizeInGb==`1`].[bundleId,name,price,cpuCount,diskSizeInGb,active]'
+aws lightsail get-blueprints --include-inactive --profile waw-spike --region ap-northeast-2 --query 'blueprints[?platform==`LINUX_UNIX`].[blueprintId,name,version,isActive]'
+aws lightsail get-bundles --include-inactive --profile waw-spike --region ap-northeast-2 --query 'bundles[?ramSizeInGb==`1`].[bundleId,name,price,cpuCount,diskSizeInGb,isActive,supportedPlatforms]'
 ```
 
 여기서 active Ubuntu LTS blueprint 하나와 public IPv4, RAM 1GB, 월 USD 7 이하인 active bundle 하나를 눈으로 확인한다. account의 서울 재고·가격 또는 예상 총비용이 제안과 다르면 생성하지 않고 중단한다.
+
+2026-07-21 실제 account 사전 확인에서는 `ubuntu_24_04`와 `ubuntu_22_04`가 active였고, public IPv4 `micro_3_0`이 2 vCPU·1GB RAM·40GB disk·2TB transfer·월 USD 7로 조회됐다. 실행 fixture는 `ubuntu_24_04`와 `micro_3_0`으로 고정하되 이는 host·OS·plan 선택이 아니다. IAM identity는 `waw-spike-operator`와 정확히 일치함을 확인했고 account ID·credential은 기록하지 않았다.
 
 ### 2. 이름과 비운영 SSH key 준비
 
