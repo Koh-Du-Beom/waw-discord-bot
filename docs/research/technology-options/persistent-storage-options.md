@@ -1,6 +1,6 @@
 # D-05 영구 저장소 후보 조사
 
-- 조사일: 2026-07-20
+- 조사일: 2026-07-21
 - 상태: Research — 저장소 제품 또는 데이터 모델 결정 아님
 - 결정 질문: 단일 guild의 설정·감사·명령·계정 연결·몰랭 이력을 어떤 관계형 저장소 경계에 보관해야 원자성, 참조 무결성, 멱등성, 1년 보존, RPO 24시간, RTO 8시간, 이식성과 월 30,000원 상한을 현실적으로 검증할 수 있는가?
 - 범위 밖: 저장소 선택·스키마 설계, 백업 제품 선택(D-12), 내부 통신 선택(D-08), 인증 기술 선택(D-07), ADR, Spike, 구현 계획과 제품 코드
@@ -89,6 +89,25 @@ PostgreSQL server를 봇과 같은 자가 host 또는 외부 임대 단일 서�
 - IP allow/private network가 고가 plan에 묶여 있어 Free/Launch에서는 TLS, 강한 password, workload별 최소 role과 credential rotation이 특히 중요하다. 구체 인증 방식은 D-07 범위다.
 - 표준 PostgreSQL dump는 공급자 이탈 경로를 제공하지만 branch, instant restore, autoscaling과 pooling 동작에 의존하면 migration 비용이 커질 수 있다.
 
+### 3.4 Supabase Free 관리형 PostgreSQL 후보
+
+Supabase Free는 관리형 PostgreSQL을 제공하는 별도 후보다. 이번 단계에서는 계정·project·credential을 만들지 않고 공식 요금과 제한만 조사한다.
+
+확인된 사실(2026-07-21 공식 요금표):
+
+- 월 비용은 `$0`이며 project당 database size 500MB, egress 5GB, file storage 1GB, peak connection 200개가 포함된다.
+- Free project는 1주일 비활성 뒤 pause될 수 있다. automatic backup과 PITR은 Free에 포함되지 않는다.
+- PostgreSQL, SQL editor, database role·RLS와 Realtime 같은 기능은 제공되지만, public endpoint 접근 credential과 provider network 경계를 새로 운영해야 한다.
+- 공식 요금표는 quota·pause·backup 제한을 명시하므로 Free를 production SLA나 독립 backup으로 해석할 수 없다. [Supabase pricing](https://supabase.com/pricing)
+
+추론:
+
+- 1년 합성 감사·dedupe 데이터가 500MB 아래이고 주기적 activity가 pause를 막는다면 비용 없는 managed PostgreSQL 후보가 될 수 있다.
+- SQLite보다 DB role·동시성·host disk 장애 분리가 유리하지만, Lightsail web/bot에서 외부 TLS endpoint로 접근하는 workload credential·egress·provider outage 경계가 추가된다.
+- Free automatic backup 부재 때문에 별도 encrypted export와 빈 Windows restore 시험이 필수다. Supabase Auth/Storage를 함께 사용하지 않고 database만 사용할지 또한 별도 scope로 제한해야 한다.
+
+현재 판단: Supabase Free는 관리형 PostgreSQL의 **검증 후보**로 추가했지만 저장소 선택은 하지 않는다. 실제 project 생성·credential 입력은 owner가 비용·외부 account 사용을 별도로 승인한 뒤에만 수행한다.
+
 ## 4. 비교
 
 | 기준 | 자가 SQLite | 자가 PostgreSQL | 관리형 PostgreSQL |
@@ -150,6 +169,7 @@ PostgreSQL server를 봇과 같은 자가 host 또는 외부 임대 단일 서�
 - SQLite Online Backup 또는 PostgreSQL dump로 만든 암호화 외부 copy를 빈 Windows 노트북에 복원하고 8시간 RTO와 무결성 검사를 측정한다.
 - Vercel preview·production과 bot에 서로 다른 최소 권한 role을 주고 교차 접근이 거부되는지 검증한다.
 - 관리형 후보의 scale-to-zero 뒤 첫 query, connection pooling, outage와 0.5GB 초과 시 동작을 실제 예상량으로 측정한다.
+- Supabase Free 후보는 별도 owner 승인 뒤에만 disposable project로 생성해 500MB quota·pause·TLS connection·최소 role·export/restore를 검증한다. project 생성 전에는 공식 문서와 합성 local dataset만 사용한다.
 
 ## 8. 잠정 권고와 가장 강한 대안
 
