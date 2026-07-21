@@ -68,13 +68,8 @@ offline owner-held private recovery key
 
 ## 6. 잠정 권고 — 선택 아님
 
-**Cloudflare R2 Standard에 client-side encrypted PostgreSQL archive를 30일 rolling retention으로 보관**하는 안이 비용·장애 격리·이식성의 균형이 가장 좋다. 다만 checkout을 완료해도 free usage 초과 시 과금될 수 있어, '과금 가능성이 전혀 없는 방식'은 아니다. 기존 AWS account만 쓰려면 S3도 유효하지만 Lightsail과 동일 account의 recovery boundary가 좁아지고 사용량 과금 위험을 제거하지 못한다.
+**기존 AWS S3에 client-side encrypted PostgreSQL archive를 30일 rolling retention으로 보관**한다. 프로젝트는 Lightsail을 위해 이미 AWS account를 운영하므로, account recovery·IAM·audit·billing 흐름을 한 provider로 통일하는 운영 단순성을 provider control plane 분리보다 우선한다. S3도 storage/request 과금과 동일 account compromise 위험을 없애지 못하므로 backup 전용 IAM principal, budget monitoring과 client-side encryption을 필수로 둔다.
 
 ## 7. 정확한 소유자 결정 질문
 
-`ADR-0008` Proposed에서 다음 중 하나를 승인해야 한다.
-
-1. **권고안:** Cloudflare R2 Standard, 30일 rolling encrypted archive, free usage 초과 시 job을 실패시켜 알리고 provider 과금 수단은 자동 확장하지 않음.
-2. 기존 AWS S3, 동일 retention·encryption, budget alert를 두되 credit/alert가 hard spending cap이 아님을 수용.
-
-어느 안도 owner의 provider login·checkout 및 disposable restore Spike 승인이 전에는 생성·업로드하지 않는다.
+`ADR-0008`은 2026-07-21 owner 승인으로 기존 AWS S3를 선택했다. S3 bucket·IAM credential 생성과 disposable restore Spike는 실제 AWS login/credential 입력이 필요한 별도 실행 단계다.

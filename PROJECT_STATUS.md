@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-PLAN-0001 Task 1~5 local foundation 구현 완료; D-12 encrypted backup/restore 저장 경계 Proposed ADR owner 승인 대기
+PLAN-0001 Task 1~5 local foundation 구현 완료; D-12 AWS S3 encrypted backup/restore 설계·disposable Spike 준비
 
 ## 완료
 
@@ -106,6 +106,7 @@ PLAN-0001 Task 1~5 local foundation 구현 완료; D-12 encrypted backup/restore
 - D-04 공식 runtime·SDK 지원 현황 갱신, D-08 단일 지속 server ADR Proposed 작성 후 owner 승인으로 Accepted 전환
 - D-08 Accepted ADR을 기준으로 bounded 구현 계획 Draft 작성
 - D-12 backup/restore 후보를 공식 Supabase·R2·S3 자료로 비교하고, Supabase Free의 24시간 logical export·off-site encryption·empty Windows restore 요구를 Proposed `ADR-0008`로 정리
+- `ADR-0008` Accepted: 기존 AWS S3에 30일 rolling client-side encrypted PostgreSQL archive를 보관하고 backup 전용 IAM·budget monitoring·empty Windows restore 검증을 필수로 확정
 
 ## 진행 중
 
@@ -117,9 +118,9 @@ PLAN-0001 Task 1~5 local foundation 구현 완료; D-12 encrypted backup/restore
 
 ## 다음 작업
 
-로컬 foundation Task 1~5를 완료했습니다. 다음은 `ADR-0008`의 backup provider·30일
-retention·client-side encryption 경계를 owner가 승인하면 disposable restore Spike를
-수행하는 일입니다.
+로컬 foundation Task 1~5와 `ADR-0008`을 완료했습니다. 다음은 S3 backup IAM·bucket을
+이용한 disposable encrypted restore Spike와 실제 Discord/Supabase/host 운영 검증 계획을
+분리하는 일입니다.
 
 ## 차단 요소
 
@@ -136,7 +137,7 @@ retention·client-side encryption 경계를 owner가 승인하면 disposable res
 - 익명 임시 outbound tunnel의 Vercel→자가 host 호출이 function timeout으로 실패했으며 원인이 Vercel egress, tunnel 공급자 경로, 지역 또는 연결 정책 중 어디인지는 분리하지 못함
 - 공유 PostgreSQL request/result도 worker 처리와 별개로 Vercel function timeout이 발생해 고위험 현재 역할 조회의 5초 동기 경계가 아직 없음
 - 계정 고정 managed tunnel도 local 왕복은 성공했지만 Vercel function timeout으로 실패해 공급자 교체만으로 추가 검증할 근거가 낮음
-- `ADR-0008` backup provider 선택 및 provider login/checkout·disposable encrypted restore Spike 승인이 필요
+- S3 backup IAM·bucket 생성과 disposable encrypted restore Spike에는 실제 AWS login/credential 입력이 필요
 
 ## 현재 확정되지 않은 사항
 
