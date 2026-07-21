@@ -1,6 +1,6 @@
 # ADR-0007: Discord OAuth와 server-side opaque session 인증 경계
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-21
 - Owners: 프로젝트 소유자
 - Related requirements: `OWN-026`~`OWN-033`, `SEC-001`~`SEC-009`, `ADR-0001`, `ADR-0006`
@@ -84,5 +84,5 @@ session schema와 cookie name은 versioned migration으로 유지한다. 향후 
 
 ## Approval
 
-- Owner decision: Pending
-- Approved date: Pending
+- Owner decision: Approved — Discord OAuth `identify`, bot-side current member 조회, opaque server-side session
+- Approved date: 2026-07-21
