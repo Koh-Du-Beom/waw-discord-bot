@@ -1,7 +1,7 @@
 # D-04 언어·런타임·Discord SDK 후보 조사
 
 - 상태: Research — 기술 선택 또는 Spike 승인 아님
-- 조사일·문서 확인일: 2026-07-20
+- 조사일·문서 확인일: 2026-07-21
 - 결정 질문: 첫 MVP의 단일 지속 server 경계에서 Discord Gateway bot과 web을 운영할 때 어떤 언어·런타임·커뮤니티 Discord SDK 조합을 후속 검증 후보로 남길 것인가?
 - 범위 밖: 언어·런타임·SDK·host·저장소·인증 기술 선택, 소유자 질문, ADR, Spike 작성·실행, 구현 계획과 제품 코드
 
@@ -43,11 +43,11 @@ Discord Community Resources에 포함되고, 현재 프로젝트 규모에서 �
 
 ### A. TypeScript + Node.js LTS + discord.js
 
-- **Gateway·Go Live:** discord.js는 Gateway manager, voice-state event/model과 Go Live에 대응하는 `streaming` 필드를 제공한다. 현재 문서는 `@discordjs/ws`에 Node.js 22.12 이상을 요구한다. [discord.js WebSocket](https://discord.js.org/docs/packages/ws/2.0.4), [discord.js VoiceState](https://discord.js.org/docs/packages/discord.js/14.25.0/VoiceState%3AClass)
+- **Gateway·Go Live:** discord.js는 Gateway manager, voice-state event/model과 Go Live에 대응하는 `streaming` 필드를 제공한다. [discord.js WebSocket](https://discord.js.org/docs/packages/ws/2.0.4), [discord.js VoiceState](https://discord.js.org/docs/packages/discord.js/14.27.0/VoiceState%3AClass)
 - **시험성:** Node의 `node:test`는 stable이고 async test와 process 격리를 지원한다. TypeScript는 adapter payload와 정책 상태를 compile-time에 좁히는 데 유리하다. [Node test runner](https://nodejs.org/api/test.html)
 - **지속 server·web 경계:** bot과 web이 같은 언어·runtime을 쓸 수 있어 model·validation 계약을 공유할 여지가 있다. 이는 단순화 가능성이지 같은 process나 web framework 선택을 뜻하지 않는다.
-- **호환성:** Node는 Windows, macOS, Linux용 배포물을 제공하며 LTS release line을 운영한다. 정확한 major는 채택 시점의 Production 상태와 discord.js 최소 버전을 함께 고정해야 한다. [Node releases](https://nodejs.org/en/about/previous-releases)
-- **유지보수·공급망:** discord.js 저장소는 2026-05-01에 14.26.4 release를 게시했다. npm lockfile은 동일 dependency tree 재현을 돕고 `npm audit`은 알려진 취약점을 보고하지만, audit가 공급망 신뢰 전체를 보장하지는 않는다. transitive dependency와 install script는 lock·review·최소 dependency로 별도 통제해야 한다. [discord.js repository](https://github.com/discordjs/discord.js), [package-lock](https://docs.npmjs.com/files/package-lock.json), [npm audit](https://docs.npmjs.com/cli/v9/commands/npm-audit/)
+- **호환성:** 2026-07-21 기준 Node 24는 Active LTS이고 2028-04-30 EOL 예정이며, 이번 VM 합성 측정에 사용한 Node 22는 Maintenance LTS이고 2027-04-30 EOL 예정이다. Node 26은 Current이므로 측정 편의만으로 production major를 고정하지 않는다. 정확한 major는 채택 시점의 지원 단계와 고정한 discord.js artifact의 실제 호환성을 함께 검증해야 한다. [Node releases](https://nodejs.org/en/about/previous-releases), [Node release schedule](https://github.com/nodejs/Release/blob/main/schedule.json)
+- **유지보수·공급망:** npm의 현재 stable artifact는 2026-07-15 게시된 discord.js 14.27.0이고 package metadata는 Node `>=18` 및 `@discordjs/ws ^1.2.3`을 선언한다. 반면 동일 14.27.0의 버전별 공식 문서와 별도 `@discordjs/ws` 2.0.4 문서는 Node 24.17.0 이상을 요구한다. 따라서 문서의 더 높은 요구사항을 무시하거나 Node 22 합성 측정을 SDK 호환성 증거로 간주하지 않고, ADR 전에 정확한 artifact·lockfile을 고정한 빈 환경 install/import/start Spike로 이 불일치를 해소한다. npm lockfile은 동일 dependency tree 재현을 돕고 `npm audit`은 알려진 취약점을 보고하지만, audit가 공급망 신뢰 전체를 보장하지는 않는다. transitive dependency와 install script는 lock·review·최소 dependency로 별도 통제해야 한다. [discord.js npm artifact](https://www.npmjs.com/package/discord.js/v/14.27.0), [discord.js 14.27.0 documentation](https://discord.js.org/docs/packages/discord.js/14.27.0), [`@discordjs/ws` 2.0.4 documentation](https://discord.js.org/docs/packages/ws/2.0.4), [package-lock](https://docs.npmjs.com/files/package-lock.json), [npm audit](https://docs.npmjs.com/cli/v9/commands/npm-audit/)
 - **주요 위험:** event loop를 CPU 집약 요약·대량 변환이 막으면 heartbeat와 web 응답이 함께 영향받을 수 있다. 같은 server라는 이유만으로 같은 process에 합치면 token과 web 침해 blast radius가 커진다.
 
 ### B. Python + CPython + discord.py
@@ -55,8 +55,8 @@ Discord Community Resources에 포함되고, 현재 프로젝트 규모에서 �
 - **Gateway·Go Live:** discord.py는 기본 자동 재연결, Resume event, `on_voice_state_update`와 `VoiceState.self_stream`을 제공한다. rate-limit 처리를 핵심 기능으로 문서화한다. [discord.py Client](https://discordpy.readthedocs.io/en/stable/api.html#discord.Client), [discord.py](https://discordpy.readthedocs.io/en/stable/)
 - **시험성:** 표준 `unittest`는 async test case를 지원하고 `asyncio`는 I/O 중심의 Gateway·HTTP workload에 맞는다. type annotation은 쓸 수 있지만 TypeScript/Java와 같은 기본 compile-time 강제는 별도 type checker 정책 없이는 얻지 못한다. [unittest](https://docs.python.org/3/library/unittest.html), [asyncio](https://docs.python.org/3/library/asyncio.html)
 - **지속 server·web 경계:** async I/O 모델과 짧은 adapter code는 작은 bot에 단순하다. web도 Python으로 둘 수 있지만 web framework와 process 구조는 별도 결정이며, 이를 위해 dependency를 미리 추가하지 않는다.
-- **호환성:** CPython은 Windows, macOS, Linux에서 제공된다. 2026-07-20 기준 3.14와 3.13은 bugfix 상태이고 3.12는 security 상태다. discord.py 저장소는 Python 3.8 이상을 명시하므로 채택 시 지원 중인 한 버전을 좁혀야 한다. [Python version status](https://devguide.python.org/versions/), [discord.py repository](https://github.com/Rapptz/discord.py)
-- **유지보수·공급망:** 공식 저장소는 async API, rate limit 처리와 platform별 설치법을 제공한다. runtime dependency는 lock/hash와 vulnerability scanning이 별도로 필요하고, optional voice/native package는 Go Live **관측**에는 필요하지 않으므로 초기 의존성에서 제외할 수 있다.
+- **호환성:** CPython은 Windows, macOS, Linux에서 제공된다. 2026-07-21 기준 3.14와 3.13은 bugfix 상태이고 3.12·3.11·3.10은 security 상태인 반면 3.9와 3.8은 EOL이다. 최신 discord.py 2.7.1 artifact는 여전히 Python `>=3.8`을 선언하지만 이 하한은 CPython upstream 지원을 뜻하지 않는다. 따라서 EOL 하한을 production 후보로 해석하지 않고 지원 중인 modern CPython 한 버전에서 실제 호환성을 검증해야 한다. [Python version status](https://devguide.python.org/versions/), [discord.py 2.7.1 artifact](https://pypi.org/project/discord.py/2.7.1/)
+- **유지보수·공급망:** PyPI의 현재 release는 2026-03-03 게시된 discord.py 2.7.1이다. 공식 저장소는 async API, rate limit 처리와 platform별 설치법을 제공한다. ADR 전 선택한 modern CPython의 빈 환경에서 version을 고정해 install/import/start를 확인하고, runtime dependency는 lock/hash와 vulnerability scanning으로 별도 통제해야 한다. optional voice/native package는 Go Live **관측**에는 필요하지 않으므로 초기 의존성에서 제외할 수 있다. [discord.py 2.7.1 artifact](https://pypi.org/project/discord.py/2.7.1/), [discord.py repository](https://github.com/Rapptz/discord.py)
 - **주요 위험:** runtime type 오류가 integration path까지 늦게 드러날 수 있고, event-loop blocking 위험은 Node와 동일하다. SDK release 페이지가 일관된 GitHub Release 목록을 제공하지 않아 package index version·tag·commit과 보안 대응을 채택 직전에 다시 확인해야 한다.
 
 ### C. Java + OpenJDK + JDA
@@ -78,7 +78,7 @@ Discord Community Resources에 포함되고, 현재 프로젝트 규모에서 �
 | 시험성·타입 | 강한 정적 타입 + 표준 test runner | 간결한 async + 표준 unittest; type 강제는 추가 정책 필요 | 가장 강한 compile-time 경계; test/build dependency 추가 |
 | web과 한 server 경계 | 같은 runtime·type 공유 가능성이 가장 큼 | 같은 runtime 가능, framework 별도 | 가능하나 작은 규모에서는 운영면이 커질 수 있음 |
 | Windows·macOS·Linux | 지원 | 지원 | 지원; JDK vendor 지원 주기 별도 확인 |
-| 유지보수 증거 | 최근 release와 활발한 공식 저장소 확인 | 공식 저장소·문서는 최신이나 release provenance 재확인 필요 | 최근 signed GitHub release 확인 |
+| 유지보수 증거 | 14.27.0 artifact 확인; artifact와 버전별 문서의 Node 요구 불일치 검증 필요 | PyPI 2.7.1 확인; SDK 하한과 CPython upstream 지원 범위 분리 필요 | 최근 signed GitHub release 확인 |
 | 공급망 면적 | npm transitive tree·install script 검토 필요 | pip dependency/hash·index provenance 검토 필요 | Maven/Gradle dependency·plugin 검증 필요 |
 | 예상 운영 부담 | 낮음~중간 | 낮음 | 중간 |
 | 자원·비용 | host 실측 전 미확인 | host 실측 전 미확인 | host 실측 전 미확인; JVM baseline이 결정에 중요 |
@@ -117,7 +117,7 @@ Discord Community Resources에 포함되고, 현재 프로젝트 규모에서 �
 | `GAP-D04-02` | 실제 Go Live 시작·중단 event 지연·누락과 재연결 뒤 reconciliation | `FUN-010`~`FUN-012` | SDK 공통 Discord platform 공백; 언어 선택 근거로 오용 금지 |
 | `GAP-D04-03` | 후보 host에서 bot+최소 web의 idle/peak memory와 event-loop pause | 비용·heartbeat 안정성 | host shortlist와 결합된 후속 측정 필요 |
 | `GAP-D04-04` | 배포 중 중복 process를 막고 command/schedule owner 하나만 유지하는 방법 | `OPS-002` | D-09 host/process 결정 뒤 한 가설로 검증 |
-| `GAP-D04-05` | discord.py의 채택 시점 release provenance·지원 Python 범위와 세 SDK의 advisory 대응 절차 | 공급망·유지보수 | ADR 전 공식 tag/package metadata 재확인 |
+| `GAP-D04-05` | discord.js 14.27.0 artifact와 버전별 문서의 Node 요구 불일치, discord.py 2.7.1의 EOL Python 포함 하한, 세 SDK의 advisory 대응 절차 | 공급망·유지보수 | ADR 전 정확한 artifact·lock을 고정하고 지원 중인 runtime의 빈 환경 install/import/start 검증 |
 
 현재는 Spike를 작성하거나 실행하지 않는다. `GAP-D04-01`과 `GAP-D04-04`는 언어 후보를 둘 이하로 좁히고 host/process 경계를 정한 뒤 하나의 장애 Spike로 합칠 수 있다. `GAP-D04-02`는 SDK와 무관한 D-02 Go Live 관측 Spike로 분리해야 한다.
 
@@ -135,7 +135,7 @@ Discord Community Resources에 포함되고, 현재 프로젝트 규모에서 �
 - **가장 강한 대안:** Python + 지원 중인 CPython + discord.py. 작은 async bot의 단순성과 충분한 Gateway·Go Live API가 강점이며, web과 type enforcement의 실제 구성에 따라 A보다 단순해질 수 있다.
 - **유지 후보:** Java + 지원 JDK + JDA. compile-time 안전성과 JDA 운영 기능이 실제 자원·복잡성 비용을 상쇄할 때 선택지가 된다.
 - **주요 위험:** 세 SDK 모두 커뮤니티 유지보수이며 Go Live 정확성·singleton·host 자원은 해결하지 않는다. 같은 server를 같은 process로 오해하면 web 장애와 Gateway/token 경계가 결합될 수 있다.
-- **필요 검증:** 후보 축소 후 합성 Gateway event 단위 시험, 실제 bot의 disconnect/resume와 Go Live reconciliation, 선택 host에서 bot+web 자원 측정, 중복 실행 장애 주입이 필요하다.
+- **필요 검증:** 후보 축소 후 정확한 SDK artifact·dependency lock을 사용한 지원 runtime 빈 환경 install/import/start, 합성 Gateway event 단위 시험, 실제 bot의 disconnect/resume와 Go Live reconciliation, 선택 host에서 bot+web 자원 측정, 중복 실행 장애 주입이 필요하다. Node 22와 SDK 없는 합성 workload 측정은 runtime 수용량 근거일 뿐 discord.js production 호환성 근거가 아니다.
 - **뒤집는 조건:** A의 current LTS/discord.js 호환성 또는 reconnect 안정성이 실패하거나 npm 공급망·event-loop 격리 비용이 B보다 커지면 B를 우선한다. B의 release/support 또는 type/runtime 오류 통제가 기준을 못 맞추면 A를 유지한다. C가 같은 host에서 비용 상한을 만족하면서 장애·관측·유지보수에서 명확한 우위를 실측하면 C를 재평가한다.
 
 KBO는 허가된 공급 경로와 재표시 권리가 확인될 때까지 연기하며 이 후보 비교의 활성 기능·dependency·시험 범위에 포함하지 않는다.
