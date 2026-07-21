@@ -12,7 +12,7 @@ plain_path="$spike_tmp/synthetic.sql"
 archive_path="$spike_tmp/synthetic.sql.gz.age"
 restored_path="$spike_tmp/restored.sql"
 
-age-keygen -o "$identity_path" >/dev/null
+age-keygen -o "$identity_path" >/dev/null 2>&1
 recipient="$(age-keygen -y "$identity_path")"
 
 print -r -- 'BEGIN; CREATE TABLE synthetic_contract (id integer PRIMARY KEY); INSERT INTO synthetic_contract VALUES (1); COMMIT;' > "$plain_path"

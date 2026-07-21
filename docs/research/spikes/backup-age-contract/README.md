@@ -22,7 +22,7 @@
 
 ```text
 PASS: synthetic age recipient encryption round trip
-archive_bytes=276
+archive_bytes=<run-specific byte count>
 archive_sha256=<run-specific SHA-256>
 ```
 
