@@ -82,3 +82,105 @@ TypeScript와 Python이 모두 하나 이상의 기준을 위반하거나 결과
 ## 실행 전 남은 승인
 
 이 문서는 Spike 실행 승인이 아니다. 다음 승인에서는 서울 Lightsail 1GB 임시 VM 생성, 최대 USD 3 지출, 비운영 SSH key 사용과 시험 후 resource 삭제만 허용하면 된다. runtime·SDK·host 선택, ADR과 제품 구현은 포함하지 않는다.
+
+## 실행 runbook
+
+아래 명령은 실행 승인 뒤에만 사용한다. AWS profile은 별도 최소 권한 profile을 사용하고 access key, account ID와 결제 정보는 출력하거나 저장소에 기록하지 않는다. `set -x`와 AWS CLI `--debug`는 사용하지 않는다.
+
+명령과 과금 경계는 AWS의 [Lightsail instance 생성 CLI](https://docs.aws.amazon.com/cli/latest/reference/lightsail/create-instances.html), [SSH public key import](https://docs.aws.amazon.com/cli/latest/reference/lightsail/import-key-pair.html), [firewall port 제어](https://docs.aws.amazon.com/cli/latest/reference/lightsail/open-instance-public-ports.html), [삭제](https://docs.aws.amazon.com/cli/latest/reference/lightsail/delete-instance.html)와 [stopped instance도 삭제 전까지 과금되는 정책](https://docs.aws.amazon.com/lightsail/latest/userguide/amazon-lightsail-frequently-asked-questions-faq-billing-and-account-management.html)을 기준으로 작성했다.
+
+### 1. 읽기 전용 사전 확인
+
+```bash
+aws sts get-caller-identity --profile waw-spike
+aws lightsail get-regions --include-availability-zones --profile waw-spike --query 'regions[?name==`ap-northeast-2`]'
+aws lightsail get-blueprints --include-inactive --profile waw-spike --region ap-northeast-2 --query 'blueprints[?platform==`LINUX_UNIX`].[blueprintId,name,version,active]'
+aws lightsail get-bundles --include-inactive --profile waw-spike --region ap-northeast-2 --query 'bundles[?ramSizeInGb==`1`].[bundleId,name,price,cpuCount,diskSizeInGb,active]'
+```
+
+여기서 active Ubuntu LTS blueprint 하나와 public IPv4, RAM 1GB, 월 USD 7 이하인 active bundle 하나를 눈으로 확인한다. account의 서울 재고·가격 또는 예상 총비용이 제안과 다르면 생성하지 않고 중단한다.
+
+### 2. 이름과 비운영 SSH key 준비
+
+```bash
+SPIKE_REGION=ap-northeast-2
+SPIKE_ZONE=ap-northeast-2a
+SPIKE_INSTANCE=waw-capacity-spike-20260721
+SPIKE_KEY=waw-capacity-spike-20260721
+SPIKE_BLUEPRINT='<사전 확인한 active Ubuntu LTS blueprintId>'
+SPIKE_BUNDLE='<사전 확인한 active 1GB public IPv4 bundleId>'
+SPIKE_LOCAL_DIR="$(mktemp -d /tmp/waw-capacity-spike.XXXXXX)"
+chmod 700 "$SPIKE_LOCAL_DIR"
+ssh-keygen -q -t rsa -b 3072 -N '' -C "$SPIKE_KEY" -f "$SPIKE_LOCAL_DIR/id_rsa"
+aws lightsail import-key-pair --profile waw-spike --region "$SPIKE_REGION" --key-pair-name "$SPIKE_KEY" --public-key-base64 "fileb://$SPIKE_LOCAL_DIR/id_rsa.pub"
+```
+
+private key는 `mktemp`가 만든 mode 700 임시 directory에만 두고 저장소, shell history 인자, 문서와 원격 VM에 복사하지 않는다. public key만 Lightsail에 올리며 시험 종료 시 local key와 provider key를 모두 삭제한다.
+
+### 3. 생성과 최소 firewall
+
+```bash
+aws lightsail create-instances --profile waw-spike --region "$SPIKE_REGION" --instance-names "$SPIKE_INSTANCE" --availability-zone "$SPIKE_ZONE" --blueprint-id "$SPIKE_BLUEPRINT" --bundle-id "$SPIKE_BUNDLE" --key-pair-name "$SPIKE_KEY" --tags key=purpose,value=waw-capacity-spike key=expires,value=2026-07-22
+for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+  test "$(aws lightsail get-instance --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE" --query 'instance.state.name' --output text)" = Running && break
+  sleep 5
+done
+test "$(aws lightsail get-instance --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE" --query 'instance.state.name' --output text)" = Running
+aws lightsail close-instance-public-ports --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE" --port-info fromPort=22,toPort=22,protocol=tcp
+aws lightsail open-instance-public-ports --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE" --port-info 'fromPort=22,toPort=22,protocol=tcp,cidrs=<현재 관리 단말 IPv4/32>'
+aws lightsail get-instance-port-states --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE"
+SPIKE_HOST="$(aws lightsail get-instance --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE" --query 'instance.publicIpAddress' --output text)"
+ssh -i "$SPIKE_LOCAL_DIR/id_rsa" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new ubuntu@"$SPIKE_HOST"
+```
+
+기본 SSH rule을 제거한 뒤 현재 관리 단말의 `/32`만 다시 연다. database port, 운영 DNS, static IP, snapshot, backup과 추가 disk는 만들지 않는다. public HTTPS 검증이 필요할 때만 합성 endpoint가 준비된 뒤 TCP 443을 열고, 다섯 번 확인 직후 다시 닫는다.
+
+### 4. VM 기준선과 순차 시험
+
+```bash
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl git jq openssl sysstat time
+uname -a
+free -m
+df -h /
+curl --fail --silent --show-error --output /dev/null https://gateway.discord.gg/
+```
+
+fixture는 같은 합성 event 파일과 40MB 이하 store를 사용한다. TypeScript와 Python harness는 동시에 실행하지 않으며 각 후보마다 다음 순서를 반복한다.
+
+```bash
+/usr/bin/time -v ./run-runtime-harness.sh typescript 60m | tee typescript-summary.log
+./verify-runtime-result.sh typescript-summary.log
+sudo sync
+/usr/bin/time -v ./run-runtime-harness.sh python 60m | tee python-summary.log
+./verify-runtime-result.sh python-summary.log
+```
+
+`run-runtime-harness.sh`와 `verify-runtime-result.sh`는 실행 승인 뒤 repository에 추가해 local 합성 self-check를 먼저 통과시킨 폐기 가능한 fixture만 전송한다. summary에는 timestamp, runtime/version, RSS·CPU·available memory·HTTP latency/error·scheduler delay와 event count만 남기고 hostname, public IP, SSH path, credential, 실제 사용자 데이터는 남기지 않는다. 한 후보가 끝나면 process와 port가 사라졌는지 확인한 뒤 다음 후보를 시작한다.
+
+### 5. 임시 HTTPS 확인
+
+```bash
+aws lightsail open-instance-public-ports --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE" --port-info fromPort=443,toPort=443,protocol=tcp
+for attempt in 1 2 3 4 5; do curl --insecure --fail --silent --show-error --output /dev/null --write-out '%{http_code} %{time_total}\n' "https://$SPIKE_HOST/health"; done
+aws lightsail close-instance-public-ports --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE" --port-info fromPort=443,toPort=443,protocol=tcp
+```
+
+자체 서명 시험 certificate라서 이 단계에만 `--insecure`를 허용한다. 운영 TLS, DNS 또는 인증 방식의 근거로 사용하지 않는다.
+
+### 6. 중단·정리와 잔존 resource 검사
+
+측정 성공 여부와 무관하게 같은 작업 세션에서 정리한다. stopped instance도 과금되므로 stop이 아니라 delete를 사용한다.
+
+```bash
+aws lightsail delete-instance --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE"
+aws lightsail delete-key-pair --profile waw-spike --region "$SPIKE_REGION" --key-pair-name "$SPIKE_KEY"
+rm -rf "$SPIKE_LOCAL_DIR"
+aws lightsail get-instances --profile waw-spike --region "$SPIKE_REGION" --query 'instances[?contains(name, `waw-capacity-spike`)].name'
+aws lightsail get-key-pairs --profile waw-spike --region "$SPIKE_REGION" --query 'keyPairs[?contains(name, `waw-capacity-spike`)].name'
+aws lightsail get-static-ips --profile waw-spike --region "$SPIKE_REGION" --query 'staticIps[?contains(name, `waw-capacity-spike`)].name'
+aws lightsail get-disks --profile waw-spike --region "$SPIKE_REGION" --query 'disks[?contains(name, `waw-capacity-spike`)].name'
+aws lightsail get-instance-snapshots --profile waw-spike --region "$SPIKE_REGION" --query 'instanceSnapshots[?contains(name, `waw-capacity-spike`)].name'
+```
+
+다섯 query가 모두 빈 배열인지 확인하고 Lightsail console의 Instances, Storage, Snapshots, Networking과 Billing 화면에서도 잔존 resource·예상 청구를 확인한다. 삭제 또는 billing 확인이 실패하면 결과 분석보다 정리를 우선하며, resource identifier만 기록하고 credential과 public IP는 기록하지 않는다.
