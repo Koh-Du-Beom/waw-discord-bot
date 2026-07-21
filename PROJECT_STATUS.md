@@ -83,6 +83,7 @@ D-09 서울 1GB runtime 수용량 Approved Spike 실행 준비
 - 첫 `aws login` 검증에서 `waw-spike` profile이 IAM 사용자가 아닌 root console session으로 연결된 것을 감지해 resource 생성 없이 즉시 logout·cache 무효화
 - 재인증 뒤 최소 권한 `waw-spike-operator` identity 확인; 서울 Ubuntu 24.04 LTS와 public IPv4 `micro_3_0` 2 vCPU·1GB·40GB·월 USD 7 fixture 사전 확인 통과
 - 첫 두 생성 시도는 Lightsail `publicKeyBase64`에 bytes와 이중 base64 text를 각각 전달해 key import 단계에서 실패; OpenSSH public key 원문 `file://` import→delete probe 통과 및 VM·key·local private key 잔존 없음 확인
+- 다음 생성 시도는 삭제된 실행과 같은 고정 instance 이름 충돌로 거부; 활성 VM·key 잔존 없음 확인 후 UTC timestamp suffix를 쓰도록 수정
 
 ## 진행 중
 
