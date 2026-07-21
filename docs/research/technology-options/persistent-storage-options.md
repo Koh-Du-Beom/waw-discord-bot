@@ -169,7 +169,7 @@ Supabase Free는 관리형 PostgreSQL을 제공하는 별도 후보다. 이번 �
 - SQLite Online Backup 또는 PostgreSQL dump로 만든 암호화 외부 copy를 빈 Windows 노트북에 복원하고 8시간 RTO와 무결성 검사를 측정한다.
 - Vercel preview·production과 bot에 서로 다른 최소 권한 role을 주고 교차 접근이 거부되는지 검증한다.
 - 관리형 후보의 scale-to-zero 뒤 첫 query, connection pooling, outage와 0.5GB 초과 시 동작을 실제 예상량으로 측정한다.
-- Supabase Free 후보는 별도 owner 승인 뒤에만 disposable project로 생성해 500MB quota·pause·TLS connection·최소 role·export/restore를 검증한다. project 생성 전에는 공식 문서와 합성 local dataset만 사용한다.
+- Supabase Free 후보는 owner 승인 후 별도 disposable project(`waw-storage-spike-20260721`)를 생성했다. 기존 production 프로젝트는 사용하지 않았다. 아직 합성 SQL·export/restore 검증은 실행하지 않았으며, 다음 단계에서 새 프로젝트에만 수행하고 완료 후 삭제한다.
 
 ## 8. 잠정 권고와 가장 강한 대안
 
