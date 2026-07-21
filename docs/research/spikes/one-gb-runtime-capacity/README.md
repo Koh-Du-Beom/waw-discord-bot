@@ -1,6 +1,6 @@
 # 1GB runtime 수용량 Spike 제안
 
-- 상태: Approved Spike — local self-check·AWS 최소 권한 identity·서울 fixture 사전 확인 완료, VM 미실행
+- 상태: Approved Spike — AWS 서울 임시 VM에서 수정된 fixture 재검증 진행 중
 - 제안일: 2026-07-21
 - 연결 요구사항: `OPS-001`~`OPS-004`, `OWN-005`, `OWN-017`, `OWN-023`, `OWN-034`, `OWN-035`, `GAP-D09-03`, `GAP-D09-06`
 - 제품 코드 또는 기술 선택: 없음
@@ -63,7 +63,7 @@ TypeScript와 Python이 모두 하나 이상의 기준을 위반하거나 결과
 - Discord·OAuth·GPT·database credential은 만들거나 조회하지 않음
 - 목표 사용료 USD 1 이하, 예상하지 못한 최소 청구·세금·환전 포함 절대 상한 USD 3
 
-실행에는 공급자 account와 결제수단이 필요하지만 credential 값은 문서·명령·로그에 출력하지 않는다. 실제 account 접근과 VM 생성은 별도 사용자 승인 뒤에만 수행한다.
+실행에는 공급자 account와 결제수단이 필요하지만 credential 값은 문서·명령·로그에 출력하지 않는다. 실제 account 접근과 VM 생성은 별도 사용자 승인 뒤에만 수행한다. 해당 범위는 2026-07-21 owner가 승인했다.
 
 ## 비용 판정
 
@@ -79,9 +79,9 @@ TypeScript와 Python이 모두 하나 이상의 기준을 위반하거나 결과
 
 실행 완료 또는 어느 단계에서든 비용 상한·보안 경계를 지킬 수 없으면 즉시 중단한다. 이후 임시 VM, disk, snapshot, static IP, firewall rule과 SSH key를 삭제하고 billing 화면에서 잔존 resource가 없는지 확인한다. 저장소에는 비밀정보 없는 결과, 측정 명령, 한계와 비용만 남긴다.
 
-## 실행 전 남은 승인
+## 실행 승인 기록
 
-이 문서는 Spike 실행 승인이 아니다. 다음 승인에서는 서울 Lightsail 1GB 임시 VM 생성, 최대 USD 3 지출, 비운영 SSH key 사용과 시험 후 resource 삭제만 허용하면 된다. runtime·SDK·host 선택, ADR과 제품 구현은 포함하지 않는다.
+2026-07-21 owner는 서울 Lightsail 1GB 임시 VM 한 대 생성, 최대 USD 3 지출, 비운영 SSH key 사용과 시험 후 resource 삭제를 승인했다. 이 승인은 runtime·SDK·host 선택, ADR Accepted와 제품 구현을 포함하지 않는다.
 
 ### 임시 IAM 경계
 
@@ -189,6 +189,23 @@ Ubuntu 기본 Node 18은 현재 D-04 TypeScript 후보의 Node 22.12+ 경계를 
 
 fixture는 같은 합성 event 파일과 40MB 이하 store를 사용한다. TypeScript와 Python harness는 동시에 실행하지 않으며 각 후보마다 다음 순서를 반복한다.
 
+먼저 저장소의 fixture 파일만 VM의 폐기 가능한 작업 directory로 복사하고, 원격에서 문법·단위 시험과 30초 smoke를 통과시킨다. Private key와 AWS profile은 복사하지 않는다.
+
+```bash
+scp run-runtime-harness.sh run-linux-capacity.py verify.py harness.mjs harness.py \
+  test_metrics.py test_verify.py ubuntu@"$SPIKE_HOST":/home/ubuntu/waw-capacity/
+ssh ubuntu@"$SPIKE_HOST" 'cd /home/ubuntu/waw-capacity && \
+  chmod +x run-runtime-harness.sh && \
+  export PATH=/opt/node-v22.23.1-linux-x64/bin:$PATH && \
+  node --check harness.mjs && \
+  python3 -m py_compile harness.py verify.py run-linux-capacity.py && \
+  python3 -m unittest test_metrics.py test_verify.py && \
+  python3 run-linux-capacity.py typescript 30 | python3 verify.py && \
+  python3 run-linux-capacity.py python 30 | python3 verify.py'
+```
+
+실제 실행에서는 위 `ssh`와 `scp`에 임시 private key, 고정된 `known_hosts` 파일과 `IdentitiesOnly=yes`를 명시한다. 문서 예시는 credential 경로를 저장소에 고정하지 않기 위해 생략했다. 60분 실행 직전과 후보 전환 시 `run-linux-capacity.py`, `harness.mjs`, `harness.py` process 및 18080·18081 listen port가 남아 있지 않은지 확인한다. 중복 실행이 발견되면 해당 구간의 결과는 폐기하고 모든 합성 process를 종료한 뒤 처음부터 다시 측정한다.
+
 ```bash
 python3 run-linux-capacity.py typescript 3600 | tee typescript-summary.json
 python3 verify.py < typescript-summary.json
@@ -245,3 +262,5 @@ aws lightsail get-instance-snapshots --profile waw-spike --region "$SPIKE_REGION
 ```
 
 다섯 query가 모두 빈 배열인지 확인하고 Lightsail console의 Instances, Storage, Snapshots, Networking과 Billing 화면에서도 잔존 resource·예상 청구를 확인한다. Local 임시 directory는 예상 prefix와 일치할 때만 삭제한다. 삭제 또는 billing 확인이 실패하면 결과 분석보다 정리를 우선하며, resource identifier만 기록하고 credential과 public IP는 기록하지 않는다.
+
+2026-07-21 첫 장시간 시도에서는 수정 전 TypeScript runner 두 개가 겹쳐 실행된 사실을 process inventory로 발견했다. 순차 실행 조건을 위반하므로 두 결과를 모두 증거에서 제외했고, 합성 process와 listen port가 남지 않았음을 확인한 뒤 수정된 fixture의 문법·단위 시험과 30초 runtime별 smoke부터 다시 수행했다. 이 폐기 결과는 D-04 또는 D-09 선택 근거로 사용하지 않는다.
