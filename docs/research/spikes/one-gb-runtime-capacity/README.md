@@ -224,7 +224,15 @@ rm -rf "$HTTPS_DIR"
 ```bash
 aws lightsail delete-instance --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE"
 aws lightsail delete-key-pair --profile waw-spike --region "$SPIKE_REGION" --key-pair-name "$SPIKE_KEY"
-rm -rf "$SPIKE_LOCAL_DIR"
+case "$SPIKE_LOCAL_DIR" in
+  /tmp/waw-capacity-spike.*) rm -rf -- "$SPIKE_LOCAL_DIR" ;;
+  *) echo 'refusing unexpected cleanup path' >&2; exit 1 ;;
+esac
+for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+  test "$(aws lightsail get-instances --profile waw-spike --region "$SPIKE_REGION" --query 'length(instances[?contains(name, `waw-capacity-spike`)])' --output text)" = 0 &&
+  test "$(aws lightsail get-key-pairs --profile waw-spike --region "$SPIKE_REGION" --query 'length(keyPairs[?contains(name, `waw-capacity-spike`)])' --output text)" = 0 && break
+  sleep 5
+done
 aws lightsail get-instances --profile waw-spike --region "$SPIKE_REGION" --query 'instances[?contains(name, `waw-capacity-spike`)].name'
 aws lightsail get-key-pairs --profile waw-spike --region "$SPIKE_REGION" --query 'keyPairs[?contains(name, `waw-capacity-spike`)].name'
 aws lightsail get-static-ips --profile waw-spike --region "$SPIKE_REGION" --query 'staticIps[?contains(name, `waw-capacity-spike`)].name'
@@ -232,4 +240,4 @@ aws lightsail get-disks --profile waw-spike --region "$SPIKE_REGION" --query 'di
 aws lightsail get-instance-snapshots --profile waw-spike --region "$SPIKE_REGION" --query 'instanceSnapshots[?contains(name, `waw-capacity-spike`)].name'
 ```
 
-다섯 query가 모두 빈 배열인지 확인하고 Lightsail console의 Instances, Storage, Snapshots, Networking과 Billing 화면에서도 잔존 resource·예상 청구를 확인한다. 삭제 또는 billing 확인이 실패하면 결과 분석보다 정리를 우선하며, resource identifier만 기록하고 credential과 public IP는 기록하지 않는다.
+다섯 query가 모두 빈 배열인지 확인하고 Lightsail console의 Instances, Storage, Snapshots, Networking과 Billing 화면에서도 잔존 resource·예상 청구를 확인한다. Local 임시 directory는 예상 prefix와 일치할 때만 삭제한다. 삭제 또는 billing 확인이 실패하면 결과 분석보다 정리를 우선하며, resource identifier만 기록하고 credential과 public IP는 기록하지 않는다.
