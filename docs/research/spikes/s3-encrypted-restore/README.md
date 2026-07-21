@@ -26,3 +26,7 @@ Orca browser download hook은 선택된 object를 expected local path에 전달�
 2026-07-21 실행에서 encrypted archive byte round trip, target row count `2`, `restore-check` invariant를 통과했다. Docker container 잔존 여부도 실행 뒤 검사했다. 이는 local container evidence이며 Windows 또는 새 host recovery evidence와 같지 않다.
 
 다음 AWS-bound Spike는 temporary least-privilege writer/reader policy를 사용해 S3 download checksum까지 연결하고, same-run cleanup을 다시 확인해야 한다. Windows 또는 새 host의 empty PostgreSQL restore는 이 local companion과 별도로 증명해야 한다.
+
+## New-host authorization boundary
+
+`lightsail-restore-spike-policy.json`은 Seoul region에서 `purpose=waw-restore-spike`와 expiry tag를 요청한 disposable instance의 생성·조회·삭제만 허용하는 temporary policy template다. 기존 capacity Spike policy의 `waw-capacity-spike` tag를 restore evidence에 재사용하지 않는다. 이 policy attachment와 host 생성은 owner approval 뒤에만 실행하고, instance 삭제 확인 뒤 attachment를 제거한다.
