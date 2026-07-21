@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-D-09 서울 1GB runtime 수용량 Spike 실행 중 — Node 완료·Python 진행 중
+D-09 서울 1GB runtime 수용량 Spike 실행·정리 완료
 
 ## 완료
 
@@ -91,6 +91,9 @@ D-09 서울 1GB runtime 수용량 Spike 실행 중 — Node 완료·Python 진�
 - Orca 앱 설치·CLI 연결과 active worktree comment 갱신 완료
 - 최신 fixture의 중복 실행을 process inventory로 폐기하고 30초 Node·Python smoke 및 4개 verifier unit test 통과
 - 서울 Lightsail 임시 VM에서 Node 60분 수용량 측정 완료; 13개 verifier 기준 모두 통과
+- 서울 Lightsail 임시 VM에서 Python 60분 수용량 측정 완료; 13개 verifier 기준 모두 통과
+- 임시 HTTPS `/health` 다섯 회 HTTP 200 확인 후 포트·server·certificate 제거; VM·SSH key·static IP·disk·snapshot 잔존 없음 확인
+- AWS session logout과 local 임시 state 정리 완료; capacity Spike 결과는 합성 workload 한계와 함께 문서화
 - D-04 공식 runtime·SDK 지원 현황 갱신, D-08 단일 지속 server ADR Proposed 작성 후 owner 승인으로 Accepted 전환
 - D-08 Accepted ADR을 기준으로 bounded 구현 계획 Draft 작성
 
@@ -98,16 +101,15 @@ D-09 서울 1GB runtime 수용량 Spike 실행 중 — Node 완료·Python 진�
 
 - 예상 사용량과 고정비가 미확정인 항목의 복수 시나리오 유지
 - D-09 세 region의 공개 latency·plan 재고, 1GB 자원과 VM·GPT·domain·backup 총비용 검증 대기
-- 서울 VM Python 60분 측정, 임시 HTTPS health 확인과 resource cleanup 결과 반영 대기
+- 서울 VM capacity 결과·HTTPS 확인·resource cleanup 결과를 D-09 문서와 PROJECT_STATUS에 반영 완료
 - TypeScript·Python 후보의 Gateway·Go Live·자원·시험성·공급망 검증 대기
 - 저장소·배포·통신·인증 기술 선택은 필요한 별도 승인 Spike 증거 전까지 보류
 
 ## 다음 작업
 
-서울 Lightsail 1GB 임시 VM 실행 승인을 반영해 Node·Python 순차 수용량 시험을
-진행합니다. Python 결과 확인 뒤 합성 HTTPS endpoint를 5회만 열고 즉시 닫으며,
-VM·key·firewall·임시 파일과 잔존 resource를 정리합니다. 이후 결과·비용·한계를
-갱신하고 D-04/D-09 최종 선택 전 남은 승인 게이트를 분리합니다.
+서울 Lightsail 1GB capacity Spike의 Node·Python 순차 측정과 HTTPS 확인을
+완료하고 모든 임시 AWS resource를 삭제했습니다. 다음은 D-04 runtime/SDK와
+D-09 host/provider 최종 선택 전 남은 증거 공백 및 승인 게이트를 분리하는 일입니다.
 
 ## 차단 요소
 

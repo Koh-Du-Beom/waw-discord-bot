@@ -1,6 +1,6 @@
 # 1GB runtime 수용량 Spike 제안
 
-- 상태: Approved Spike — AWS 서울 임시 VM에서 수정된 fixture 재검증 진행 중
+- 상태: Approved Spike — AWS 서울 임시 VM 실행·정리 완료
 - 제안일: 2026-07-21
 - 연결 요구사항: `OPS-001`~`OPS-004`, `OWN-005`, `OWN-017`, `OWN-023`, `OWN-034`, `OWN-035`, `GAP-D09-03`, `GAP-D09-06`
 - 제품 코드 또는 기술 선택: 없음
@@ -264,3 +264,5 @@ aws lightsail get-instance-snapshots --profile waw-spike --region "$SPIKE_REGION
 다섯 query가 모두 빈 배열인지 확인하고 Lightsail console의 Instances, Storage, Snapshots, Networking과 Billing 화면에서도 잔존 resource·예상 청구를 확인한다. Local 임시 directory는 예상 prefix와 일치할 때만 삭제한다. 삭제 또는 billing 확인이 실패하면 결과 분석보다 정리를 우선하며, resource identifier만 기록하고 credential과 public IP는 기록하지 않는다.
 
 2026-07-21 첫 장시간 시도에서는 수정 전 TypeScript runner 두 개가 겹쳐 실행된 사실을 process inventory로 발견했다. 순차 실행 조건을 위반하므로 두 결과를 모두 증거에서 제외했고, 합성 process와 listen port가 남지 않았음을 확인한 뒤 수정된 fixture의 문법·단위 시험과 30초 runtime별 smoke부터 다시 수행했다. 이 폐기 결과는 D-04 또는 D-09 선택 근거로 사용하지 않는다.
+
+2026-07-21 승인된 서울 Lightsail fixture의 최신 Node 22.23.1·Python runner를 순차로 60분씩 실행했다. 두 runtime 모두 13개 verifier 기준을 통과했다. 실제 summary 원문은 임시 VM 삭제와 함께 폐기했으며 verifier의 PASS 결과와 실행 범위·한계를 이 문서의 증거로 보존한다. 임시 self-signed HTTPS `/health`는 다섯 번 모두 HTTP 200으로 확인한 뒤 포트·server·certificate를 제거했고, VM·SSH key·static IP·disk·snapshot 잔존도 모두 없음을 확인했다. 이 결과는 1GB fixture의 합성 workload 증거이며 runtime·SDK·host의 최종 선택이나 운영 안정성 보장이 아니다.
