@@ -96,7 +96,7 @@ self-check는 완료했으며 VM system metric 수집은 실행 전 최종 점�
 
 ## 차단 요소
 
-- local `aws-cli/2.35.22` 실행 복구를 확인했으며 AWS account 인증 상태와 서울 Lightsail account별 재고·가격 확인은 대기
+- local `aws-cli/2.35.22 --version`은 동작하지만 실제 API 명령은 기존 Python 3.14·system `libexpat` symbol 충돌이 재현됨; 공식 AWS CLI container 대안은 Docker daemon 시작 대기
 - `codex-settings/scripts/install.sh`는 Codex 사용자 환경에 Ponytail과 Superpowers 플러그인을 설치하므로 프로젝트 외부 변경 승인 전에는 실행하지 않음
 - KBO 기능은 자동 접근·Discord 재표시 권리와 공급자 갱신 정보를 서면으로 확인할 때까지 연기하며, 30분 측정 기준도 함께 보류
 - Riot Production/RSO 승인 가능성과 시작·종료 5분 감지는 미확정
