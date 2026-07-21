@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-PLAN-0001 Task 1~5 local foundation 구현 완료; D-12 AWS S3 encrypted backup/restore 설계·disposable Spike 준비
+PLAN-0001 Task 1~5 local foundation 구현 완료; D-13 `age` backup encryption Proposed ADR owner 승인 대기
 
 ## 완료
 
@@ -107,6 +107,7 @@ PLAN-0001 Task 1~5 local foundation 구현 완료; D-12 AWS S3 encrypted backup/
 - D-08 Accepted ADR을 기준으로 bounded 구현 계획 Draft 작성
 - D-12 backup/restore 후보를 공식 Supabase·R2·S3 자료로 비교하고, Supabase Free의 24시간 logical export·off-site encryption·empty Windows restore 요구를 Proposed `ADR-0008`로 정리
 - `ADR-0008` Accepted: 기존 AWS S3에 30일 rolling client-side encrypted PostgreSQL archive를 보관하고 backup 전용 IAM·budget monitoring·empty Windows restore 검증을 필수로 확정
+- D-13 backup encryption 도구를 `age`, OpenSSL passphrase, S3 SSE-KMS-only로 비교하고 public recipient/offline identity 기반 Proposed `ADR-0009`를 작성
 
 ## 진행 중
 
@@ -118,9 +119,9 @@ PLAN-0001 Task 1~5 local foundation 구현 완료; D-12 AWS S3 encrypted backup/
 
 ## 다음 작업
 
-로컬 foundation Task 1~5와 `ADR-0008`을 완료했습니다. 다음은 S3 backup IAM·bucket을
-이용한 disposable encrypted restore Spike와 실제 Discord/Supabase/host 운영 검증 계획을
-분리하는 일입니다.
+로컬 foundation Task 1~5와 `ADR-0008`을 완료했습니다. 다음은 `ADR-0009`의 public-recipient
+backup encryption을 owner가 승인하면 S3 IAM·bucket을 이용한 disposable encrypted restore
+Spike를 수행하는 일입니다.
 
 ## 차단 요소
 
@@ -138,6 +139,7 @@ PLAN-0001 Task 1~5 local foundation 구현 완료; D-12 AWS S3 encrypted backup/
 - 공유 PostgreSQL request/result도 worker 처리와 별개로 Vercel function timeout이 발생해 고위험 현재 역할 조회의 5초 동기 경계가 아직 없음
 - 계정 고정 managed tunnel도 local 왕복은 성공했지만 Vercel function timeout으로 실패해 공급자 교체만으로 추가 검증할 근거가 낮음
 - S3 backup IAM·bucket 생성과 disposable encrypted restore Spike에는 실제 AWS login/credential 입력이 필요
+- `ADR-0009` backup archive encryption tool approval이 필요
 
 ## 현재 확정되지 않은 사항
 
