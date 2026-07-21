@@ -4,6 +4,7 @@ import sys
 import threading
 import time
 import urllib.request
+import os
 from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -12,6 +13,10 @@ if seconds < 1:
     raise ValueError("duration must be positive seconds")
 
 started = time.monotonic()
+store_path = os.environ.get("WAW_SYNTHETIC_STORE")
+if not store_path or os.path.getsize(store_path) != 40 * 1024 * 1024:
+    raise ValueError("40MiB synthetic store is required")
+store = open(store_path, "r+b", buffering=0)
 seen = set()
 for event in range(10_000):
     seen.add(event % 9_000)
@@ -38,6 +43,8 @@ threading.Thread(target=server.serve_forever, daemon=True).start()
 latencies = []
 errors = 0
 requests = 0
+endpoint_requests = {"/health": 0, "/status": 0, "/settings": 0}
+endpoint_errors = {"/health": 0, "/status": 0, "/settings": 0}
 paths = ("/health", "/status", "/settings")
 scheduler_delays = []
 rss_samples = []
@@ -65,8 +72,8 @@ def request(path):
     failed = 0
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{server.server_port}{path}", timeout=2) as response:
-            failed = response.status != 200
-            response.read()
+            body = json.loads(response.read())
+            failed = response.status != 200 or body != {"ok": True, "applied": 9_000}
     except Exception:
         failed = 1
     return (time.monotonic() - before) * 1000, failed
@@ -75,15 +82,27 @@ def request(path):
 threading.Thread(target=monitor_scheduler, daemon=True).start()
 
 with ThreadPoolExecutor(max_workers=5) as pool:
+    next_batch = time.monotonic()
     while time.monotonic() - started < seconds:
-        batch = list(pool.map(request, (paths[(requests + offset) % 3] for offset in range(5))))
+        selected_paths = tuple(paths[(requests + offset) % 3] for offset in range(5))
+        offset = (requests * 4096) % (40 * 1024 * 1024 - 4096)
+        store.seek(offset)
+        store.write(bytes([requests % 256]) * 4096)
+        store.seek(offset)
+        store.read(4096)
+        batch = list(pool.map(request, selected_paths))
         latencies.extend(item[0] for item in batch)
+        for path, item in zip(selected_paths, batch):
+            endpoint_requests[path] += 1
+            endpoint_errors[path] += item[1]
         errors += sum(item[1] for item in batch)
         requests += 5
-        time.sleep(2.5)
+        next_batch += 2.5
+        time.sleep(max(0, next_batch - time.monotonic()))
 
 monitor_done.set()
 server.shutdown()
+store.close()
 latencies.sort()
 scheduler_delays.sort()
 percentile = lambda values, fraction: values[max(0, int(len(values) * fraction + 0.999999) - 1)] if values else 0
@@ -95,6 +114,9 @@ print(json.dumps({
     "duplicate_events": 1_000,
     "applied_events": len(seen),
     "requests": requests,
+    "request_rate_per_second": requests / seconds,
+    "endpoint_requests": endpoint_requests,
+    "endpoint_errors": endpoint_errors,
     "errors": errors,
     "error_rate": errors / requests if requests else 1,
     "http_p95_ms": percentile(latencies, 0.95),

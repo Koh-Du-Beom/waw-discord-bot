@@ -105,8 +105,12 @@ node --check harness.mjs
 python3 -m py_compile harness.py verify.py
 sh -n run-runtime-harness.sh
 python3 -m unittest test_metrics.py
-./run-runtime-harness.sh typescript 3 | python3 verify.py --application-only
-./run-runtime-harness.sh python 3 | python3 verify.py --application-only
+python3 -m unittest test_verify.py
+STORE_FILE="$(mktemp /tmp/waw-store-self-check.XXXXXX)"
+dd if=/dev/zero of="$STORE_FILE" bs=1m count=40 status=none
+WAW_SYNTHETIC_STORE="$STORE_FILE" ./run-runtime-harness.sh typescript 10 | python3 verify.py --application-only
+WAW_SYNTHETIC_STORE="$STORE_FILE" ./run-runtime-harness.sh python 10 | python3 verify.py --application-only
+rm -f "$STORE_FILE"
 ```
 
 ## 실행 runbook

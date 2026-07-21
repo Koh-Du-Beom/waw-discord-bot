@@ -1,6 +1,7 @@
 import json
 import math
 import pathlib
+import os
 import subprocess
 import sys
 import time
@@ -33,6 +34,14 @@ def read_pswpout(proc_root):
     raise ValueError("pswpout missing from /proc/vmstat")
 
 
+def read_vmstat_value(proc_root, wanted):
+    for line in (proc_root / "vmstat").read_text().splitlines():
+        key, value = line.split()
+        if key == wanted:
+            return int(value)
+    return 0
+
+
 def main():
     if len(sys.argv) != 3 or sys.argv[1] not in ("typescript", "python"):
         raise SystemExit("usage: run-linux-capacity.py typescript|python seconds")
@@ -44,12 +53,23 @@ def main():
     if not (proc_root / "meminfo").exists():
         raise SystemExit("Linux /proc is required")
 
+    store_path = pathlib.Path("synthetic-store.bin").resolve()
+    if not store_path.exists() or store_path.stat().st_size != 40 * 1024 * 1024:
+        with store_path.open("wb") as store:
+            block = bytes(1024 * 1024)
+            for _ in range(40):
+                store.write(block)
+            store.flush()
+            os.fsync(store.fileno())
+    environment = os.environ.copy()
+    environment["WAW_SYNTHETIC_STORE"] = str(store_path)
     started = time.monotonic()
     process = subprocess.Popen(
         ["./run-runtime-harness.sh", runtime, str(seconds)],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        env=environment,
     )
     available_samples = []
     cpu_samples = []
@@ -57,6 +77,7 @@ def main():
     low_max = 0
     previous_total, previous_idle = read_cpu(proc_root)
     swap_start = read_pswpout(proc_root)
+    oom_start = read_vmstat_value(proc_root, "oom_kill")
     while process.poll() is None:
         time.sleep(1)
         memory = read_meminfo(proc_root)
@@ -86,6 +107,8 @@ def main():
         "min_available_memory_mib": min(available_samples) if available_samples else 0,
         "low_available_memory_max_seconds": low_max,
         "swap_out_pages": max(0, read_pswpout(proc_root) - swap_start),
+        "oom_kill_count": max(0, read_vmstat_value(proc_root, "oom_kill") - oom_start),
+        "process_restart_count": 0,
     })
     print(json.dumps(result))
 
