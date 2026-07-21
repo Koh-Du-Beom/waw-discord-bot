@@ -30,3 +30,5 @@ Orca browser download hook은 선택된 object를 expected local path에 전달�
 ## New-host authorization boundary
 
 `lightsail-restore-spike-policy.json`은 Seoul region에서 `purpose=waw-restore-spike`와 expiry tag를 요청한 disposable instance의 생성·조회·삭제만 허용하는 temporary policy template다. 기존 capacity Spike policy의 `waw-capacity-spike` tag를 restore evidence에 재사용하지 않는다. 이 policy attachment와 host 생성은 owner approval 뒤에만 실행하고, instance 삭제 확인 뒤 attachment를 제거한다.
+
+2026-07-21 첫 console 제출은 인스턴스를 만들지 않았고 최종 instance 목록도 `0`이었다. 제출 뒤 Lightsail console이 전체 home 화면을 구성하면서 호출하는 `GetAlarms`, `GetDistributions`, `GetLoadBalancers`가 초기 template에 없어 access-denied 진단 화면으로 이동했다. template에는 이 세 regional read action을 추가했다. 이는 instance 생성·변경 권한을 넓히지 않으며, owner가 attached customer-managed policy version을 갱신하고 새 console session으로 재인증하기 전에는 재시도하지 않는다.

@@ -5,13 +5,16 @@
       "Sid": "ReadRestoreSpikeInventoryInSeoul",
       "Effect": "Allow",
       "Action": [
+        "lightsail:GetAlarms",
         "lightsail:GetBlueprints",
         "lightsail:GetBundles",
+        "lightsail:GetDistributions",
         "lightsail:GetDisks",
         "lightsail:GetInstance",
         "lightsail:GetInstances",
         "lightsail:GetInstanceSnapshots",
         "lightsail:GetKeyPairs",
+        "lightsail:GetLoadBalancers",
         "lightsail:GetRegions",
         "lightsail:GetStaticIps"
       ],
