@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-D-09 서울 1GB runtime 수용량 Approved Spike 실행 준비
+D-09 서울 1GB runtime 수용량 Spike 실행 중 — Node 완료·Python 진행 중
 
 ## 완료
 
@@ -88,24 +88,30 @@ D-09 서울 1GB runtime 수용량 Approved Spike 실행 준비
 - 실행 VM 생성·관리 단말 `/32` SSH 제한 성공; `gateway.discord.gg` root의 정상 404를 실패로 본 outbound probe를 credential 없는 `discord.com/api/v10/gateway` 200 경로로 수정
 - VM 10초 smoke에서 TypeScript·Python의 application·Linux system 기준 전체 통과; Python Linux RSS를 누적 peak가 아닌 실제 `VmRSS` p95로 보정하고 임시 self-signed HTTPS health fixture local 검증 완료
 - Ubuntu 기본 Node 18의 D-04 후보 부적합을 발견해 진행 중 장기 측정을 참고 폐기; 공식 SHA-256으로 검증한 Node 22.23.1과 보정 Python fixture의 VM 10초 smoke 전체 통과
+- Orca 앱 설치·CLI 연결과 active worktree comment 갱신 완료
+- 최신 fixture의 중복 실행을 process inventory로 폐기하고 30초 Node·Python smoke 및 4개 verifier unit test 통과
+- 서울 Lightsail 임시 VM에서 Node 60분 수용량 측정 완료; 13개 verifier 기준 모두 통과
+- D-04 공식 runtime·SDK 지원 현황 갱신, D-08 단일 지속 server ADR Proposed 작성 후 owner 승인으로 Accepted 전환
+- D-08 Accepted ADR을 기준으로 bounded 구현 계획 Draft 작성
 
 ## 진행 중
 
 - 예상 사용량과 고정비가 미확정인 항목의 복수 시나리오 유지
 - D-09 세 region의 공개 latency·plan 재고, 1GB 자원과 VM·GPT·domain·backup 총비용 검증 대기
+- 서울 VM Python 60분 측정, 임시 HTTPS health 확인과 resource cleanup 결과 반영 대기
 - TypeScript·Python 후보의 Gateway·Go Live·자원·시험성·공급망 검증 대기
 - 저장소·배포·통신·인증 기술 선택은 필요한 별도 승인 Spike 증거 전까지 보류
 
 ## 다음 작업
 
-서울 Lightsail 1GB 임시 VM 한 대, 최대 USD 3 지출, 현재 관리 단말 `/32`의
-임시 SSH와 합성 HTTPS endpoint 공개, 비운영 SSH key 사용 및 시험 후 모든
-resource 삭제 범위의 승인을 받은 뒤 Spike를 실행합니다. Harness의 local 합성
-self-check는 완료했으며 VM system metric 수집은 실행 전 최종 점검합니다.
+서울 Lightsail 1GB 임시 VM 실행 승인을 반영해 Node·Python 순차 수용량 시험을
+진행합니다. Python 결과 확인 뒤 합성 HTTPS endpoint를 5회만 열고 즉시 닫으며,
+VM·key·firewall·임시 파일과 잔존 resource를 정리합니다. 이후 결과·비용·한계를
+갱신하고 D-04/D-09 최종 선택 전 남은 승인 게이트를 분리합니다.
 
 ## 차단 요소
 
-- local `aws-cli/2.35.22 --version`은 동작하지만 실제 API 명령은 기존 Python 3.14·system `libexpat` symbol 충돌이 재현됨; 공식 AWS CLI 2.35.22 container는 실행 확인했으나 최소 권한 `waw-spike` profile 생성·인증 필요
+- Homebrew AWS CLI API 경로는 기존 Python 3.14·system `libexpat` 충돌로 사용할 수 없어 공식 AWS CLI container 경로를 사용함; 임시 profile 인증과 서울 VM 실행은 완료
 - `codex-settings/scripts/install.sh`는 Codex 사용자 환경에 Ponytail과 Superpowers 플러그인을 설치하므로 프로젝트 외부 변경 승인 전에는 실행하지 않음
 - KBO 기능은 자동 접근·Discord 재표시 권리와 공급자 갱신 정보를 서면으로 확인할 때까지 연기하며, 30분 측정 기준도 함께 보류
 - Riot Production/RSO 승인 가능성과 시작·종료 5분 감지는 미확정
