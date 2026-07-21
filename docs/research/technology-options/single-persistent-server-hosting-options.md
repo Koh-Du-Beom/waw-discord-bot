@@ -1,9 +1,9 @@
 # D-09 단일 지속 server 호스팅 후보 조사
 
 - 상태: Research — host·OS·runtime 선택 또는 Spike 승인 아님
-- 조사일·문서 확인일: 2026-07-20
-- 결정 질문: 첫 MVP의 web·bot 단일 지속 server를 외부 임대 VM, 보유 Mac 또는 대체 Windows 노트북 중 어느 범주에서 후속 검증할 것인가?
-- 범위 밖: host·OS·언어·runtime·SDK·저장소·인증 기술 선택, 소유자 질문, ADR, Spike 작성·실행, 구현 계획과 제품 코드
+- 조사일·문서 확인일: 2026-07-21
+- 결정 질문: 첫 MVP의 web·bot 단일 지속 server에 현실적인 저가 외부 임대 VM 공급자·1GB급 plan 후보는 무엇인가?
+- 범위 밖: host·OS·언어·runtime·SDK·저장소·인증 기술 선택, 소유자 질문, ADR, Spike 실행, 구현 계획과 제품 코드
 
 ## 1. 입력과 통과 기준
 
@@ -53,6 +53,39 @@
 - **runtime:** TypeScript/Node와 Python 모두 직접 설치·고정할 수 있다. 0.5GB 또는 1GB가 bot+web+저장소에 충분한지는 측정 전 사실로 두지 않는다.
 - **종속·rollback:** provider image, firewall, snapshot API에 일부 종속되지만 standard Linux artifact와 독립 data export를 유지하면 다른 VM으로 이동할 수 있다. rollback은 이전 artifact 재기동과 data compatibility가 필요하며 snapshot 전체 복원만 기본 rollback으로 삼지 않는다.
 
+#### A-1. 공급자·plan shortlist
+
+2026-07-21 공식 가격표에서 한국 또는 인접 region, 전용 public IPv4, 1GB급 shared VM과 월 30,000원 안의 여유를 동시에 확인할 수 있는 세 후보만 남겼다. 아래 순서는 선택 순위가 아니다. 환율·해외 결제 수수료·세금은 결제 시점에 달라지므로 USD 고정비와 보수적 환산 기준 `USD 1 = KRW 1,500`을 함께 표시한다.
+
+| 후보 | 인접 region·1GB급 기준선 | 고정 public ingress | 같은 공급자 복구 보조 | 관측·network 통제 | 표준 이전 경로 |
+|---|---|---|---|---|---|
+| Amazon Lightsail | 서울, Linux public IPv4 `Micro-1GB`: 2 vCPU·1GB·40GB SSD·2TB, 월 USD 7 | instance에 붙인 static IPv4는 무료이며 다른 instance로 재연결 가능 | 자동 snapshot은 매일, 최근 7개, 실제 저장량 GB당 월 USD 0.05 | 5분 단위 metric alarm과 instance firewall; IPv4·IPv6 rule은 별도 관리 | manual snapshot은 EC2로 내보낼 수 있으나 다른 공급자로 직접 export하는 경로는 아님 |
+| Akamai Cloud (Linode) | 도쿄 core region, Shared CPU 시작 plan: 1 vCPU·1GB·25GB SSD·1TB, 월 USD 5 | dedicated IPv4·IPv6 포함; region 이동 시 주소 변경 | daily·weekly·biweekly와 manual 1개를 보존하는 Backups add-on이 1GB plan에서 월 USD 2 | 무료 Cloud Firewall, 기본 metric과 무료 Longview 10 client·5분 해상도·12시간 이력 | 표준 file/data export와 재현 가능한 server manifest 필요; 공급자 내부 region migration은 가능하지만 IP 변경 |
+| DigitalOcean | 싱가포르 `SGP1`, Basic Regular: 1 vCPU·1GiB·25GiB SSD·1,000GiB, 월 USD 6 | Droplet에 public IPv4 포함 | weekly 월 USD 1.20 또는 daily 월 USD 1.80; snapshot은 GB당 월 USD 0.06 | 무료 Cloud Firewall·기본 host monitoring을 제공하나 application health·감사 보존은 별도 | 표준 file/data export와 재현 가능한 server manifest 필요; snapshot을 공급자 밖 backup으로 간주하지 않음 |
+
+공식 근거: [Lightsail bundle·region](https://docs.aws.amazon.com/lightsail/latest/userguide/amazon-lightsail-bundles.html), [Lightsail static IP](https://docs.aws.amazon.com/lightsail/latest/userguide/understanding-static-ip-addresses-in-amazon-lightsail.html), [Lightsail snapshot 가격·보존](https://docs.aws.amazon.com/lightsail/latest/userguide/amazon-lightsail-faq-snapshots.html), [Lightsail alarm](https://docs.aws.amazon.com/lightsail/latest/userguide/amazon-lightsail-alarms.html), [Akamai Shared CPU](https://techdocs.akamai.com/cloud-computing/docs/shared-cpu-compute-instances), [Akamai region 기능](https://techdocs.akamai.com/cloud-computing/docs/how-to-choose-a-data-center), [Akamai backup](https://techdocs.akamai.com/cloud-computing/docs/backup-service), [Akamai instance·관측](https://techdocs.akamai.com/cloud-computing/docs/compute-instance), [DigitalOcean Droplet 가격](https://www.digitalocean.com/pricing/droplets), [DigitalOcean region](https://docs.digitalocean.com/platform/regional-availability/), [DigitalOcean backup 가격](https://docs.digitalocean.com/products/backups/details/pricing/), [DigitalOcean snapshot 가격](https://docs.digitalocean.com/products/snapshots/details/pricing/)
+
+#### A-2. 비용 경계
+
+| 후보 | VM + 공급자 native backup 기준 | KRW 1,500/USD 환산 | 월 30,000원에서 남는 범위 |
+|---|---:|---:|---:|
+| Lightsail 서울 | USD 7 + snapshot 실제 저장량 | 최소 약 10,500원 + snapshot | 최대 약 19,500원에서 snapshot·독립 backup·domain·GPT 차감 |
+| Akamai 도쿄 | USD 5 + USD 2 | 약 10,500원 | 약 19,500원에서 독립 backup·domain·GPT 차감 |
+| DigitalOcean 싱가포르 | USD 6 + daily USD 1.80 | 약 11,700원 | 약 18,300원에서 독립 backup·domain·GPT 차감 |
+
+- 세 후보 모두 VM과 native backup만 보면 예산을 통과한다. 하지만 `GAP-D09-06`은 GPT 실제 사용료, domain 연환산, 세금·환전과 독립 backup을 더하기 전에는 닫히지 않는다.
+- provider snapshot/backup은 같은 account 또는 같은 provider 장애·계정 잠금에 묶이므로 `OPS-005`의 독립 backup이 아니다. 공급자 밖 encrypted application data export가 별도로 필요하다.
+- 독립 object storage의 비용 민감도 기준으로 Backblaze B2는 첫 10GB 저장을 무료로 두고 그 이후 USD 0.00695/GB-month를 명시한다. 이는 비용 상한 확인용 현실 후보일 뿐 backup 공급자 선택이 아니다. [Backblaze B2 transaction pricing](https://www.backblaze.com/cloud-storage/transaction-pricing)
+- 1GB에서 TypeScript/Node 또는 Python bot, 최소 web과 후보 store가 함께 안정적으로 동작한다는 증거는 아직 없다. plan 가격이 싸다는 이유로 `GAP-D09-03`을 통과 처리하지 않는다.
+
+#### A-3. 공통 운영·보안·호환성
+
+- 세 후보는 일반 Linux VM이므로 Node.js와 CPython을 설치할 수 있고 outbound Discord Gateway와 inbound `443`을 동시에 운영할 수 있다. 이는 특정 OS image·runtime·SDK 선택이 아니다.
+- HTTPS는 VM 상품이 자동 완성하는 기능이 아니다. 고정 public IP, `waw.dubeom.com` DNS, host firewall과 VM 안의 TLS 종료가 결합되어야 하며 구체 ingress software는 후속 결정으로 남긴다.
+- 공급자는 hypervisor·network 기능을 제공하지만 guest OS, runtime, dependency, SSH key, application health와 재부팅 정책은 소유자 책임이다. 보안 update 자동화와 reboot window는 특정 Linux image를 좁힌 뒤 검증한다.
+- provider metric만으로 Discord Gateway 연결, bot singleton, OAuth 실패, backup freshness와 restore 성공을 알 수 없다. 민감정보 없는 application heartbeat와 외부 HTTPS health 확인이 추가로 필요하다.
+- 공급자 image·snapshot을 주 배포물로 삼지 않고 application artifact, environment manifest, schema migration과 portable data export를 유지해야 다른 VM이나 보유 장비로 8시간 안에 이전할 가능성이 생긴다.
+
 ### B. 보유 Mac
 
 - **비용:** 기존 장비 구매비와 통상 전기료가 예산에서 제외되어 host 직접비는 0원으로 계산한다. domain·외부 backup·GPT 비용은 그대로 남는다.
@@ -93,6 +126,18 @@ Oracle Always Free compute는 만료되지 않는 무료 resource 범주를 제�
 | TypeScript·Python | 둘 다 지원 | 둘 다 지원 | 둘 다 지원 |
 | 물리 운영 부담 | provider에 위임 | 소유자 책임 | 소유자 책임 |
 | vendor/장비 lock-in | provider API·region | Mac·가정망 | Windows 장비·service 방식 |
+
+### 외부 VM shortlist 비교 요약
+
+| 기준 | Lightsail 서울 | Akamai 도쿄 | DigitalOcean 싱가포르 |
+|---|---|---|---|
+| 사용자·Discord와의 지역 근접성 | 가장 직접적 | 인접 | 인접이나 세 후보 중 가장 멂 |
+| 1GB VM 월 고정비 | USD 7 | USD 5 | USD 6 |
+| native backup 예측성 | 사용 GB에 따라 변동 | USD 2 고정 | daily USD 1.80 또는 weekly USD 1.20 |
+| static public address | 별도 static IP를 붙이면 무료 | dedicated IPv4 포함 | public IPv4 포함 |
+| 기본 관측 | 5분 metric alarm | 기본 metric + 무료 Longview | host metric·alert 기반 |
+| 공급자 내부 이동 | snapshot의 EC2 export 가능 | core region 간 migration, IP 변경 | image/snapshot 기반 재생성 |
+| 남은 핵심 공백 | snapshot 실청구량·1GB 자원 | Tokyo plan 실재고·1GB 자원 | Singapore plan 실재고·지연·1GB 자원 |
 
 ## 5. 보안·데이터·운영 경계
 
@@ -146,8 +191,10 @@ Oracle Always Free compute는 만료되지 않는 무료 resource 범주를 제�
 | `GAP-D09-04` | process crash, OS reboot, update와 배포 중 singleton 복구 | `OPS-001`, `OPS-002` | host/runtime 결정 뒤 한 장애 Spike |
 | `GAP-D09-05` | 외부 backup에서 빈 Windows 또는 새 VM으로 전체 복구 시간 | RPO 24h·RTO 8h | D-12와 결합한 복구 리허설 |
 | `GAP-D09-06` | VM·GPT·domain·backup의 원화 총액과 환율 여유 | 월 30,000원 | 공급자 shortlist와 실제 요약 사용량 뒤 계산 |
+| `GAP-D09-07` | 서울·도쿄·싱가포르의 실제 Discord Gateway와 사용자 HTTPS 지연, plan 재고 | region 후보 | 무료 speed endpoint와 공급자 console의 읽기 전용 확인; VM 생성은 별도 승인 필요 |
+| `GAP-D09-08` | native snapshot과 공급자 밖 encrypted export의 실제 크기·복구 시간 | backup 비용·RPO/RTO | storage 후보 결정 뒤 빈 환경 복구 리허설 |
 
-이번 작업에서는 Spike를 작성하거나 실행하지 않는다. `GAP-D09-01`과 `GAP-D09-02`는 첫 VM 결정에서 더 확인할 필요가 없으며 자가 host를 다시 열 때만 재검토한다. `GAP-D09-03`~`05`는 runtime·store·backup 후보를 좁힌 뒤 하나의 최소 복구·단일 실행 검증으로 결합할 수 있다.
+`GAP-D09-03`과 `GAP-D09-06`을 줄이는 [1GB runtime 수용량 Spike 제안](../spikes/one-gb-runtime-capacity/README.md)을 작성했지만 실행하지 않았다. 세 공급자를 한꺼번에 비교하지 않고 서울 1GB fixture에서 두 runtime을 순차 검증하며, 하나가 통과하면 다른 공급자 시험을 생략한다. `GAP-D09-04`~`05`, `GAP-D09-08`은 runtime·store·backup 후보를 좁힌 뒤 복구·단일 실행 검증으로 남긴다. `GAP-D09-07`은 공개 endpoint가 공급자별로 동등하지 않고 실재고는 인증 없이 확인할 수 없어, 첫 VM 생성 시점의 조건으로 유지한다.
 
 ## 7. 확정된 소유자 입력
 
@@ -161,11 +208,13 @@ Oracle Always Free compute는 만료되지 않는 무료 resource 범주를 제�
 
 ## 8. 잠정 결론
 
-- **첫 검증 범주:** 저가 외부 임대 VM. 월 $5~$7의 기존 기준선에서 1GB급을 포함해 실제 bot+web 자원과 총예산을 비교한다.
+- **잠정 첫 검증 후보:** 서울의 Lightsail 1GB. 세 후보 중 한국 region을 공식 제공하고 static IP·firewall·5분 alarm·snapshot 경로가 한 상품군에 있어 지역·운영 공백을 가장 적게 남긴다. 이는 공급자·region·plan 선택이나 생성 승인이 아니다.
+- **가장 강한 외부 대안:** 도쿄의 Akamai Shared CPU 1GB. 월 USD 5와 USD 2 backup으로 고정비가 가장 낮고 무료 firewall·관측을 제공하지만 실제 plan 재고와 서울 대비 지연을 확인해야 한다.
+- **두 번째 외부 대안:** 싱가포르의 DigitalOcean Basic 1GiB. 비용과 backup 가격은 예측 가능하지만 서울·도쿄보다 먼 region만 공식 확인되어 지역 지연 불확실성이 더 크다.
 - **가장 강한 fallback:** 보유 Mac. hardware는 충분하지만 운영 위치·전원 복귀·현재 보안 설정을 해결한 뒤에만 재개한다.
 - **추가 fallback:** LG Gram 16. Mac과 VM이 실패하기 전에는 상세 확인하지 않는다.
 - **주요 위험:** 저사양 VM의 memory 부족, 자가 host의 sleep·회선·물리 장애, web 침해의 bot token 확산, snapshot을 독립 backup으로 오해하는 것, 배포 중 bot 중복 실행이다.
-- **필요 검증:** 자가 장비와 회선의 read-only 사실 확인, 후보 host의 실제 자원 측정, crash/reboot/deploy singleton, 외부 backup의 빈 환경 복구다.
+- **필요 검증:** 세 region의 공개 speed endpoint와 plan 재고 확인, 1GB에서 후보 runtime의 실제 자원 측정, crash/reboot/deploy singleton, 독립 backup의 빈 환경 복구다.
 - **뒤집는 조건:** VM·backup·domain·GPT 총액이 월 30,000원을 넘거나 1GB급에서 workload가 안정적으로 동작하지 않으면 더 큰 VM과 자가 host를 함께 재평가한다. Mac 운영 위치에 승인된 안정적 회선과 무인 전원 복귀 대안이 생기면 자가 host를 다시 열 수 있다.
 
 host, OS, runtime, SDK, 저장소와 인증 기술은 선택하지 않았다. KBO는 허가된 공급 경로와 재표시 권리가 확인될 때까지 연기한다.
@@ -173,12 +222,11 @@ host, OS, runtime, SDK, 저장소와 인증 기술은 선택하지 않았다. KB
 ## 9. 정확한 다음 프롬프트
 
 ```text
-필수 문서를 순서대로 읽고 docs/prompts/research.md 절차에 따라
-D-09 저가 외부 임대 VM 공급자·plan 후보를 좁혀 조사해.
-월 30,000원 총예산, 서울 또는 인접 region, static HTTPS ingress,
-1GB급 기준선, TypeScript·Python 호환성, snapshot과 독립 backup 비용,
-보안 update·관측·이전 가능성을 비교해.
-아직 공급자·region·OS·plan·runtime·SDK·저장소·인증 기술을 선택하거나
-소유자 질문, ADR, Spike 작성·실행, 구현 계획 또는 제품 코드를 작성하지 마.
+필수 문서를 순서대로 읽고
+docs/research/spikes/one-gb-runtime-capacity/README.md의 실행을 준비해.
+서울 Lightsail 1GB 임시 VM 한 대, 최대 USD 3, 비운영 SSH key와 합성 데이터만
+사용하고 TypeScript·Python harness를 순차 실행할 정확한 명령·정리 검사를 먼저
+제안한 뒤 내 승인을 기다려. 아직 VM 생성, credential 조회·출력, Spike 실행,
+기술 선택, ADR, 구현 계획 또는 제품 코드를 작성하지 마.
 KBO는 연기 상태로 유지해.
 ```

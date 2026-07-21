@@ -1,10 +1,10 @@
 # 프로젝트 상태
 
-마지막 갱신일: 2026-07-20
+마지막 갱신일: 2026-07-21
 
 ## 현재 단계
 
-D-09 저가 외부 임대 VM 우선순위 확정, 공급자·plan 조사 준비
+D-09 서울 1GB runtime 수용량 Spike 제안 작성, 실행 준비 대기
 
 ## 완료
 
@@ -72,19 +72,23 @@ D-09 저가 외부 임대 VM 우선순위 확정, 공급자·plan 조사 준비
 - Mac 읽기 전용 확인에서 M5·16GB·충분한 disk와 정상 battery·FileVault·Discord outbound를 확인
 - Mac의 AC sleep 활성, firewall 비활성, 보안 update 지연과 정전 후 자동 부팅 미지원 및 교육장 회선 미승인을 확인하되 실제 공인 IP는 비기록
 - `OWN-038`로 `OWN-036`의 우선순위를 대체하고 저가 외부 임대 VM을 첫 검증 범주, Mac과 LG Gram 16을 fallback으로 확정
+- 서울 Lightsail 1GB, 도쿄 Akamai Shared CPU 1GB와 싱가포르 DigitalOcean Basic 1GiB를 D-09 현실 shortlist로 공식 가격·region·network·backup 자료에 따라 비교
+- VM 기준 월 USD 5~7, Akamai·DigitalOcean의 고정 native backup 포함 월 USD 7~7.80과 Lightsail의 사용량 기반 snapshot 비용을 확인하고 provider backup과 독립 backup의 경계를 구분
+- 서울 Lightsail을 잠정 첫 검증 후보, 도쿄 Akamai를 가장 강한 외부 대안으로 두되 공급자·region·OS·plan 선택은 보류
+- 세 공급자 동시 비교를 생략하고 서울 1GB fixture에서 TypeScript·Python을 순차 비교하는 최소 runtime 수용량 Spike 제안 작성; VM 생성·실행은 미승인
 
 ## 진행 중
 
 - 예상 사용량과 고정비가 미확정인 항목의 복수 시나리오 유지
-- 저가 외부 임대 VM 공급자·region·1GB급 plan과 총비용 비교 대기
+- D-09 세 region의 공개 latency·plan 재고, 1GB 자원과 VM·GPT·domain·backup 총비용 검증 대기
 - TypeScript·Python 후보의 Gateway·Go Live·자원·시험성·공급망 검증 대기
 - 저장소·배포·통신·인증 기술 선택은 필요한 별도 승인 Spike 증거 전까지 보류
 
 ## 다음 작업
 
-`docs/prompts/research.md` 절차에 따라 D-09 저가 외부 임대 VM 공급자·plan 후보를
-월 30,000원 총예산, 인접 region, 1GB급 자원, static HTTPS ingress, backup과
-이전 가능성으로 비교하되 공급자·OS·plan은 선택하지 않습니다.
+서울 Lightsail 1GB 임시 VM 한 대에서 TypeScript·Python harness를 순차 실행할
+정확한 명령, 비운영 SSH key 경계와 resource 정리 검사를 먼저 제안하고,
+별도 승인 전 VM을 생성하거나 Spike를 실행하지 않습니다.
 
 ## 차단 요소
 
@@ -93,6 +97,7 @@ D-09 저가 외부 임대 VM 우선순위 확정, 공급자·plan 조사 준비
 - Riot Production/RSO 승인 가능성과 시작·종료 5분 감지는 미확정
 - 예상 사용자 수, 메시지량, 월 요약 요청 수와 동시 게임 수가 미확정이므로 외부 API 비용·처리량은 복수 사용량 시나리오로 유지
 - 단일 server host, GPT API, 도메인과 외부 백업을 합친 원화 비용이 월 3만 원을 충족하는지 미확정
+- 서울 Lightsail·도쿄 Akamai·싱가포르 DigitalOcean의 실제 plan 재고·지연과 1GB bot+web 자원 여유가 미확정
 - 자가 Mac은 hardware가 충분하지만 정전 후 자동 부팅 미지원이며 교육장 회선은 서면 승인 전 운영 경로에서 제외
 - 월 명령 10,000회의 실제 저장·backup 크기와 무료 관리형 DB 한도 충족 여부가 미확정
 - Discord OAuth의 PKCE 지원 범위와 D-05·D-08 경계에 맞는 workload 인증·credential rotation 방식이 미확정
