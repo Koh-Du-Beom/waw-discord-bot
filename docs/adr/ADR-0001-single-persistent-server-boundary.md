@@ -1,6 +1,6 @@
 # ADR-0001: 첫 MVP의 단일 지속 server 배포 경계
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-21
 - Owners: Project owner
 - Related requirements: `OWN-016`~`OWN-021`, `OWN-026`~`OWN-034`, `OPS-001`~`OPS-008`, `SEC-007`~`SEC-010`
@@ -96,5 +96,5 @@ Web이 command 또는 설정 transition을 공유 DB·queue에 기록하고 bot�
 
 ## Approval
 
-- Owner decision: Pending — `OWN-034` 방향을 이 ADR의 구체 경계와 제외 범위로 승인 필요
-- Approved date: Pending
+- Owner decision: Approved — single persistent server boundary for the first MVP; host, runtime, storage and process choices remain separate decisions
+- Approved date: 2026-07-21
