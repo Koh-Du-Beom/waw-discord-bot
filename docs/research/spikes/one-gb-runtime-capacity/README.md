@@ -152,10 +152,10 @@ Lightsail active resource의 교차 type 이름 namespace 충돌을 피하도록
 ```bash
 aws lightsail create-instances --profile waw-spike --region "$SPIKE_REGION" --instance-names "$SPIKE_INSTANCE" --availability-zone "$SPIKE_ZONE" --blueprint-id "$SPIKE_BLUEPRINT" --bundle-id "$SPIKE_BUNDLE" --key-pair-name "$SPIKE_KEY" --tags key=purpose,value=waw-capacity-spike key=expires,value=2026-07-22
 for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
-  test "$(aws lightsail get-instance --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE" --query 'instance.state.name' --output text)" = Running && break
+  test "$(aws lightsail get-instance --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE" --query 'instance.state.name' --output text)" = running && break
   sleep 5
 done
-test "$(aws lightsail get-instance --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE" --query 'instance.state.name' --output text)" = Running
+test "$(aws lightsail get-instance --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE" --query 'instance.state.name' --output text)" = running
 aws lightsail close-instance-public-ports --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE" --port-info fromPort=22,toPort=22,protocol=tcp
 aws lightsail open-instance-public-ports --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE" --port-info 'fromPort=22,toPort=22,protocol=tcp,cidrs=<현재 관리 단말 IPv4/32>'
 aws lightsail get-instance-port-states --profile waw-spike --region "$SPIKE_REGION" --instance-name "$SPIKE_INSTANCE"
