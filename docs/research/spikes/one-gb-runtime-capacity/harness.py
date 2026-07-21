@@ -40,6 +40,7 @@ errors = 0
 requests = 0
 paths = ("/health", "/status", "/settings")
 scheduler_delays = []
+rss_samples = []
 monitor_done = threading.Event()
 
 
@@ -49,6 +50,8 @@ def monitor_scheduler():
         expected += 0.01
         now = time.monotonic()
         scheduler_delays.append(max(0, (now - expected) * 1000))
+        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        rss_samples.append(rss / 1024 / 1024 if sys.platform == "darwin" else rss / 1024)
         expected = now
 
 
@@ -79,9 +82,7 @@ server.shutdown()
 latencies.sort()
 scheduler_delays.sort()
 percentile = lambda values, fraction: values[max(0, int(len(values) * fraction + 0.999999) - 1)] if values else 0
-rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-if sys.platform == "darwin":
-    rss /= 1024
+rss_samples.sort()
 print(json.dumps({
     "runtime": sys.version.split()[0],
     "duration_seconds": time.monotonic() - started,
@@ -93,5 +94,5 @@ print(json.dumps({
     "error_rate": errors / requests if requests else 1,
     "http_p95_ms": percentile(latencies, 0.95),
     "scheduler_p99_ms": percentile(scheduler_delays, 0.99),
-    "peak_rss_mib": rss / 1024,
+    "rss_p95_mib": percentile(rss_samples, 0.95),
 }))

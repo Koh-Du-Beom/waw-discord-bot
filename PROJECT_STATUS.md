@@ -78,6 +78,7 @@ D-09 서울 1GB runtime 수용량 Spike 실행 승인 대기
 - 세 공급자 동시 비교를 생략하고 서울 1GB fixture에서 TypeScript·Python을 순차 비교하는 최소 runtime 수용량 Spike 제안 작성; VM 생성·실행은 미승인
 - 서울 Lightsail 1GB Spike의 읽기 전용 사전 확인, 비운영 SSH key, 생성·firewall·측정·HTTPS 확인·삭제와 잔존 과금 resource 검사 runbook 작성; 실행은 미승인
 - D-09 TypeScript·Python 폐기 가능 harness의 문법과 3초 local 합성 self-check 통과; VM system metric과 60분 안정성은 미검증
+- Linux `/proc` 기반 CPU p95·available memory 연속 저하·swap-out·process exit·실행 시간 측정기와 failure-path verifier local 검증 완료
 
 ## 진행 중
 
@@ -95,7 +96,7 @@ self-check는 완료했으며 VM system metric 수집은 실행 전 최종 점�
 
 ## 차단 요소
 
-- 현재 local `aws` CLI는 Homebrew Python 3.14와 system `libexpat` symbol 불일치로 시작하지 못하므로 Spike 승인 후 credential 입력 전에 CLI 복구 또는 AWS CloudShell 경로가 필요
+- local `aws-cli/2.35.22` 실행 복구를 확인했으며 AWS account 인증 상태와 서울 Lightsail account별 재고·가격 확인은 대기
 - `codex-settings/scripts/install.sh`는 Codex 사용자 환경에 Ponytail과 Superpowers 플러그인을 설치하므로 프로젝트 외부 변경 승인 전에는 실행하지 않음
 - KBO 기능은 자동 접근·Discord 재표시 권리와 공급자 갱신 정보를 서면으로 확인할 때까지 연기하며, 30분 측정 기준도 함께 보류
 - Riot Production/RSO 승인 가능성과 시작·종료 5분 감지는 미확정

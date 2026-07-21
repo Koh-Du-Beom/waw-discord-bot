@@ -85,14 +85,15 @@ TypeScript와 Python이 모두 하나 이상의 기준을 위반하거나 결과
 
 ## local 합성 self-check
 
-2026-07-21에 macOS local 환경에서 두 harness의 문법과 3초 합성 실행을 검증했다. 두 runtime 모두 event accounting, 요청 완료, 오류율, HTTP p95, scheduler p99와 peak RSS의 application-level 검증을 통과했다. 이는 fixture가 실행되고 결과 검증기가 실패를 판정할 수 있다는 확인일 뿐, 1GB Linux VM의 system available memory·swap·CPU p95나 60분 안정성의 증거가 아니다.
+2026-07-21에 macOS local 환경에서 두 harness의 문법과 3초 합성 실행을 검증했다. 두 runtime 모두 event accounting, 요청 완료, 오류율, HTTP p95, scheduler p99와 RSS p95의 application-level 검증을 통과했다. 합성 `/proc` fixture로 Linux metric parser를 단위 검증했고, available memory가 128MiB 아래에서 60초 지속된 결과를 verifier가 실패 처리하는 것도 확인했다. 이는 fixture와 판정 경로의 확인일 뿐, 1GB Linux VM의 실제 system metric이나 60분 안정성의 증거가 아니다.
 
 ```bash
 node --check harness.mjs
 python3 -m py_compile harness.py verify.py
 sh -n run-runtime-harness.sh
-./run-runtime-harness.sh typescript 3 | python3 verify.py
-./run-runtime-harness.sh python 3 | python3 verify.py
+python3 -m unittest test_metrics.py
+./run-runtime-harness.sh typescript 3 | python3 verify.py --application-only
+./run-runtime-harness.sh python 3 | python3 verify.py --application-only
 ```
 
 ## 실행 runbook
@@ -161,14 +162,14 @@ curl --fail --silent --show-error --output /dev/null https://gateway.discord.gg/
 fixture는 같은 합성 event 파일과 40MB 이하 store를 사용한다. TypeScript와 Python harness는 동시에 실행하지 않으며 각 후보마다 다음 순서를 반복한다.
 
 ```bash
-/usr/bin/time -v ./run-runtime-harness.sh typescript 3600 | tee typescript-summary.json
+python3 run-linux-capacity.py typescript 3600 | tee typescript-summary.json
 python3 verify.py < typescript-summary.json
 sudo sync
-/usr/bin/time -v ./run-runtime-harness.sh python 3600 | tee python-summary.json
+python3 run-linux-capacity.py python 3600 | tee python-summary.json
 python3 verify.py < python-summary.json
 ```
 
-`run-runtime-harness.sh`와 `verify.py`는 local 합성 self-check를 통과시킨 폐기 가능한 fixture다. JSON summary에는 runtime/version, application peak RSS·HTTP latency/error·scheduler delay와 event count만 남긴다. VM의 CPU p95, system available memory와 swap은 별도 OS 측정으로 수집해야 하며 hostname, public IP, SSH path, credential과 실제 사용자 데이터는 기록하지 않는다. 한 후보가 끝나면 process와 port가 사라졌는지 확인한 뒤 다음 후보를 시작한다.
+`run-runtime-harness.sh`, `run-linux-capacity.py`와 `verify.py`는 폐기 가능한 fixture다. Linux runner는 application JSON에 process exit·실행 시간, system CPU p95, available memory의 연속 저하 시간과 swap-out 증가량을 결합한다. Summary에는 hostname, public IP, SSH path, credential과 실제 사용자 데이터는 기록하지 않는다. 한 후보가 끝나면 process와 port가 사라졌는지 확인한 뒤 다음 후보를 시작한다.
 
 ### 5. 임시 HTTPS 확인
 

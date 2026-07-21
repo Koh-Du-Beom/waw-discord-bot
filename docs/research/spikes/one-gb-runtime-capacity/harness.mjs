@@ -31,9 +31,9 @@ const { port } = server.address();
 const latencies = [];
 let requests = 0;
 let errors = 0;
-let peakRss = 0;
+const rssSamples = [];
 const rssTimer = setInterval(() => {
-  peakRss = Math.max(peakRss, process.memoryUsage().rss);
+  rssSamples.push(process.memoryUsage().rss / 1024 / 1024);
 }, 100);
 
 async function request(path) {
@@ -61,6 +61,7 @@ clearInterval(rssTimer);
 delays.disable();
 await new Promise((resolve) => server.close(resolve));
 latencies.sort((a, b) => a - b);
+rssSamples.sort((a, b) => a - b);
 const percentile = (values, fraction) => values[Math.max(0, Math.ceil(values.length * fraction) - 1)] ?? 0;
 console.log(JSON.stringify({
   runtime: `node ${process.version}`,
@@ -73,5 +74,5 @@ console.log(JSON.stringify({
   error_rate: requests ? errors / requests : 1,
   http_p95_ms: percentile(latencies, 0.95),
   scheduler_p99_ms: delays.percentile(99) / 1e6,
-  peak_rss_mib: peakRss / 1024 / 1024,
+  rss_p95_mib: percentile(rssSamples, 0.95),
 }));
