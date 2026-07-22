@@ -1,6 +1,6 @@
 # 서울 Lightsail HTTPS ingress 선택지
 
-- 상태: Research complete — owner decision pending
+- 상태: Research complete — owner decision approved
 - 확인일: 2026-07-22
 - 연결 결정: D-10, D-11, `ADR-0010`, `ADR-0011`
 - 연결 요구사항: `SEC-001`~`SEC-006`, `SEC-010`, `OPS-001`~`OPS-004`, `DEP-001`~`DEP-002`
@@ -44,3 +44,9 @@ Nginx+Certbot은 strongest alternative다. 이미 Nginx 운영 표준과 renewal
 4. Caddy/fixture의 idle·request RSS를 기존 1GB envelope에 합산하고 rollback 뒤 temporary config/artifact를 정리한다.
 
 DNS 변경과 public certificate 발급은 owner 승인 전 실행하지 않는다.
+
+## 승인 및 credential-free 검증
+
+Owner가 2026-07-22 `ADR-0012`를 승인했다. 후속 local CA Spike에서 config validation/invalid-config deny, HTTP `308` redirect, HTTPS reverse proxy와 forwarded header, wrong-host certificate deny, sensitive access-log redaction, same-process graceful reload를 통과했다. 측정 Caddy RSS는 `52,572 KiB`였고 종료 뒤 local resource absence를 확인했다.
+
+이 결과는 public ACME issuance, canonical DNS와 서울 Lightsail firewall을 검증하지 않는다. 그 변경은 별도 owner-approved production window가 필요하다.

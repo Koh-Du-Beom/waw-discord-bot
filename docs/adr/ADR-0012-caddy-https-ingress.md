@@ -1,6 +1,6 @@
 # ADR-0012: Caddy로 단일 host HTTPS ingress 운영
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-22
 - Owners: Project owner
 - Related requirements: `SEC-001`~`SEC-006`, `SEC-010`, `OPS-001`~`OPS-004`, `DEP-001`~`DEP-002`
@@ -92,5 +92,5 @@ Caddy는 certificate issuance/renewal, HTTP redirect와 reverse proxy를 한 sys
 
 ## Approval
 
-- Owner decision: Pending
-- Approved date:
+- Owner decision: Approved — Caddy HTTPS ingress; credential-free Spike before any production DNS or certificate change
+- Approved date: 2026-07-22
