@@ -131,6 +131,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - `ADR-0011` systemd 직접 application 배포를 Proposed로 작성; Docker Compose는 host 이전/native dependency/registry 요구가 생길 때의 strongest alternative로 유지하고 production host에는 아직 설치하지 않음
 - owner 승인으로 `ADR-0011`을 Accepted 전환; first MVP application은 Docker 없이 별도 Linux user의 systemd web/bot service와 immutable release symlink로 배포
 - 서울 disposable Ubuntu 24.04 1GB systemd 배포 Spike에서 web/bot cross-secret deny, web crash 재시작, bot singleton exit `73`, failed-release rollback, service별 `MemoryMax=128M`, localhost-only web bind와 실제 `boot_id` 변경 뒤 reboot recovery를 통과; 실패 실행마다 정리를 확인하고 최종 instance/key 및 CloudShell artifact count `0` 확인
+- D-10/D-11 HTTPS ingress에서 Caddy, Nginx+Certbot과 Lightsail load balancer를 공식 자료로 비교; 단일 systemd component로 automatic HTTPS와 loopback proxy를 제공하는 Caddy를 잠정 추천하고 `ADR-0012`를 Proposed로 작성
 
 ## 진행 중
 
@@ -142,7 +143,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 
 ## 다음 작업
 
-로컬 foundation Task 1~5, PLAN-0002 Task 1~3, `ADR-0010`~`ADR-0011`과 systemd application deployment Spike를 완료했습니다. 다음은 accepted application/deployment 경계를 구현 계획으로 고정하기 전에 남은 reverse proxy/TLS와 application secret 주입·rotation·journal 보존/경보 결정을 연구하는 작업입니다.
+로컬 foundation Task 1~5, PLAN-0002 Task 1~3, `ADR-0010`~`ADR-0011`과 systemd application deployment Spike를 완료했습니다. 다음 owner 결정은 Proposed `ADR-0012`의 Caddy HTTPS ingress 승인 여부입니다. 승인 전에는 DNS, public certificate와 production firewall을 변경하지 않습니다.
 
 ## 차단 요소
 
