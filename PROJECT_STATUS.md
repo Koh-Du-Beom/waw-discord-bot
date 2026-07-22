@@ -126,6 +126,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - D-10 dashboard web framework/self-host 연구에서 Fastify API+Vite/React Router SPA, Next.js standalone과 React Router SSR/BFF를 공식 문서로 비교; 명시적인 server authorization·schema/DTO·log 경계 때문에 Fastify+SPA를 잠정 첫 Spike 후보, Next.js를 strongest alternative로 정리하고 실제 선택은 보류
 - D-10 Fastify+React Router SPA credential-free vertical slice에서 exact lock clean install/audit `0`, authorization test `4/4`와 Vite production build 통과; 첫 실행의 AJV additional-field silent removal을 발견해 explicit reject로 보정하고 generated dependency/build artifacts 삭제
 - D-10 증거를 바탕으로 `ADR-0010` Fastify API+Vite/React Router SPA dashboard 구조를 Proposed로 작성; owner 승인 전 Accepted나 production dependency로 승격하지 않음
+- owner 승인으로 `ADR-0010`을 Accepted 전환; Fastify API를 browser command/query 경계로, Vite/React Router SPA를 untrusted same-origin client로 선택
 
 ## 진행 중
 
@@ -137,7 +138,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 
 ## 다음 작업
 
-로컬 foundation Task 1~5와 `ADR-0008`·`ADR-0009`, PLAN-0002 Task 1~3 및 D-10 research/Spike를 완료했습니다. 다음은 Proposed `ADR-0010` owner 승인 또는 수정 결정이며, 승인 전 구현 계획과 production dependency 추가는 진행하지 않습니다.
+로컬 foundation Task 1~5, PLAN-0002 Task 1~3과 `ADR-0010`까지 완료했습니다. 다음은 서울 Lightsail의 systemd 직접 배포와 Docker Compose를 비교해 process/secret 격리, restart, rollback과 1GB 자원 기준을 좁히는 작업입니다.
 
 ## 차단 요소
 

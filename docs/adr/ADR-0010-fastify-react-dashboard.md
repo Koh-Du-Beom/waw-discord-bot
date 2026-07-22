@@ -1,6 +1,6 @@
 # ADR-0010: Fastify API와 React SPA dashboard 구조
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-22
 - Owners: Project owner
 - Related requirements: `FUN-016`~`FUN-020`, `SEC-001`~`SEC-010`, `DEP-001`~`DEP-002`, `OPS-001`~`OPS-004`, `QUA-001`~`QUA-002`
@@ -103,5 +103,5 @@ UI와 domain operation 사이의 versioned command/query contract를 framework-n
 
 ## Approval
 
-- Owner decision: Pending
-- Approved date: Pending
+- Owner decision: Approved — Fastify API + Vite/React Router SPA
+- Approved date: 2026-07-22
