@@ -1,6 +1,6 @@
 # PLAN-0002: S3 암호화 PostgreSQL backup과 restore 검증
 
-- Status: In progress — Tasks 1~2 complete; Task 3 owner approval gate
+- Status: In progress — Tasks 1~2 complete; Task 3 local publication contract complete, production execution gated
 - Date: 2026-07-21
 - Owner: Project owner
 - Related ADRs: [`ADR-0006`](../adr/ADR-0006-supabase-free-postgresql-storage.md), [`ADR-0008`](../adr/ADR-0008-encrypted-postgresql-backup-storage.md), [`ADR-0009`](../adr/ADR-0009-age-recipient-backup-encryption.md)
@@ -84,6 +84,12 @@ Supabase Free PostgreSQL의 logical dump를 24시간마다 S3에 client-side enc
 - 테스트: scheduled synthetic dry run, manual production logical dump in maintenance-safe window, empty target restore and invariant check, 30-day lifecycle/retention review
 - 완료 기준: last-success and last-verified state are non-sensitive, RPO <=24h/RTO <=8h measured, no secret/plain dump persists on runtime
 - 롤백: scheduler disable, backup credential revoke, no production restore without an explicit separate owner decision
+
+#### 2026-07-22 production-free preparation
+
+- `evaluateBackupPublication` pure contract를 추가해 dump→encryption→upload 성공, manifest와 uploaded byte/hash 일치, plaintext와 local ciphertext cleanup을 모두 만족할 때만 `published`를 반환하도록 했다.
+- dump/encryption/upload 실패, size/hash mismatch와 local cleanup 실패는 reason code가 있는 `unverified`로 유지한다. `published`는 restore 기반 `verified`와 구분한다.
+- 외부 dependency, credential, scheduler, Supabase/network 연결은 추가하지 않았다. 실제 production credential 생성·job 활성화·첫 dump/restore는 owner-approved execution window까지 gated 상태다.
 
 ## 실패 처리와 관측
 

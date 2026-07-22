@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest verifier와 Task 2 disposable S3 encrypted transport·최소권한 IAM·lifecycle·new-host restore 완료; Task 3 production approval gate 대기
+PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~2 완료, Task 3 production-free publication contract 완료 및 production approval gate 대기
 
 ## 완료
 
@@ -119,6 +119,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest ve
 - Lightsail console read 권한 부재로 성공한 제출이 오류 화면 뒤에 가려져 생성된 중복 instance 4대를 발견 즉시 삭제; capacity/restore 정책의 목적 tag 분리를 유지하면서 console inventory/browser SSH용 regional read와 global distribution/domain read를 템플릿에 반영
 - PLAN-0002 Task 2 S3/IAM transport 보완에서 uniquely named disposable bucket과 tagged writer/reader로 client-side encrypted object의 실제 upload→download byte count·SHA-256 및 decrypt 비교를 통과; writer Put-only와 read/delete/IAM·bucket-policy 변경 deny, reader Get-only와 put/delete deny, `backups/` 한정 30일 lifecycle read-back을 확인
 - transport 결과를 서울 disposable new-host의 wrong `age` identity failure 및 valid PostgreSQL 16 empty-target restore 결과와 연결; access key·inline policy·IAM user·object·bucket·temporary plaintext/ciphertext/passphrase·CloudShell runner를 same-run 제거하고 bootstrap inline policy와 이전 S3 full-access attachment까지 제거. `cleanup_complete`, matching resource/policy count `0`, S3 console bucket count `0` 확인 후 PLAN-0002 Task 2 완료
+- PLAN-0002 Task 3의 production-free 준비로 backup publication 계약을 추가; dump/encrypt/upload 성공, uploaded byte/hash manifest 일치와 local plaintext/ciphertext cleanup 전부를 요구하고 부분 실패는 `unverified`로 유지. production credential·Supabase/network·scheduler에는 접근하지 않음
 
 ## 진행 중
 
@@ -130,7 +131,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest ve
 
 ## 다음 작업
 
-로컬 foundation Task 1~5와 `ADR-0008`·`ADR-0009`, PLAN-0002 Task 1~2를 완료했습니다. 다음은 production credential·Supabase logical dump·scheduler deployment를 포함하는 PLAN-0002 Task 3이며, 별도 owner 승인 전에는 시작하지 않습니다.
+로컬 foundation Task 1~5와 `ADR-0008`·`ADR-0009`, PLAN-0002 Task 1~2 및 Task 3의 production-free publication contract를 완료했습니다. 다음은 backup-scoped production credential 생성, scheduler 배포와 첫 Supabase logical dump/restore rehearsal이며 별도 owner-approved execution window가 필요합니다.
 
 ## 차단 요소
 

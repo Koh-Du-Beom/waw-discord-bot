@@ -61,7 +61,7 @@ export function verifyRestore(
   evidence: RestoreEvidence,
   now: Date,
 ): ArchiveVerification {
-  if (!isValidManifest(manifest)) {
+  if (!isValidBackupManifest(manifest)) {
     return { status: "unverified", reason: "invalid_manifest" };
   }
   if (new Date(manifest.retentionExpiresAt) <= now) {
@@ -82,7 +82,7 @@ export function verifyRestore(
   return { status: "verified" };
 }
 
-function isValidManifest(manifest: BackupArchiveManifest): boolean {
+export function isValidBackupManifest(manifest: BackupArchiveManifest): boolean {
   return (
     /^[0-9a-f-]{36}$/.test(manifest.archiveId) &&
     isValidIsoDate(manifest.createdAt) &&

@@ -1,6 +1,6 @@
 # Windows/new-host encrypted PostgreSQL restore runbook
 
-- Status: Linux new-host synthetic restore executed 2026-07-22; Windows and S3-download continuity not yet executed
+- Status: Linux new-host synthetic restore and actual S3 transport/IAM continuity executed 2026-07-22; Windows fallback not yet executed
 - Scope: `ADR-0008`, `ADR-0009`, `PLAN-0002` Task 2 recovery verification
 - Success criteria: archive download checksum, `age` decrypt, empty PostgreSQL restore, schema version/row count/foreign key/core invariant verification, cleanup, elapsed time below 8 hours
 
@@ -40,8 +40,18 @@
 3. If a disposable S3 object/bucket or IAM principal was created for this run, delete it and confirm resource absence in the console.
 4. Record final cleanup outcome and confirm the elapsed time is under 8 hours.
 
-## Execution evidence and remaining gap
+## Execution evidence
 
 On 2026-07-22, the Linux new-host verifier passed on a disposable Seoul Lightsail Ubuntu 24.04 instance: wrong identity rejection, archive byte/hash equality, empty PostgreSQL 16 restore, schema version `1`, row count `2`, foreign-key orphan count `0`, and the synthetic invariant. Verifier containers and the temporary script were removed, then all tagged disposable instances were deleted and the final instance list was empty.
 
-The Orca browser download hook still did not deliver the earlier S3 object or temporary access-key CSV to the expected local path. The run therefore establishes true new-host restore behavior from a transferred synthetic verifier, but not byte continuity from an actual S3 download. Least-privilege writer/reader deny and lifecycle prefix scope also remain unverified.
+The browser download hook did not deliver the first S3 object, so a bounded CloudShell transport verifier closed that gap. It proved actual encrypted object upload/download byte and SHA-256 continuity, writer Put-only and reader Get-only denial boundaries, and the `backups/`-only 30-day lifecycle. Every disposable object, bucket, IAM user/policy/key and CloudShell artifact was removed; final S3 bucket and matching IAM user counts were `0`.
+
+Transport and recovery remain two explicit contracts: S3 evidence proves ciphertext continuity and least privilege, while the new-host `age` run proves wrong-identity rejection and valid-identity empty-target restore. A production archive must satisfy both before it is marked verified.
+
+## Task 3 production gate
+
+Before enabling a production schedule, keep the backup job isolated from web and bot capabilities. Inject only a backup-scoped database credential, the public `age` recipient and the prefix-scoped S3 writer credential. Do not inject an owner recovery identity or S3 read/delete authority.
+
+The local publication contract in `src/backup/backup-publication.ts` may report `published` only after dump, encryption and upload succeed, uploaded size/hash match the manifest, and both plaintext dump and local encrypted copy are removed. `published` is not `verified`; only a separate restore rehearsal may update last-verified state.
+
+Production credential creation, scheduler enablement, the first Supabase logical dump and recovery rehearsal require a separate owner-approved execution window. Until then, no production connection or secret provisioning is authorized.
