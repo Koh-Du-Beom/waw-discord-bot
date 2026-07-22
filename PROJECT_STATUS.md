@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest verifier 완료, Task 2 S3 transport·cleanup·local restore partial 완료 및 Windows/new-host download/decrypt/restore verifier 대기
+PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest verifier 완료, Task 2 S3 transport·cleanup·local/new-host restore partial 완료 및 S3 download·최소권한 IAM·lifecycle 검증 대기
 
 ## 완료
 
@@ -115,6 +115,8 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest ve
 - PLAN-0002 Task 2의 disposable S3 transport Spike에서 client-side encrypted synthetic archive 1개 생성·upload·object 목록 확인·object/bucket 삭제와 최종 bucket count 0을 확인; local Docker PostgreSQL 16 empty-target companion에서 encrypted dump byte round trip·row count·invariant restore를 확인하고 containers/temp artifacts를 삭제. Orca download hook 한계로 S3 downloaded-byte checksum 및 Windows/new-host restore와 least-privilege IAM/lifecycle 검증은 미완료로 기록
 - S3 CLI byte-checksum 보완을 위해 temporary self-managed access key를 생성했으나 Orca의 CSV download hook이 expected local path에 파일을 전달하지 못해 실행하지 않음; secret 비저장 상태로 key를 비활성화·삭제하고 final access-key count 0을 확인. owner가 temporary self access-key IAM policy attachment를 제거했고 새 console session의 IAM deny로 확인
 - `OPS-005`~`OPS-007` recovery evidence를 위한 Windows/new-host encrypted PostgreSQL restore runbook 작성; S3 download checksum, wrong-identity failure, empty target restore, non-secret verifier와 same-run cleanup 순서를 고정
+- 서울 Lightsail Ubuntu 24.04 disposable new host에서 wrong-identity failure, encrypted archive byte/hash equality, empty PostgreSQL 16 restore, schema version `1`, row count `2`, foreign-key orphan `0`, invariant를 통과; containers/temp script와 tagged instance를 제거하고 final instance count `0` 확인
+- Lightsail console read 권한 부재로 성공한 제출이 오류 화면 뒤에 가려져 생성된 중복 instance 4대를 발견 즉시 삭제; capacity/restore 정책의 목적 tag 분리를 유지하면서 console inventory/browser SSH용 regional read와 global distribution/domain read를 템플릿에 반영
 
 ## 진행 중
 
@@ -127,7 +129,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest ve
 ## 다음 작업
 
 로컬 foundation Task 1~5와 `ADR-0008`·`ADR-0009`, PLAN-0002 Task 1 및 Task 2의 S3 transport·cleanup 부분을 완료했습니다. 다음은
-empty Windows/new-host PostgreSQL fixture에서 disposable archive를 download·decrypt·restore하고 verifier를 실행하는 Task 2 잔여 작업입니다.
+temporary least-privilege S3 writer/reader로 실제 object download byte checksum, deny 경계와 lifecycle prefix scope를 확인하는 Task 2 잔여 작업입니다.
 
 ## 차단 요소
 
@@ -144,7 +146,7 @@ empty Windows/new-host PostgreSQL fixture에서 disposable archive를 download·
 - 익명 임시 outbound tunnel의 Vercel→자가 host 호출이 function timeout으로 실패했으며 원인이 Vercel egress, tunnel 공급자 경로, 지역 또는 연결 정책 중 어디인지는 분리하지 못함
 - 공유 PostgreSQL request/result도 worker 처리와 별개로 Vercel function timeout이 발생해 고위험 현재 역할 조회의 5초 동기 경계가 아직 없음
 - 계정 고정 managed tunnel도 local 왕복은 성공했지만 Vercel function timeout으로 실패해 공급자 교체만으로 추가 검증할 근거가 낮음
-- S3 upload/delete와 disposable bucket cleanup은 검증했지만, download hook 한계로 byte checksum·decrypt·empty PostgreSQL restore 및 backup-only IAM/lifecycle policy 검증은 남아 있음
+- S3 upload/delete와 disposable bucket cleanup 및 별도 new-host decrypt/empty PostgreSQL restore는 검증했지만, download hook 한계로 실제 S3 object byte continuity와 backup-only IAM/lifecycle policy 검증은 남아 있음
 
 ## 현재 확정되지 않은 사항
 

@@ -1,9 +1,9 @@
 # Disposable S3 encrypted archive Spike
 
-- 상태: Partial — S3 create/upload/list/delete/cleanup passed; restore path remains unverified
-- 실행일: 2026-07-21
+- 상태: Partial — S3 create/upload/list/delete/cleanup와 disposable new-host restore 통과; S3 download/IAM/lifecycle 미검증
+- 실행일: 2026-07-21~2026-07-22
 - 범위: owner-authorized AWS console session, one disposable bucket, one client-side `age` encrypted synthetic SQL archive
-- 비범위: Supabase, production data, production key, AWS access key, owner identity, lifecycle/IAM policy changes, Windows/new-host PostgreSQL restore
+- 비범위: Supabase, production data, production key, AWS access key, owner identity, lifecycle/IAM policy changes, Windows restore
 
 ## 확인한 결과
 
@@ -27,10 +27,14 @@ Orca browser download hook은 선택된 object를 expected local path에 전달�
 
 2026-07-21 실행에서 encrypted archive byte round trip, target row count `2`, `restore-check` invariant를 통과했다. Docker container 잔존 여부도 실행 뒤 검사했다. 이는 local container evidence이며 Windows 또는 새 host recovery evidence와 같지 않다.
 
-다음 AWS-bound Spike는 temporary least-privilege writer/reader policy를 사용해 S3 download checksum까지 연결하고, same-run cleanup을 다시 확인해야 한다. Windows 또는 새 host의 empty PostgreSQL restore는 이 local companion과 별도로 증명해야 한다.
+2026-07-22에는 서울 Lightsail Ubuntu 24.04 disposable new host에서 `run-new-host-postgres-restore.sh`를 실행했다. PostgreSQL 16 source/empty-target, wrong-identity decrypt failure, encrypted archive byte/hash equality, schema version `1`, row count `2`, foreign-key orphan count `0`, `restore-check` invariant가 모두 통과했다. archive는 `4067` bytes였고 SHA-256은 `7ca5585a9670aa6397b81bdecaa61def670bec328519347731a9c19e284e6eef`였다. 실행 뒤 verifier container가 없음을 확인하고 temporary script를 제거했으며, tagged instance `waw-restore-spike-20260722-0909-vm`을 삭제한 뒤 Lightsail instance 목록 `0`을 확인했다. Supabase나 production credential/data에는 접근하지 않았다.
+
+첫 제출들이 read-denied 화면 뒤에서 성공한 사실을 inventory 권한 보완 후 발견해 중복 disposable instance 4대를 즉시 삭제하고 newest 1대만 검증에 사용했다. 이 경험 때문에 console 제출 오류가 보여도 `GetInstances`로 실제 생성 여부를 확인하기 전 재제출하지 않아야 한다.
+
+다음 AWS-bound Spike는 temporary least-privilege writer/reader policy를 사용해 실제 S3 download checksum까지 연결하고 lifecycle prefix scope와 same-run cleanup을 확인해야 한다. 새 host 복구 자체는 증명됐지만 S3에서 받은 object의 byte 연속성은 아직 증명되지 않았다.
 
 ## New-host authorization boundary
 
 `lightsail-restore-spike-policy.json`은 Seoul region에서 `purpose=waw-restore-spike`와 expiry tag를 요청한 disposable instance의 생성·조회·삭제만 허용하는 temporary policy template다. 기존 capacity Spike policy의 `waw-capacity-spike` tag를 restore evidence에 재사용하지 않는다. 이 policy attachment와 host 생성은 owner approval 뒤에만 실행하고, instance 삭제 확인 뒤 attachment를 제거한다.
 
-2026-07-21 첫 console 제출은 인스턴스를 만들지 않았고 최종 instance 목록도 `0`이었다. 제출 뒤 Lightsail console이 전체 home 화면을 구성하면서 호출하는 `GetAlarms`, `GetDistributions`, `GetLoadBalancers`가 초기 template에 없어 access-denied 진단 화면으로 이동했다. template에는 이 세 regional read action을 추가했다. 이는 instance 생성·변경 권한을 넓히지 않으며, owner가 attached customer-managed policy version을 갱신하고 새 console session으로 재인증하기 전에는 재시도하지 않는다.
+2026-07-22 console 실행에서 regional inventory/browser SSH read와 global `GetDistributions`·`GetDomains`가 필요함을 확인해 template을 보완했다. restore policy의 변경 권한은 `purpose=waw-restore-spike` instance 생성·삭제로 유지한다. 실제 생성 결과를 확인하지 못한 채 재제출한 탓에 5대가 생성됐으나, 중복 4대와 검증용 1대를 모두 same-run 삭제해 최종 instance 목록 `0`을 확인했다.

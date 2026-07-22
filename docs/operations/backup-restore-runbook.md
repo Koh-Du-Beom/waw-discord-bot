@@ -1,6 +1,6 @@
 # Windows/new-host encrypted PostgreSQL restore runbook
 
-- Status: Prepared — not yet executed on Windows/new host
+- Status: Linux new-host synthetic restore executed 2026-07-22; Windows and S3-download continuity not yet executed
 - Scope: `ADR-0008`, `ADR-0009`, `PLAN-0002` Task 2 recovery verification
 - Success criteria: archive download checksum, `age` decrypt, empty PostgreSQL restore, schema version/row count/foreign key/core invariant verification, cleanup, elapsed time below 8 hours
 
@@ -40,6 +40,8 @@
 3. If a disposable S3 object/bucket or IAM principal was created for this run, delete it and confirm resource absence in the console.
 4. Record final cleanup outcome and confirm the elapsed time is under 8 hours.
 
-## Known evidence gap
+## Execution evidence and remaining gap
 
-The Orca browser download hook did not deliver S3 objects or temporary access-key CSV files to the expected local path. The owner-operated Windows/new-host run is therefore required to establish the S3 download checksum and true recovery-host evidence; the existing local Docker companion is not a substitute.
+On 2026-07-22, the Linux new-host verifier passed on a disposable Seoul Lightsail Ubuntu 24.04 instance: wrong identity rejection, archive byte/hash equality, empty PostgreSQL 16 restore, schema version `1`, row count `2`, foreign-key orphan count `0`, and the synthetic invariant. Verifier containers and the temporary script were removed, then all tagged disposable instances were deleted and the final instance list was empty.
+
+The Orca browser download hook still did not deliver the earlier S3 object or temporary access-key CSV to the expected local path. The run therefore establishes true new-host restore behavior from a transferred synthetic verifier, but not byte continuity from an actual S3 download. Least-privilege writer/reader deny and lifecycle prefix scope also remain unverified.

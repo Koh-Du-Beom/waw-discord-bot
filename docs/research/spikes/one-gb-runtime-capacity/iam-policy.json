@@ -5,14 +5,22 @@
       "Sid": "ReadSpikeInventoryInSeoul",
       "Effect": "Allow",
       "Action": [
+        "lightsail:GetActiveNames",
+        "lightsail:GetAlarms",
         "lightsail:GetBlueprints",
         "lightsail:GetBundles",
+        "lightsail:GetCertificates",
         "lightsail:GetDisks",
         "lightsail:GetInstance",
+        "lightsail:GetInstanceAccessDetails",
         "lightsail:GetInstancePortStates",
+        "lightsail:GetInstanceState",
         "lightsail:GetInstances",
         "lightsail:GetInstanceSnapshots",
         "lightsail:GetKeyPairs",
+        "lightsail:GetLoadBalancers",
+        "lightsail:GetOperation",
+        "lightsail:GetOperations",
         "lightsail:GetRegions",
         "lightsail:GetStaticIps"
       ],
@@ -22,6 +30,15 @@
           "aws:RequestedRegion": "ap-northeast-2"
         }
       }
+    },
+    {
+      "Sid": "ReadGlobalLightsailConsoleInventory",
+      "Effect": "Allow",
+      "Action": [
+        "lightsail:GetDistributions",
+        "lightsail:GetDomains"
+      ],
+      "Resource": "*"
     },
     {
       "Sid": "CreateTaggedSpikeInstanceInSeoul",

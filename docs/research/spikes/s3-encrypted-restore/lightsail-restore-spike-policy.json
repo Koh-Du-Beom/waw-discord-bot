@@ -6,15 +6,21 @@
       "Effect": "Allow",
       "Action": [
         "lightsail:GetAlarms",
+        "lightsail:GetActiveNames",
         "lightsail:GetBlueprints",
         "lightsail:GetBundles",
-        "lightsail:GetDistributions",
+        "lightsail:GetCertificates",
         "lightsail:GetDisks",
         "lightsail:GetInstance",
+        "lightsail:GetInstanceAccessDetails",
+        "lightsail:GetInstancePortStates",
+        "lightsail:GetInstanceState",
         "lightsail:GetInstances",
         "lightsail:GetInstanceSnapshots",
         "lightsail:GetKeyPairs",
         "lightsail:GetLoadBalancers",
+        "lightsail:GetOperation",
+        "lightsail:GetOperations",
         "lightsail:GetRegions",
         "lightsail:GetStaticIps"
       ],
@@ -24,6 +30,15 @@
           "aws:RequestedRegion": "ap-northeast-2"
         }
       }
+    },
+    {
+      "Sid": "ReadGlobalLightsailConsoleInventory",
+      "Effect": "Allow",
+      "Action": [
+        "lightsail:GetDistributions",
+        "lightsail:GetDomains"
+      ],
+      "Resource": "*"
     },
     {
       "Sid": "CreateTaggedRestoreSpikeInstanceInSeoul",

@@ -62,6 +62,12 @@ Supabase Free PostgreSQL의 logical dump를 24시간마다 S3에 client-side enc
 - 판정: Task 2는 **partial**이며 완료가 아니다. local container restore는 Windows/new-host recovery evidence를 대체하지 않는다. production source·Supabase project·production credential에는 접근하지 않았다.
 - 준비: Windows/new-host owner-operated recovery runbook을 작성했다. 이는 실행 결과가 아니며 S3 download checksum과 actual recovery-host evidence는 아직 없다.
 
+#### 2026-07-22 new-host 보완 결과
+
+- 통과: 서울 Lightsail Ubuntu 24.04 disposable host에서 wrong-identity failure, archive byte/hash equality, empty PostgreSQL 16 restore, schema version `1`, row count `2`, foreign-key orphan count `0`, invariant를 확인했다.
+- 정리: verifier containers와 host temporary script가 남지 않았음을 확인했다. read 권한 부재로 뒤늦게 발견한 중복 instance 4대와 검증 instance 1대를 모두 삭제하고 final Lightsail instance count `0`을 확인했다.
+- 판정: actual new-host recovery evidence는 확보했다. 다만 S3 console download hook 공백, temporary least-privilege writer/reader deny와 lifecycle prefix scope가 남아 있어 Task 2 전체 상태는 **partial**이다.
+
 ### Task 3 — Production backup job and first restore rehearsal
 
 - 목적: backup-only DB/S3 credential, owner recovery identity와 scheduler를 production host에 안전하게 주입한다.
