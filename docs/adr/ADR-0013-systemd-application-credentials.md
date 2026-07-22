@@ -1,6 +1,6 @@
 # ADR-0013: systemd credential로 application secret 주입
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-22
 - Owners: Project owner
 - Related requirements: `SEC-007`~`SEC-010`, `OPS-003`~`OPS-004`, `DEP-002`
@@ -38,7 +38,7 @@ Service별 file permission은 나누되 값을 process environment로 주입한�
 
 KMS/IAM/version/rotation을 사용하고 service가 AWS API로 credential을 가져온다.
 
-## Proposed decision
+## Decision
 
 첫 MVP application secret은 **root-owned source file에서 systemd `LoadCredential=`로 service별 주입**한다.
 
@@ -102,4 +102,5 @@ Encrypted systemd credential은 at-rest 보호를 강화할 수 있으나 hardwa
 
 ## Approval
 
-- Owner decision: Pending
+- Owner decision: Approved — systemd `LoadCredential=` with synthetic-only disposable Ubuntu 24.04 isolation, rotation and rollback Spike
+- Approved date: 2026-07-22

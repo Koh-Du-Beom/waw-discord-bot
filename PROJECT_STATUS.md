@@ -135,6 +135,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - Owner 승인으로 `ADR-0012`를 Accepted 전환; Caddy만 public 80/443을 소유하고 Fastify는 loopback-only로 유지하며 production DNS/ACME/firewall은 별도 승인 전 변경하지 않음
 - Credential-free Caddy 2.11.4 local CA Spike에서 config validation/invalid deny, HTTP `308`, HTTPS proxy·forwarded header, wrong-host deny, Authorization/Cookie/OAuth query log redaction과 same-PID reload를 통과하고 RSS `52,572 KiB` 측정; container/listener/temp CA·config·log/image 최종 부재 확인
 - D-11 application secret 주입에서 systemd credential, EnvironmentFile과 AWS Parameter Store/Secrets Manager를 공식 자료로 비교; Lightsail service role 부재로 AWS bootstrap credential을 추가하지 않고 root-owned source + `LoadCredential=`를 잠정 추천해 `ADR-0013`을 Proposed로 작성
+- Owner 승인으로 `ADR-0013`을 Accepted 전환하고 synthetic-only disposable Ubuntu 24.04 credential 격리·rotation·rollback runner를 작성·정적 검증; CloudShell launch 권한 부족을 instance 생성 전에 확인해 최소 임시 managed policy JSON을 저장소 루트에 Git 비추적 상태로 준비
 
 ## 진행 중
 
@@ -146,7 +147,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 
 ## 다음 작업
 
-로컬 foundation Task 1~5, PLAN-0002 Task 1~3, `ADR-0010`~`ADR-0012`, systemd application deployment와 credential-free Caddy ingress Spike를 완료했습니다. D-11 application secret 주입·rotation의 `ADR-0013`은 owner 결정을 기다립니다. 승인 뒤 합성 credential의 systemd 격리·rotation·rollback Spike를 진행하며, journald 보존·경보는 별도 결정으로 연구합니다. Canonical DNS, public certificate와 production firewall 변경은 별도 owner 승인 전 실행하지 않습니다.
+로컬 foundation Task 1~5, PLAN-0002 Task 1~3, `ADR-0010`~`ADR-0013`, systemd application deployment와 credential-free Caddy ingress Spike를 완료했습니다. 다음은 `temporary-cloudshell-policy.json`을 별도 customer-managed policy로 `waw-spike-operator`에 연결한 뒤 synthetic credential systemd Spike를 실행하는 작업입니다. Instance는 아직 생성하지 않았습니다. 실행·정리 뒤 임시 정책 파일을 삭제하고 journald 보존·경보를 별도 결정으로 연구합니다. Canonical DNS, public certificate와 production firewall 변경은 별도 owner 승인 전 실행하지 않습니다.
 
 ## 차단 요소
 
