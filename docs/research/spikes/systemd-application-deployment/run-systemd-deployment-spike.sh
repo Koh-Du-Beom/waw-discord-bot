@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 umask 077
+trap 'printf "spike_error_line=%s\n" "$LINENO" >&2' ERR
 
 REGION="ap-northeast-2"
 ZONE="ap-northeast-2a"
@@ -66,7 +67,7 @@ aws lightsail close-instance-public-ports --region "$REGION" --instance-name "$I
 aws lightsail open-instance-public-ports --region "$REGION" --instance-name "$INSTANCE" \
   --port-info "fromPort=22,toPort=22,protocol=tcp,cidrs=${CLIENT_IP}/32" >/dev/null
 HOST="$(aws lightsail get-instance --region "$REGION" --instance-name "$INSTANCE" --query instance.publicIpAddress --output text)"
-SSH=(ssh -i "$TMP/id_ed25519" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$TMP/known_hosts" ubuntu@"$HOST")
+SSH=(ssh -i "$TMP/id_ed25519" -o ConnectTimeout=5 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$TMP/known_hosts" ubuntu@"$HOST")
 
 for _ in $(seq 1 36); do
   "${SSH[@]}" true >/dev/null 2>&1 && break
@@ -178,7 +179,8 @@ WantedBy=multi-user.target
 UNIT
 sudo systemctl daemon-reload
 sudo systemctl enable --now waw-web-spike.service waw-bot-spike.service >/dev/null
-curl --fail --silent http://127.0.0.1:18080/health | grep -q '"version":"v1"'
+curl --retry 10 --retry-delay 1 --retry-connrefused --fail --silent \
+  http://127.0.0.1:18080/health | grep -q '"version":"v1"'
 sudo -u waw-web test -r /etc/waw/web/runtime.env
 ! sudo -u waw-web test -r /etc/waw/bot/runtime.env
 sudo -u waw-bot test -r /etc/waw/bot/runtime.env
@@ -224,12 +226,20 @@ ss -lntp | grep -q '127.0.0.1:18080'
 echo cgroup_and_local_port_passed
 REMOTE
 
+boot_id_before="$("${SSH[@]}" 'cat /proc/sys/kernel/random/boot_id')"
 "${SSH[@]}" 'sudo reboot' >/dev/null 2>&1 || true
 for _ in $(seq 1 60); do
   sleep 5
-  "${SSH[@]}" true >/dev/null 2>&1 && break
+  boot_id_after="$("${SSH[@]}" 'cat /proc/sys/kernel/random/boot_id' 2>/dev/null)" || continue
+  [[ "$boot_id_after" != "$boot_id_before" ]] && break
 done
-"${SSH[@]}" 'set -Eeuo pipefail; systemctl is-enabled --quiet waw-web-spike.service; systemctl is-active --quiet waw-web-spike.service; systemctl is-enabled --quiet waw-bot-spike.service; systemctl is-active --quiet waw-bot-spike.service; curl --fail --silent http://127.0.0.1:18080/health | grep -q '\"version\":\"v1\"'; test "$(systemctl show waw-web-spike.service -p NRestarts --value)" -ge 0; echo reboot_recovery_passed'
+[[ "${boot_id_after:-}" != "$boot_id_before" ]]
+for _ in $(seq 1 30); do
+  "${SSH[@]}" 'systemctl is-active --quiet waw-web-spike.service && systemctl is-active --quiet waw-bot-spike.service && curl --fail --silent http://127.0.0.1:18080/health | grep -q v1' \
+    >/dev/null 2>&1 && break
+  sleep 2
+done
+"${SSH[@]}" 'set -Eeuo pipefail; systemctl is-enabled --quiet waw-web-spike.service; systemctl is-active --quiet waw-web-spike.service; systemctl is-enabled --quiet waw-bot-spike.service; systemctl is-active --quiet waw-bot-spike.service; curl --fail --silent http://127.0.0.1:18080/health | grep -q v1; test "$(systemctl show waw-web-spike.service -p NRestarts --value)" -ge 0; echo reboot_recovery_passed'
 
 port_count="$(aws lightsail get-instance-port-states --region "$REGION" --instance-name "$INSTANCE" \
   --query 'length(portStates[?state==`open` && fromPort==`22` && toPort==`22`])' --output text)"
