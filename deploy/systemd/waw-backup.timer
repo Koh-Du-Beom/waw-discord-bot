@@ -1,0 +1,11 @@
+[Unit]
+Description=Run WAW encrypted PostgreSQL backup daily
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 UTC
+Persistent=true
+RandomizedDelaySec=10m
+Unit=waw-backup.service
+
+[Install]
+WantedBy=timers.target

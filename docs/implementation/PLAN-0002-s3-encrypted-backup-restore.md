@@ -1,6 +1,6 @@
 # PLAN-0002: S3 암호화 PostgreSQL backup과 restore 검증
 
-- Status: In progress — Tasks 1~2 complete; Task 3 local publication contract complete, production execution gated
+- Status: Complete — Tasks 1~3 complete
 - Date: 2026-07-21
 - Owner: Project owner
 - Related ADRs: [`ADR-0006`](../adr/ADR-0006-supabase-free-postgresql-storage.md), [`ADR-0008`](../adr/ADR-0008-encrypted-postgresql-backup-storage.md), [`ADR-0009`](../adr/ADR-0009-age-recipient-backup-encryption.md)
@@ -20,8 +20,8 @@ Supabase Free PostgreSQL의 logical dump를 24시간마다 S3에 client-side enc
 
 ## 비범위
 
-- production Supabase project·credential·data export
-- production owner recovery identity 생성·보관 또는 채팅 공유
+- 원본 Supabase project로의 restore 또는 destructive 변경
+- owner recovery identity의 runtime/S3 보관 또는 채팅 공유
 - dashboard에서 backup/restore 실행
 - S3 Object Lock, Glacier transition, cross-account replication, automatic billing expansion
 - KBO와 Riot production data
@@ -91,6 +91,17 @@ Supabase Free PostgreSQL의 logical dump를 24시간마다 S3에 client-side enc
 - dump/encryption/upload 실패, size/hash mismatch와 local cleanup 실패는 reason code가 있는 `unverified`로 유지한다. `published`는 restore 기반 `verified`와 구분한다.
 - 외부 dependency, credential, scheduler, Supabase/network 연결은 추가하지 않았다. 실제 production credential 생성·job 활성화·첫 dump/restore는 owner-approved execution window까지 gated 상태다.
 
+#### 2026-07-22 owner-approved production 실행 결과
+
+- backup 전용 PostgreSQL role과 prefix-scoped S3 writer를 생성하고, runtime에는 DB credential, public `age` recipient와 Put-only AWS credential만 주입했다. owner recovery identity와 S3 read/delete 권한은 runtime에 두지 않았다.
+- 서울 Lightsail Ubuntu 24.04 host에 일일 systemd timer를 활성화했다. 두 번의 encrypted logical dump publication이 성공했고 최신 7,084-byte archive의 실제 S3 download byte count와 SHA-256이 manifest와 일치했다.
+- writer는 실제 `PutObject`에 성공했지만 `GetObject`, `DeleteObject`, bucket-policy와 IAM 변경은 거부됐다. 임시 restore reader는 최신 archive 하나의 정확한 `GetObject`만 성공하고 put/delete/다른 object get/IAM 변경은 거부됐다.
+- lifecycle read-back에서 enabled rule 하나가 `backups/` prefix에만 적용되고 expiration이 30일임을 확인했다.
+- wrong identity decrypt가 실패한 뒤 valid offline identity로 disposable local PostgreSQL 17 empty target restore를 완료했다. schema version `1`, row count `0`, invalid constraint `0`, elapsed `30`초를 확인하고 non-sensitive verified marker를 archive 옆에 게시했다.
+- restore container/image, local archive/dump, host staging artifact, 임시 reader user/policy/key, deploy key와 CloudShell upload를 제거했다. reader count와 temporary upload/key-pair count는 `0`이다. 승인된 recurring production bucket, writer/access key와 running host만 유지한다.
+- 최종 AWS console/resource inventory에서 예상한 production bucket 하나와 running host 하나만 확인했다. backup timer는 enabled/active이고 secret environment file은 `root:waw-backup` mode `0640`이다.
+- 판정: actual publication, least privilege, retention, wrong/valid identity restore, RPO 24시간 schedule과 8시간 이내 RTO 증거를 충족해 Task 3과 PLAN-0002를 **complete**로 전환한다.
+
 ## 실패 처리와 관측
 
 - `age`, `pg_dump`, S3 upload/download, checksum, decrypt, `pg_restore`와 invariant 검증 중 하나라도 실패하면 archive는 `unverified`다. previous verified archive를 overwrite하거나 success로 표시하지 않는다.
@@ -104,4 +115,4 @@ Supabase Free PostgreSQL의 logical dump를 24시간마다 S3에 client-side enc
 
 ## 다음 승인 게이트
 
-Task 2 완료. Task 3은 production credential 입력·scheduler/deployment·Supabase logical dump를 포함하므로 별도 owner approval 없이는 시작하지 않는다.
+Tasks 1~3 완료. 다음 작업은 별도 승인된 구현 계획에서 진행한다.

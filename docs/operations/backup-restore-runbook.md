@@ -1,12 +1,12 @@
 # Windows/new-host encrypted PostgreSQL restore runbook
 
-- Status: Linux new-host synthetic restore and actual S3 transport/IAM continuity executed 2026-07-22; Windows fallback not yet executed
-- Scope: `ADR-0008`, `ADR-0009`, `PLAN-0002` Task 2 recovery verification
+- Status: Production publication and empty-target restore rehearsal executed 2026-07-22; Windows fallback not yet executed
+- Scope: `ADR-0008`, `ADR-0009`, `PLAN-0002` Tasks 2~3 recovery verification
 - Success criteria: archive download checksum, `age` decrypt, empty PostgreSQL restore, schema version/row count/foreign key/core invariant verification, cleanup, elapsed time below 8 hours
 
 ## Safety boundary
 
-- Use only a disposable synthetic archive and an empty target database. Do not connect this procedure to the original Supabase project or any production database.
+- Restore only into a disposable empty target. A production source dump requires an explicit owner-approved execution window and must never be restored into the original Supabase project by this procedure.
 - Obtain the archive through an owner-operated authenticated S3 download. Do not put AWS access keys, database passwords, private `age` identity contents, or raw dump data in chat, command history, Git, or logs.
 - Keep the owner identity in an ephemeral local file or secure prompt only. Delete it, decrypted dumps, archive copies, temporary database and any temporary AWS credential immediately after the verifier.
 - The runtime backup writer never receives the private identity or S3 read/delete authority.
@@ -48,10 +48,14 @@ The browser download hook did not deliver the first S3 object, so a bounded Clou
 
 Transport and recovery remain two explicit contracts: S3 evidence proves ciphertext continuity and least privilege, while the new-host `age` run proves wrong-identity rejection and valid-identity empty-target restore. A production archive must satisfy both before it is marked verified.
 
-## Task 3 production gate
+## Production operation
 
 Before enabling a production schedule, keep the backup job isolated from web and bot capabilities. Inject only a backup-scoped database credential, the public `age` recipient and the prefix-scoped S3 writer credential. Do not inject an owner recovery identity or S3 read/delete authority.
 
 The local publication contract in `src/backup/backup-publication.ts` may report `published` only after dump, encryption and upload succeed, uploaded size/hash match the manifest, and both plaintext dump and local encrypted copy are removed. `published` is not `verified`; only a separate restore rehearsal may update last-verified state.
 
-Production credential creation, scheduler enablement, the first Supabase logical dump and recovery rehearsal require a separate owner-approved execution window. Until then, no production connection or secret provisioning is authorized.
+The owner-approved 2026-07-22 execution created a backup-only database role, a Put-only S3 writer and a daily systemd timer on the production host. The runtime environment file is owned by `root:waw-backup` with mode `0640`; it contains no recovery identity or S3 read/delete permission. Keep the offline passphrase-encrypted owner identity outside the repository, runtime and S3.
+
+For recovery, create a temporary reader whose policy names exactly one archive object. Prove exact Get succeeds and put/delete/other-object Get/IAM changes fail, then delete its access key, inline policy and user in the same run. Download and verify ciphertext bytes/hash before attempting `age` decryption.
+
+The first production rehearsal proved a wrong identity is rejected and the valid offline identity restores to disposable PostgreSQL 17 with schema version `1`, row count `0`, invalid constraint count `0` in `30` seconds. Publish a non-sensitive verified marker only after all checks pass. The production bucket, Put-only writer credential and billed host intentionally remain for the recurring schedule; restore readers, staged archives, decrypted dumps, containers and deploy credentials must not remain.

@@ -73,9 +73,9 @@
 |---|---|---|
 | web runtime | local command service, opaque session 검증 결과 | Discord bot token, Supabase migration/backup credential |
 | bot runtime | Discord bot token, current member/role reader | browser cookie/session ID, OAuth code/token |
-| migration/backup job | 별도 최소 DB/backup credential | Discord bot token, browser session credential |
+| migration/backup job | 별도 최소 DB role, public `age` recipient, prefix Put-only S3 credential | owner recovery identity, S3 read/delete, Discord bot token, browser session credential |
 
-같은 Lightsail host라도 capability를 명시적으로 주입하고, web과 bot module은 서로의 비밀값을 읽지 않는다. 실제 process account·environment-file permission과 Supabase workload별 DB role은 production credential을 만들기 전 별도 검증한다.
+같은 Lightsail host라도 capability를 명시적으로 주입하고, web과 bot module은 서로의 비밀값을 읽지 않는다. backup job은 별도 system account로 실행하며 secret environment file은 `root:waw-backup` mode `0640`으로 제한한다. production rehearsal에서 backup DB role과 Put-only writer 경계, temporary exact-object reader와 runtime의 owner identity 부재를 검증했다.
 
 ## 6. OAuth와 세션
 

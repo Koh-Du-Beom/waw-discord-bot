@@ -1,3 +1,9 @@
+create table app_schema_version (
+  version integer primary key check (version > 0)
+);
+
+insert into app_schema_version (version) values (1);
+
 create table app_session (
   session_id_hash text primary key,
   actor_id text not null,
