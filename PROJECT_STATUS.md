@@ -123,6 +123,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - owner-approved PLAN-0002 Task 3 production 실행에서 backup-only PostgreSQL role, prefix Put-only S3 writer와 서울 Lightsail 일일 scheduler를 배포하고 실제 encrypted logical dump 2회를 게시; 최신 7,084-byte object의 upload→download byte/SHA-256 연속성과 `backups/` 한정 30일 lifecycle 확인
 - production writer의 Get/Delete/bucket-policy/IAM deny와 temporary exact-object restore reader의 put/delete/other-get/IAM deny를 확인; wrong identity 실패 뒤 disposable PostgreSQL 17 valid restore에서 schema version `1`, row count `0`, invalid constraint `0`, elapsed `30`초를 확인하고 verified marker 게시
 - temporary reader/key/policy, staged archive/dump, restore container/image, deploy key와 CloudShell artifact를 제거하고 expected recurring bucket/writer/access key/host만 유지; timer active/enabled와 secret file mode `0640` 확인 후 PLAN-0002 Task 3 완료
+- D-10 dashboard web framework/self-host 연구에서 Fastify API+Vite/React Router SPA, Next.js standalone과 React Router SSR/BFF를 공식 문서로 비교; 명시적인 server authorization·schema/DTO·log 경계 때문에 Fastify+SPA를 잠정 첫 Spike 후보, Next.js를 strongest alternative로 정리하고 실제 선택은 보류
 
 ## 진행 중
 
@@ -134,7 +135,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 
 ## 다음 작업
 
-로컬 foundation Task 1~5와 `ADR-0008`·`ADR-0009`, PLAN-0002 Task 1~3을 완료했습니다. 다음은 현재 확정되지 않은 runtime/Discord SDK/dashboard 구현 결정을 별도 research·ADR·implementation plan으로 좁히는 작업입니다.
+로컬 foundation Task 1~5와 `ADR-0008`·`ADR-0009`, PLAN-0002 Task 1~3 및 D-10 web framework research를 완료했습니다. 다음은 Fastify+React Router SPA의 credential 없는 vertical slice Spike runbook을 작성하고 owner 승인 뒤 실행하는 작업입니다.
 
 ## 차단 요소
 
