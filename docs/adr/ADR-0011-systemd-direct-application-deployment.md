@@ -1,6 +1,6 @@
 # ADR-0011: 서울 Lightsail application을 systemd로 직접 실행
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-22
 - Owners: Project owner
 - Related requirements: `OPS-001`~`OPS-004`, `OPS-008`, `SEC-007`~`SEC-010`, `DEP-001`~`DEP-002`, `QUA-001`~`QUA-002`
@@ -95,5 +95,5 @@ Docker Compose로 전환할 때 current release와 lockfile에서 pinned non-roo
 
 ## Approval
 
-- Owner decision: Pending
-- Approved date: Pending
+- Owner decision: Approved — direct systemd application deployment; Docker Compose remains the reconsideration path
+- Approved date: 2026-07-22

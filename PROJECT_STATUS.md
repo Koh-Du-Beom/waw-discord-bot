@@ -129,6 +129,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - owner 승인으로 `ADR-0010`을 Accepted 전환; Fastify API를 browser command/query 경계로, Vite/React Router SPA를 untrusted same-origin client로 선택
 - D-15 서울 Lightsail application 배포에서 systemd 직접 실행과 rootful/rootless Docker Compose를 공식 자료와 현재 1GB/backup 경계로 비교; 추가 daemon·image 관리면 없이 Linux user/cgroup/journald를 재사용하는 systemd를 잠정 추천
 - `ADR-0011` systemd 직접 application 배포를 Proposed로 작성; Docker Compose는 host 이전/native dependency/registry 요구가 생길 때의 strongest alternative로 유지하고 production host에는 아직 설치하지 않음
+- owner 승인으로 `ADR-0011`을 Accepted 전환; first MVP application은 Docker 없이 별도 Linux user의 systemd web/bot service와 immutable release symlink로 배포
 
 ## 진행 중
 
@@ -140,7 +141,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 
 ## 다음 작업
 
-로컬 foundation Task 1~5, PLAN-0002 Task 1~3과 `ADR-0010`까지 완료했고 systemd와 Docker Compose의 D-15 비교를 마쳤습니다. 다음은 Proposed `ADR-0011` owner 결정이며, 승인 후 disposable Ubuntu 24.04에서 process/secret, crash/reboot/rollback과 1GB resource Spike를 실행합니다.
+로컬 foundation Task 1~5, PLAN-0002 Task 1~3과 `ADR-0010`~`ADR-0011`을 완료했습니다. 다음은 disposable Ubuntu 24.04에서 systemd process/secret, crash/reboot/rollback과 1GB resource Spike를 실행하는 작업입니다.
 
 ## 차단 요소
 
