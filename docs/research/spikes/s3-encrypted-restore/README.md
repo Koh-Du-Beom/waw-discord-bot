@@ -1,9 +1,9 @@
 # Disposable S3 encrypted archive Spike
 
-- 상태: Partial — S3 create/upload/list/delete/cleanup와 disposable new-host restore 통과; S3 download/IAM/lifecycle 미검증
+- 상태: Complete — actual S3 byte continuity, least-privilege IAM, lifecycle, new-host restore와 cleanup 통과
 - 실행일: 2026-07-21~2026-07-22
-- 범위: owner-authorized AWS console session, one disposable bucket, one client-side `age` encrypted synthetic SQL archive
-- 비범위: Supabase, production data, production key, AWS access key, owner identity, lifecycle/IAM policy changes, Windows restore
+- 범위: owner-authorized AWS console session, uniquely named disposable buckets, client-side encrypted synthetic archives, tagged disposable IAM users
+- 비범위: Supabase, production data/credential, production key, owner recovery identity, Windows restore
 
 ## 확인한 결과
 
@@ -13,9 +13,23 @@
 4. disposable bucket delete 후 general-purpose bucket count `0`을 확인했다.
 5. local synthetic archive와 screenshot artifact를 삭제했다. AWS credential, private identity, raw SQL, bucket URL은 기록하지 않았다.
 
-## 제한 및 다음 검증
+## 2026-07-22 S3/IAM transport 보완
 
-Orca browser download hook은 선택된 object를 expected local path에 전달하지 못했다. 따라서 이 실행은 S3 upload/list/delete와 cleanup만 증명하며 downloaded-byte checksum, wrong-identity failure, valid-identity decrypt, empty PostgreSQL restore, backup-only writer deny 및 lifecycle prefix scope는 증명하지 않는다.
+`run-s3-iam-transport-spike.sh`를 owner-authorized CloudShell에서 실행했다. 이 재현 스크립트는 실행마다 고유 bucket과 tagged writer/reader를 만들고, key secret과 encryption passphrase를 shell 및 `mktemp` directory 밖으로 내보내지 않으며 exit trap으로 access key, inline policy, IAM user, object, bucket과 temporary files를 제거한다.
+
+두 번의 성공 실행에서 시작 전 matching bucket/IAM user count가 각각 `0`임을 확인했다. 첫 writer call은 새 access key 전파 동안 `InvalidAccessKeyId`가 발생했으나 bounded retry 뒤 성공했다. 결과는 다음과 같다.
+
+- client-side AES-256-CBC/PBKDF2 synthetic archive의 실제 S3 `PutObject`→`GetObject` byte count `64`와 SHA-256이 각 실행에서 일치했고, downloaded ciphertext를 valid passphrase로 decrypt한 plaintext도 원본과 일치했다.
+- writer는 `backups/` 아래 `PutObject`만 성공하고 `GetObject`, `DeleteObject`, IAM inline-policy 변경과 bucket-policy 변경이 모두 거부됐다.
+- restore reader는 같은 object의 `GetObject`만 성공하고 `PutObject`와 `DeleteObject`가 거부됐다.
+- enabled lifecycle rule을 다시 읽어 `Filter.Prefix=backups/`, `Expiration.Days=30`인 rule 하나를 확인했다. 다른 prefix를 포함하는 rule은 만들지 않았다.
+- 각 실행은 `cleanup_complete`로 끝났다. S3 console의 전체 general-purpose bucket 목록은 `0`개/“버킷이 없습니다”로 확인했고, cleanup 뒤 matching disposable IAM user count도 CloudShell에서 `0`으로 다시 확인했다. 업로드한 runner를 CloudShell home에서 제거하고 bootstrap inline policy와 이전 `AmazonS3FullAccess` attachment도 operator에서 제거한 뒤 각각 matching count `0`을 확인했다. credential/private identity/local ciphertext artifact는 저장하거나 Git에 추가하지 않았다.
+
+이 transport run은 S3/IAM 경계만 격리하기 위해 ephemeral OpenSSL identity를 썼다. archive recovery semantics는 아래의 별도 `age` new-host run과 연결한다. 즉, transport run이 encrypted bytes의 S3 연속성과 최소 권한을 증명하고, new-host run이 wrong `age` identity 실패 및 valid identity의 PostgreSQL 16 empty-target restore를 증명한다. production archive가 이 두 계약을 함께 만족해야 verified로 승격된다는 경계는 유지된다.
+
+## 이전 download-hook 제한
+
+2026-07-21 Orca browser download hook은 선택된 object를 expected local path에 전달하지 못했다. 위 CloudShell transport 보완으로 downloaded-byte checksum, least-privilege IAM과 lifecycle 공백은 닫혔다.
 
 같은 hook 한계는 temporary self-managed access-key CSV download에도 재현됐다. key secret을 local file·log·문서에 저장하지 않았고, access key를 즉시 비활성화·삭제한 뒤 IAM console의 key count `0`을 확인했다. 따라서 S3 CLI byte-checksum verifier는 실행하지 않았다. owner가 temporary self access-key IAM policy attachment를 제거했고, 새 console session에서 `iam:ListAccessKeys`가 다시 denied인 것으로 제거를 확인했다.
 
@@ -31,7 +45,7 @@ Orca browser download hook은 선택된 object를 expected local path에 전달�
 
 첫 제출들이 read-denied 화면 뒤에서 성공한 사실을 inventory 권한 보완 후 발견해 중복 disposable instance 4대를 즉시 삭제하고 newest 1대만 검증에 사용했다. 이 경험 때문에 console 제출 오류가 보여도 `GetInstances`로 실제 생성 여부를 확인하기 전 재제출하지 않아야 한다.
 
-다음 AWS-bound Spike는 temporary least-privilege writer/reader policy를 사용해 실제 S3 download checksum까지 연결하고 lifecycle prefix scope와 same-run cleanup을 확인해야 한다. 새 host 복구 자체는 증명됐지만 S3에서 받은 object의 byte 연속성은 아직 증명되지 않았다.
+S3 transport와 new-host recovery의 합성 evidence가 모두 확보되어 PLAN-0002 Task 2를 완료한다. production source/credential을 사용하는 Task 3은 별도 owner approval gate다.
 
 ## New-host authorization boundary
 

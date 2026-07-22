@@ -1,6 +1,6 @@
 # PLAN-0002: S3 암호화 PostgreSQL backup과 restore 검증
 
-- Status: In progress — Task 1 complete; Task 2 S3 transport/cleanup partial
+- Status: In progress — Tasks 1~2 complete; Task 3 owner approval gate
 - Date: 2026-07-21
 - Owner: Project owner
 - Related ADRs: [`ADR-0006`](../adr/ADR-0006-supabase-free-postgresql-storage.md), [`ADR-0008`](../adr/ADR-0008-encrypted-postgresql-backup-storage.md), [`ADR-0009`](../adr/ADR-0009-age-recipient-backup-encryption.md)
@@ -68,6 +68,15 @@ Supabase Free PostgreSQL의 logical dump를 24시간마다 S3에 client-side enc
 - 정리: verifier containers와 host temporary script가 남지 않았음을 확인했다. read 권한 부재로 뒤늦게 발견한 중복 instance 4대와 검증 instance 1대를 모두 삭제하고 final Lightsail instance count `0`을 확인했다.
 - 판정: actual new-host recovery evidence는 확보했다. 다만 S3 console download hook 공백, temporary least-privilege writer/reader deny와 lifecycle prefix scope가 남아 있어 Task 2 전체 상태는 **partial**이다.
 
+#### 2026-07-22 S3/IAM transport 완료 결과
+
+- 통과: uniquely named disposable bucket과 tagged writer/reader로 client-side encrypted synthetic object를 실제 upload/download하고 encrypted byte count와 SHA-256 일치 및 valid decrypt 결과를 확인했다.
+- 통과: writer의 prefix-scoped `PutObject`만 허용되고 `GetObject`, `DeleteObject`, IAM/bucket-policy 변경은 거부됐다. reader의 필요한 `GetObject`만 허용되고 `PutObject`, `DeleteObject`는 거부됐다.
+- 통과: lifecycle configuration을 read-back해 enabled `backups/` prefix rule의 expiration이 30일이며 다른 prefix rule이 없음을 확인했다.
+- 연결: transport evidence는 S3 ciphertext 연속성과 IAM 경계를, 앞선 new-host `age` evidence는 wrong identity 실패와 valid identity PostgreSQL 16 empty-target restore를 담당한다. production verified archive는 두 계약을 모두 통과해야 한다.
+- 정리: 각 run에서 access key, inline policy, tagged IAM user, object, bucket과 temporary plaintext/ciphertext/passphrase를 exit trap으로 제거했다. 시작 전 matching bucket/user count `0`, 종료 후 `cleanup_complete`, S3 console general-purpose bucket count `0`, final matching IAM user count `0`을 확인했다. CloudShell runner, bootstrap inline policy와 이전 `AmazonS3FullAccess` attachment도 제거하고 policy matching count가 각각 `0`임을 확인했다. secret은 출력·저장·commit하지 않았다.
+- 판정: no production/Supabase 접근, verifier pass, same-run cleanup 및 8시간 이내 evidence를 모두 충족해 Task 2를 **complete**로 전환한다.
+
 ### Task 3 — Production backup job and first restore rehearsal
 
 - 목적: backup-only DB/S3 credential, owner recovery identity와 scheduler를 production host에 안전하게 주입한다.
@@ -89,4 +98,4 @@ Supabase Free PostgreSQL의 logical dump를 24시간마다 S3에 client-side enc
 
 ## 다음 승인 게이트
 
-Task 2는 disposable AWS resource 생성과 실제 account login이 필요하다. owner가 Orca browser에서 IAM operator로 로그인한 뒤에만 시작하며, S3 writer IAM principal과 disposable bucket을 만들어도 되는지 한 번 확인받는다.
+Task 2 완료. Task 3은 production credential 입력·scheduler/deployment·Supabase logical dump를 포함하므로 별도 owner approval 없이는 시작하지 않는다.

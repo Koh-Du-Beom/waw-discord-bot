@@ -1,10 +1,10 @@
 # 프로젝트 상태
 
-마지막 갱신일: 2026-07-21
+마지막 갱신일: 2026-07-22
 
 ## 현재 단계
 
-PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest verifier 완료, Task 2 S3 transport·cleanup·local/new-host restore partial 완료 및 S3 download·최소권한 IAM·lifecycle 검증 대기
+PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest verifier와 Task 2 disposable S3 encrypted transport·최소권한 IAM·lifecycle·new-host restore 완료; Task 3 production approval gate 대기
 
 ## 완료
 
@@ -117,6 +117,8 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest ve
 - `OPS-005`~`OPS-007` recovery evidence를 위한 Windows/new-host encrypted PostgreSQL restore runbook 작성; S3 download checksum, wrong-identity failure, empty target restore, non-secret verifier와 same-run cleanup 순서를 고정
 - 서울 Lightsail Ubuntu 24.04 disposable new host에서 wrong-identity failure, encrypted archive byte/hash equality, empty PostgreSQL 16 restore, schema version `1`, row count `2`, foreign-key orphan `0`, invariant를 통과; containers/temp script와 tagged instance를 제거하고 final instance count `0` 확인
 - Lightsail console read 권한 부재로 성공한 제출이 오류 화면 뒤에 가려져 생성된 중복 instance 4대를 발견 즉시 삭제; capacity/restore 정책의 목적 tag 분리를 유지하면서 console inventory/browser SSH용 regional read와 global distribution/domain read를 템플릿에 반영
+- PLAN-0002 Task 2 S3/IAM transport 보완에서 uniquely named disposable bucket과 tagged writer/reader로 client-side encrypted object의 실제 upload→download byte count·SHA-256 및 decrypt 비교를 통과; writer Put-only와 read/delete/IAM·bucket-policy 변경 deny, reader Get-only와 put/delete deny, `backups/` 한정 30일 lifecycle read-back을 확인
+- transport 결과를 서울 disposable new-host의 wrong `age` identity failure 및 valid PostgreSQL 16 empty-target restore 결과와 연결; access key·inline policy·IAM user·object·bucket·temporary plaintext/ciphertext/passphrase·CloudShell runner를 same-run 제거하고 bootstrap inline policy와 이전 S3 full-access attachment까지 제거. `cleanup_complete`, matching resource/policy count `0`, S3 console bucket count `0` 확인 후 PLAN-0002 Task 2 완료
 
 ## 진행 중
 
@@ -128,8 +130,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1 archive manifest ve
 
 ## 다음 작업
 
-로컬 foundation Task 1~5와 `ADR-0008`·`ADR-0009`, PLAN-0002 Task 1 및 Task 2의 S3 transport·cleanup 부분을 완료했습니다. 다음은
-temporary least-privilege S3 writer/reader로 실제 object download byte checksum, deny 경계와 lifecycle prefix scope를 확인하는 Task 2 잔여 작업입니다.
+로컬 foundation Task 1~5와 `ADR-0008`·`ADR-0009`, PLAN-0002 Task 1~2를 완료했습니다. 다음은 production credential·Supabase logical dump·scheduler deployment를 포함하는 PLAN-0002 Task 3이며, 별도 owner 승인 전에는 시작하지 않습니다.
 
 ## 차단 요소
 
@@ -146,7 +147,6 @@ temporary least-privilege S3 writer/reader로 실제 object download byte checks
 - 익명 임시 outbound tunnel의 Vercel→자가 host 호출이 function timeout으로 실패했으며 원인이 Vercel egress, tunnel 공급자 경로, 지역 또는 연결 정책 중 어디인지는 분리하지 못함
 - 공유 PostgreSQL request/result도 worker 처리와 별개로 Vercel function timeout이 발생해 고위험 현재 역할 조회의 5초 동기 경계가 아직 없음
 - 계정 고정 managed tunnel도 local 왕복은 성공했지만 Vercel function timeout으로 실패해 공급자 교체만으로 추가 검증할 근거가 낮음
-- S3 upload/delete와 disposable bucket cleanup 및 별도 new-host decrypt/empty PostgreSQL restore는 검증했지만, download hook 한계로 실제 S3 object byte continuity와 backup-only IAM/lifecycle policy 검증은 남아 있음
 
 ## 현재 확정되지 않은 사항
 
