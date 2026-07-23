@@ -1,6 +1,6 @@
 # PLAN-0003: journald 보존·redaction·경보 구현
 
-- Status: In Progress — Task 1 complete; Task 2 owner gate 대기
+- Status: In Progress — Tasks 1~2 complete; Task 3 pending
 - Date: 2026-07-23
 - Related requirements: `FUN-001`~`FUN-002`, `FUN-017`, `PRI-001`~`PRI-003`, `OPS-003`~`OPS-004`, `OWN-004`
 - Related ADRs: [`ADR-0011`](../adr/ADR-0011-systemd-direct-application-deployment.md), [`ADR-0012`](../adr/ADR-0012-caddy-https-ingress.md), [`ADR-0013`](../adr/ADR-0013-systemd-application-credentials.md), [`ADR-0014`](../adr/ADR-0014-journald-retention-redaction-alerting.md)
@@ -75,6 +75,15 @@ Ubuntu 24.04 systemd host에서 operational journal을 30일/1GiB/4GiB-free ceil
 - 완료 기준: 실제 credential·Discord·production 없이 모든 pass marker와 same-run cleanup/final absence가 기록되고, 실패 run도 cleanup trap을 통과한다.
 - 위험: Journald는 active file과 archived file을 다르게 처리하므로 축소 fixture가 production 30일을 시간적으로 증명하지는 않는다.
 - 롤백: Runner cleanup으로 disposable host와 local artifact를 제거한다. Production에는 접속하지 않는다.
+
+#### 2026-07-23 실행 결과
+
+- Root AWS CloudShell에서 서울 disposable Ubuntu 24.04 `micro_3_0` instance와 one-off imported key만 사용했다. systemd 255 effective config, reboot persistence, invalid config readback 실패 후 previous config 복구, 30초 retention과 16MiB capacity fixture가 통과했다.
+- Synthetic web/bot/Caddy/backup emitter의 fixed allowed JSON, source/runtime·cross-service credential read deny, workload의 cross-service/system journal read deny와 journal secret canary 부재를 확인했다.
+- Loopback fake webhook에서 firing/dedupe/6시간 reminder/recovery, 429 `Retry-After`, timeout 2회 제한, 강제 monitor failure와 previous config rollback, 최종 forbidden-field scan을 통과해 `journald_alerting_spike_passed`, `runner_exit=0`을 확인했다.
+- 첫 실행의 root-only request log 검증 권한 오류는 remote/AWS cleanup count가 모두 `0`임을 확인한 뒤 test-only `sudo grep`으로 보정했다. 최종 remote unit/user/file/listener/process/config와 outer instance/key/static IP/disk/two snapshot 유형이 모두 `0`이었다.
+- 별도 final AWS inventory도 여섯 유형 모두 `0`, CloudShell uploaded file과 local `/tmp` artifact도 `0`이었다. 실행 CloudShell environment를 삭제해 `No active tabs`를 확인했다. 실제 Discord, Lightsail alarm, production host/data/credential은 사용하지 않았다.
+- 축소 fixture는 production 30일 경과와 실제 webhook/alarm delivery를 증명하지 않으므로 이 항목들은 Task 3 asset review와 별도 승인된 Task 4 gate에 남긴다. Task 2를 **complete**로 전환한다.
 
 ### Task 3 — production-free deployment assets와 dry run
 

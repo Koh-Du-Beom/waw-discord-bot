@@ -133,6 +133,8 @@ WAW journal namespace는 같은 host에서 접근 등급이나 incident purge �
 
 실제 Discord webhook, production host, DNS, certificate와 firewall은 이 Spike에 사용하거나 변경하지 않는다.
 
+2026-07-23 PLAN-0003 Task 2 실행에서 Ubuntu 24.04 systemd 255의 scaled persistent retention/capacity, reboot persistence, invalid config rollback, source allowlist와 cross-read deny가 통과했다. Loopback fake webhook의 firing/dedupe/6시간 reminder/recovery, 429와 bounded timeout, monitor failure rollback도 통과했고 remote/AWS/local final resource count `0`과 CloudShell environment 삭제를 확인했다. 이는 위 최소 Spike를 완료하지만 production 30일 경과나 실제 Discord/Lightsail alarm delivery를 증명하지 않는다.
+
 ## Owner decision
 
-Owner가 2026-07-23 local persistent journald 30일/1GiB 보존, source allowlist redaction, 별도 Discord webhook과 Lightsail status-check 경보 계약을 승인했다. `ADR-0014`는 Accepted이며 PLAN-0003 Task 1의 local 계약 검증을 시작할 수 있다. Disposable Ubuntu, 실제 webhook, AWS alarm과 production 변경은 각각 남은 gate를 유지한다.
+Owner가 2026-07-23 local persistent journald 30일/1GiB 보존, source allowlist redaction, 별도 Discord webhook과 Lightsail status-check 경보 계약을 승인했다. `ADR-0014`는 Accepted이고 PLAN-0003 Tasks 1~2가 완료됐다. 실제 webhook, AWS alarm과 production 변경은 각각 남은 gate를 유지한다.

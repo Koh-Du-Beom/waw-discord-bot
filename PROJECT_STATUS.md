@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; ADR-0014 Accepted·PLAN-0003 Task 1 완료
+PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; ADR-0014 Accepted·PLAN-0003 Tasks 1~2 완료
 
 ## 완료
 
@@ -142,6 +142,9 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - `ADR-0014`를 Proposed로 작성하고 `PLAN-0003`을 local 계약, disposable Ubuntu Spike, production-free asset, owner-approved rollout의 네 bounded Task로 분리; repository workflow에 따라 ADR 승인 전에는 계획을 실행하지 않음
 - Owner 승인으로 `ADR-0014`를 Accepted 전환; local persistent journald 30일/1GiB, source allowlist redaction, 별도 Discord webhook과 Lightsail status-check 경보 계약을 확정
 - PLAN-0003 Task 1에서 새 dependency 없이 operational field allowlist와 alert evaluator를 구현; synthetic forbidden field/redaction, unit·health debounce/recovery, backup·certificate·journal threshold, suppression, 6시간 reminder와 stale input을 targeted `7/7`, 전체 `37/37` test 및 typecheck로 검증
+- PLAN-0003 Task 2의 서울 disposable Ubuntu 24.04 systemd 255 Spike에서 persistent journald reboot 보존, invalid config rollback, 축소 30초 retention·16MiB capacity, synthetic web/bot/Caddy/backup allowlist와 credential/journal cross-read deny를 통과
+- Loopback fake webhook의 firing/dedupe/6시간 reminder/recovery, 429 `Retry-After`, timeout 2회 제한과 강제 monitor failure rollback을 통과하고 final secret/forbidden-field scan, `journald_alerting_spike_passed`, `runner_exit=0` 확인
+- 첫 harness 실행의 root-only request log 검증 권한 오류도 remote/AWS cleanup 각 6개 항목 `0`을 확인한 뒤 보정; 최종 실행과 별도 inventory에서 instance/key/static IP/disk/two snapshot 유형, CloudShell uploaded file과 local temp artifact를 모두 `0`으로 확인하고 서울 CloudShell environment 삭제 후 `No active tabs` 확인
 
 ## 진행 중
 
@@ -150,11 +153,11 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - 서울 VM capacity 결과·HTTPS 확인·resource cleanup 결과를 D-09 문서와 PROJECT_STATUS에 반영 완료
 - TypeScript·Python 후보의 Gateway·Go Live·자원·시험성·공급망 검증 대기
 - 저장소·배포·통신·인증 기술 선택은 필요한 별도 승인 Spike 증거 전까지 보류
-- PLAN-0003 Task 2 disposable Ubuntu 24.04 journald·local fake webhook Spike의 별도 owner 승인 대기
+- PLAN-0003 Task 3 production-free deployment assets와 dry run 대기
 
 ## 다음 작업
 
-`ADR-0014` 승인과 PLAN-0003 Task 1 local 계약을 완료했습니다. 다음 owner decision prompt는 `PLAN-0003 Task 2를 진행해. 합성값과 local fake webhook만 사용하는 disposable Ubuntu 24.04 journald 보존·redaction·경보 Spike를 실행하고 AWS/local cleanup과 최종 resource absence까지 확인해.` 입니다. 실제 Discord webhook, Lightsail alarm, production host, canonical DNS, public certificate와 firewall은 별도 승인 전 변경하지 않습니다.
+`ADR-0014` 승인과 PLAN-0003 Tasks 1~2를 완료했습니다. 다음 prompt는 `PLAN-0003 Task 3을 진행해. Spike 결과를 production-free journald drop-in, monitor service/timer, alert sender와 운영 runbook으로 구현하고 clean disposable root/host에서 install·verify·rollback dry run을 완료해.` 입니다. 실제 Discord webhook, Lightsail alarm, production host, canonical DNS, public certificate와 firewall은 별도 승인 전 변경하지 않습니다.
 
 ## 차단 요소
 
