@@ -1,6 +1,6 @@
 # PLAN-0003: journald 보존·redaction·경보 구현
 
-- Status: In Progress — Tasks 1~3 complete; Task 4 owner gate pending
+- Status: Complete — Tasks 1~4 complete; first production vacuum remains separately gated
 - Date: 2026-07-23
 - Related requirements: `FUN-001`~`FUN-002`, `FUN-017`, `PRI-001`~`PRI-003`, `OPS-003`~`OPS-004`, `OWN-004`
 - Related ADRs: [`ADR-0011`](../adr/ADR-0011-systemd-direct-application-deployment.md), [`ADR-0012`](../adr/ADR-0012-caddy-https-ingress.md), [`ADR-0013`](../adr/ADR-0013-systemd-application-credentials.md), [`ADR-0014`](../adr/ADR-0014-journald-retention-redaction-alerting.md)
@@ -122,6 +122,15 @@ Ubuntu 24.04 systemd host에서 operational journal을 30일/1GiB/4GiB-free ceil
 - 완료 기준: 실제 firing/recovery가 owner-approved channel에 한 번씩 도달하고, local/host-external 두 경로가 read-back되며, raw forbidden data와 unexpected AWS resource가 없다.
 - 위험: Journald restart/vacuum은 log 손실, 잘못된 unit failure injection은 service 중단, webhook test는 외부 message mutation이다.
 - 롤백: Monitor timer/service disable, webhook revoke, previous journald drop-in restore와 daemon restart. Replacement가 없으면 Lightsail host alarm은 유지한다. Vacuum된 archived log는 복구 불가하므로 vacuum은 마지막 별도 gate다.
+
+#### 2026-07-23 실행 결과
+
+- Owner가 backup-only 범위, `NEW NEO WAWRIOUS`의 `waw-discord-bot` alert channel, `beanleaf3260@gmail.com` recovery contact와 production maintenance window를 승인했다. Preflight에서 Ubuntu 24.04, active/enabled `waw-backup.timer`, 16MiB journal, 36GiB free를 확인했고 web/bot/Caddy와 canonical certificate는 아직 없어서 runtime health와 certificate 관측을 비활성화했다.
+- 공식 SHA-256으로 검증한 Node 24.18.0과 exact repository assets를 설치했다. Journald restart/read-back에서 persistent 30일/1GiB/4GiB-free, daily rotation과 forwarding off를 확인했고 monitor timer/service와 backup timer가 정상 동작했다.
+- 실제 Discord webhook으로 합성 `waw-backup.timer` inactive firing과 active recovery를 전송해 승인 channel에서 fixed metadata-only payload를 확인했다. 잘못 연결되거나 UI/terminal에 노출된 두 webhook은 즉시 삭제했고, 최종 webhook은 terminal echo를 끈 root-only 입력으로 새로 발급·설치했다.
+- Lightsail `StatusCheckFailed` alarm은 threshold `1`, 5분 period, evaluation/datapoints `2/2`, `ALARM`·`OK` email notification과 verified recovery contact로 read-back했다.
+- Monitor/journald/config/source/credential을 제거해 unit 부재와 backup timer 생존을 확인한 뒤 동일 desired state를 재적용했다. Production reboot 후 monitor·backup timer `active/enabled`, journald `active`, monitor exit `0`, journal verify 완료와 host temporary artifact `0`을 확인했다.
+- 최초 production vacuum은 실행하지 않았다. PLAN-0003을 **complete**로 전환하되 vacuum은 계속 별도 owner gate로 남긴다.
 
 ## 실패 처리와 관측
 

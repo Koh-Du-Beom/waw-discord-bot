@@ -17,7 +17,7 @@ const SAFE_TOKEN = /^[A-Za-z0-9._:@/+-]{1,128}$/;
 type MonitorConfig = {
   serviceVersion: string;
   expectedUnits: string[];
-  healthUrl: string;
+  healthUrl: string | null;
   backupMarker: string;
   certificateHost: "waw.dubeom.com" | null;
   journalPath: "/var/log/journal";
@@ -124,7 +124,7 @@ async function observeHost(configPath: string): Promise<MonitoringSnapshot> {
     observedAt: now,
     serviceVersion: config.serviceVersion,
     expectedUnits,
-    runtimeHealth: await runtimeHealth(config.healthUrl),
+    runtimeHealth: config.healthUrl === null ? null : await runtimeHealth(config.healthUrl),
     lastBackupPublishedAt: await backupPublishedAt(config.backupMarker),
     certificateExpiresAt: await certificateExpiry(config.certificateHost),
     journalUsedBytes,
@@ -136,18 +136,25 @@ async function observeHost(configPath: string): Promise<MonitoringSnapshot> {
 
 async function readConfig(path: string): Promise<MonitorConfig> {
   const value = JSON.parse(await readFile(path, "utf8")) as Partial<MonitorConfig>;
-  const health = typeof value.healthUrl === "string" ? new URL(value.healthUrl) : null;
+  const health =
+    typeof value.healthUrl === "string"
+      ? new URL(value.healthUrl)
+      : value.healthUrl === null
+        ? null
+        : undefined;
   if (
     typeof value.serviceVersion !== "string" ||
     !SAFE_TOKEN.test(value.serviceVersion) ||
     !Array.isArray(value.expectedUnits) ||
     value.expectedUnits.length === 0 ||
     !value.expectedUnits.every((unit) => typeof unit === "string" && SAFE_TOKEN.test(unit)) ||
-    health?.protocol !== "http:" ||
-    health.hostname !== "127.0.0.1" ||
-    health.pathname !== "/health" ||
-    health.search !== "" ||
-    health.hash !== "" ||
+    health === undefined ||
+    (health !== null &&
+      (health.protocol !== "http:" ||
+        health.hostname !== "127.0.0.1" ||
+        health.pathname !== "/health" ||
+        health.search !== "" ||
+        health.hash !== "")) ||
     typeof value.backupMarker !== "string" ||
     !value.backupMarker.startsWith("/var/lib/waw-backup/") ||
     (value.certificateHost !== null && value.certificateHost !== "waw.dubeom.com") ||

@@ -1,6 +1,6 @@
 # journald 보존·redaction·경보 runbook
 
-- Status: Ubuntu 24.04/systemd 255 production-free assets verified; production rollout not approved
+- Status: Ubuntu 24.04/systemd 255 production rollout verified; first vacuum not approved
 - Scope: `ADR-0014`, `PLAN-0003` Tasks 3~4
 - Production domain: `https://waw.dubeom.com`
 
@@ -26,6 +26,10 @@ Monitor는 root service로 system unit, backup marker, journal suppression과 fi
 6. Existing Lightsail alarms, firewall와 unexpected public application ports.
 
 실제 webhook 생성, credential 입력, Lightsail alarm 생성, journald restart, failure injection과 vacuum은 이 문서만으로 승인되지 않는다.
+
+### 2026-07-23 production inventory
+
+Owner-approved rollout의 실제 host는 backup-only다. `waw-backup.timer`만 expected unit이며 runtime health와 certificate monitoring은 각각 `null`이다. Web/bot/Caddy unit과 application release는 preflight 시 없었고 canonical DNS/certificate도 아직 준비되지 않았다. 이 범위는 application 배포 뒤 별도 bounded change로 확장한다.
 
 ## Production-free verification
 
@@ -54,6 +58,8 @@ sudo systemctl daemon-reload
 Read-back은 exact `1G`, `4G`, `1day`, `30day`와 네 forwarding `no`를 요구한다. Config/unit path가 이미 있고 asset과 다르면 installer는 `install_target_conflict`로 중단하며 파일을 보존한다. 실제 host의 unit name, health port 또는 marker path가 다르면 template을 먼저 review하고 bounded commit으로 수정한다.
 
 Webhook URL은 owner가 root-only temporary input으로 source file에 설치하고 command line, shell trace와 journal에 출력하지 않는다. Synthetic firing/recovery가 승인된 channel에 각각 한 번 도달한 뒤에만 timer를 enable한다. `certificateHost`는 canonical public certificate가 발급·검증된 뒤 `waw.dubeom.com`으로 바꾼다.
+
+2026-07-23 production 적용에서 `service.waw-backup.timer`의 synthetic critical firing과 resolved recovery가 `NEW NEO WAWRIOUS`의 `waw-discord-bot` channel에 도달했다. Credential은 root-owned mode `0600` source와 systemd runtime alias로만 사용한다. Webhook URL이 UI/terminal에 노출되면 해당 webhook을 즉시 삭제하고 terminal echo를 끈 입력 경로로 새 webhook을 설치한 뒤 endpoint의 channel ID만 read-back한다.
 
 ## Rollback
 

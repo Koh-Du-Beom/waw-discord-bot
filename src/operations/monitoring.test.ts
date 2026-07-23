@@ -109,6 +109,13 @@ test("applies service, backup, certificate, and journal thresholds", () => {
   assert.equal(lowDisk.notifications.find((item) => item.alert_key === "journal.capacity")?.severity, "critical");
 });
 
+test("omits runtime health evaluation when the backup-only host disables it", () => {
+  const result = evaluateMonitoring(snapshot({ runtimeHealth: null }));
+
+  assert.equal("runtime.health" in result.states, false);
+  assert.equal(result.notifications.some((item) => item.alert_key === "runtime.health"), false);
+});
+
 test("debounces degraded health and sends one recovery", () => {
   let states: AlertStates = {};
   for (let minute = 0; minute < 4; minute += 1) {

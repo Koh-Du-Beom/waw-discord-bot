@@ -1,12 +1,9 @@
 {
   "serviceVersion": "0.1.0",
   "expectedUnits": [
-    "waw-web.service",
-    "waw-bot.service",
-    "caddy.service",
     "waw-backup.timer"
   ],
-  "healthUrl": "http://127.0.0.1:18080/health",
+  "healthUrl": null,
   "backupMarker": "/var/lib/waw-backup/last-published.json",
   "certificateHost": null,
   "journalPath": "/var/log/journal"

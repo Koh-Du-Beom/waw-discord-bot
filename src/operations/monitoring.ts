@@ -62,7 +62,7 @@ export type MonitoringSnapshot = {
   observedAt: string;
   serviceVersion: string;
   expectedUnits: Record<string, boolean>;
-  runtimeHealth: HealthStatus;
+  runtimeHealth: HealthStatus | null;
   lastBackupPublishedAt: string | null;
   certificateExpiresAt: string | null;
   journalUsedBytes: number;
@@ -132,7 +132,9 @@ export function evaluateMonitoring(
     }
   }
 
-  observations.push(healthObservation(snapshot.runtimeHealth));
+  if (snapshot.runtimeHealth !== null) {
+    observations.push(healthObservation(snapshot.runtimeHealth));
+  }
   observations.push(ageObservation("backup.age", snapshot.lastBackupPublishedAt, now, 20 * HOUR, 24 * HOUR));
   observations.push(certificateObservation(snapshot.certificateExpiresAt, now));
   observations.push(capacityObservation(snapshot));

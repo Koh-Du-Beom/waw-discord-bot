@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; ADR-0014 Accepted·PLAN-0003 Tasks 1~3 완료; Task 4 owner gate 대기
+PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; ADR-0014 Accepted·PLAN-0003 Tasks 1~4 production rollout 완료; 최초 vacuum 별도 gate 유지
 
 ## 완료
 
@@ -149,6 +149,11 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - Loopback fake webhook에서 file credential, 429 one-retry, no mentions, 1,800-byte ceiling, fixed delivery failure와 state 미승격을 targeted `1/1` 및 typecheck로 검증; 새 dependency와 package-lock 변경 없음
 - Ubuntu 24.04/systemd 255 clean root에서 idempotent install, exact effective config, unit/timer verify, unrelated config 보존, rollback과 conflicting target deny를 통과해 `monitoring_assets_dry_run_passed`, `ubuntu_24_04_monitoring_assets_passed`, `runner_exit=0` 확인
 - 첫 Task 3 disposable 실행의 missing `sysinit.target` test fixture 실패도 AWS 여섯 유형 cleanup `0` 뒤 보정; 최종 별도 inventory, CloudShell/local artifact가 모두 `0`이고 CloudShell environment 삭제 후 `No active tabs` 확인. Production host·실제 webhook·alarm·credential은 변경하지 않음
+- PLAN-0003 Task 4 backup-only production preflight에서 Ubuntu 24.04, active/enabled backup timer, 16MiB journal과 36GiB free를 확인하고 runtime health/certificate를 비활성화한 최소 monitoring config를 확정
+- Node 24.18.0 공식 checksum, asset SHA-256과 systemd verify 후 persistent 30일/1GiB/4GiB-free journald 설정을 restart/read-back하고 monitor timer/service를 활성화
+- 승인된 `waw-discord-bot` channel에서 synthetic backup-timer critical firing과 resolved recovery를 확인; 잘못 연결되거나 노출된 webhook 두 개는 즉시 삭제하고 최종 credential을 no-echo root input과 mode `0600`으로 회전
+- Verified recovery email과 Lightsail `StatusCheckFailed` threshold `1`, 5분 period, evaluation/datapoints `2/2`, `ALARM`·`OK` notification read-back 완료
+- Monitoring asset/credential 제거와 unit 부재·backup 생존을 확인한 rollback rehearsal 뒤 desired state를 재적용하고 production reboot persistence, monitor/backup active+enabled, journald active, monitor exit `0`, host/CloudShell temporary artifact `0` 확인; 최초 vacuum은 실행하지 않음
 
 ## 진행 중
 
@@ -157,11 +162,12 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - 서울 VM capacity 결과·HTTPS 확인·resource cleanup 결과를 D-09 문서와 PROJECT_STATUS에 반영 완료
 - TypeScript·Python 후보의 Gateway·Go Live·자원·시험성·공급망 검증 대기
 - 저장소·배포·통신·인증 기술 선택은 필요한 별도 승인 Spike 증거 전까지 보류
-- PLAN-0003 Task 4의 alert 전용 Discord channel/webhook·Lightsail recovery email contact 승인과 production maintenance window 결정 대기
+- Application web/bot/Caddy와 canonical certificate 배포 뒤 monitor expected unit·health·certificate 범위 확장 대기
+- 최초 production journal vacuum은 oldest/newest UTC와 usage를 재확인한 별도 owner-approved maintenance window 대기
 
 ## 다음 작업
 
-`ADR-0014`와 PLAN-0003 Tasks 1~3을 완료했습니다. 다음 prompt는 `PLAN-0003 Task 4 production rollout을 승인해. alert 전용 Discord channel/webhook과 Lightsail recovery email contact를 준비하고, production preflight·journald restart·synthetic firing/recovery·rollback rehearsal maintenance window를 진행해. 최초 vacuum은 별도 확인 전 실행하지 마.` 입니다. 이 승인은 실제 external message, alarm과 production restart/failure injection을 포함하므로 owner가 channel/contact와 maintenance window를 명시하기 전에는 진행하지 않습니다.
+`ADR-0014`와 PLAN-0003 Tasks 1~4를 완료했습니다. 다음 prompt는 `application production rollout 계획에서 web/bot/Caddy와 canonical certificate가 준비되면 monitoring expected unit·health·certificate 범위를 확장해.` 입니다. 최초 production vacuum은 계속 별도 owner 승인 전 실행하지 않습니다.
 
 ## 차단 요소
 
