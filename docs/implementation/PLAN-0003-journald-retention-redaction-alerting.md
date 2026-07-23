@@ -1,12 +1,12 @@
 # PLAN-0003: journald 보존·redaction·경보 구현
 
-- Status: Draft — `ADR-0014` acceptance 전 실행 금지
+- Status: In Progress — Task 1 complete; Task 2 owner gate 대기
 - Date: 2026-07-23
 - Related requirements: `FUN-001`~`FUN-002`, `FUN-017`, `PRI-001`~`PRI-003`, `OPS-003`~`OPS-004`, `OWN-004`
-- Related ADRs: [`ADR-0011`](../adr/ADR-0011-systemd-direct-application-deployment.md), [`ADR-0012`](../adr/ADR-0012-caddy-https-ingress.md), [`ADR-0013`](../adr/ADR-0013-systemd-application-credentials.md), Proposed [`ADR-0014`](../adr/ADR-0014-journald-retention-redaction-alerting.md)
+- Related ADRs: [`ADR-0011`](../adr/ADR-0011-systemd-direct-application-deployment.md), [`ADR-0012`](../adr/ADR-0012-caddy-https-ingress.md), [`ADR-0013`](../adr/ADR-0013-systemd-application-credentials.md), [`ADR-0014`](../adr/ADR-0014-journald-retention-redaction-alerting.md)
 - Owner: Project owner
 
-이 계획은 사용자가 ADR과 함께 요청해 검토 가능한 Draft로 작성했다. Repository workflow에 따라 Proposed `ADR-0014`가 owner 승인으로 Accepted되기 전에는 어떤 Task도 구현하거나 production에 적용하지 않는다.
+Owner가 2026-07-23 `ADR-0014`를 승인했다. 각 Task와 external mutation gate는 계속 독립적이며 production 적용 권한을 암묵적으로 부여하지 않는다.
 
 ## 목표
 
@@ -53,6 +53,13 @@ Ubuntu 24.04 systemd host에서 operational journal을 30일/1GiB/4GiB-free ceil
 - 완료 기준: Node standard library만으로 deterministic tests가 통과하고 invalid/stale input을 healthy로 승격하지 않으며 prohibited value가 error path를 포함한 output에 없다.
 - 위험: Generic logging abstraction이나 transport interface를 미리 만들면 redaction surface가 커질 수 있다.
 - 롤백: 추가한 local module/test만 제거한다. 기존 runtime behavior와 production은 바뀌지 않는다.
+
+#### 2026-07-23 실행 결과
+
+- `src/operations/monitoring.ts` 하나에 explicit operational field allowlist와 deterministic alert evaluator를 추가했다. 새 dependency, transport, host/API mutation은 없다.
+- Extra Authorization/Cookie/query/body/IP/User-Agent와 synthetic secret은 output에서 제외하고 raw URL·invalid runtime input은 값 반사 없이 거부한다.
+- Unit, health 5회 debounce/2회 recovery, backup 20h/24h, certificate 21d/14d, journal 80%·4/5GiB, suppression, 6시간 reminder와 stale input safe failure를 7개 targeted test로 검증했다.
+- Targeted `7/7`, 전체 `37/37` test와 TypeScript typecheck가 통과해 Task 1을 **complete**로 전환한다.
 
 ### Task 2 — disposable Ubuntu 24.04 journald·delivery Spike
 
@@ -123,5 +130,5 @@ Task 1~3은 production-free다. Task 4에서 config snapshot→drop-in install�
 
 ## 승인
 
-- Owner decision: Pending — `ADR-0014` acceptance 전 실행 금지
-- Approved date: Pending
+- Owner decision: Approved — ADR-0014 Accepted; bounded Task를 gate별로 진행
+- Approved date: 2026-07-23

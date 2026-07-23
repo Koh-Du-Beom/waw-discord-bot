@@ -1,6 +1,6 @@
 # ADR-0014: local journald 보존·redaction과 이중 경보 경계
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-23
 - Owners: Project owner
 - Related requirements: `FUN-001`~`FUN-002`, `FUN-017`, `PRI-001`~`PRI-003`, `OPS-003`~`OPS-004`, `OWN-004`
@@ -129,5 +129,5 @@ Discord webhook을 revoke하고 replacement alert가 확인될 때까지 Lightsa
 
 ## Approval
 
-- Owner decision: Pending
-- Approved date: Pending
+- Owner decision: Approved — local persistent journald 30일/1GiB 보존, source allowlist redaction, 별도 Discord webhook과 Lightsail status-check 경보 계약
+- Approved date: 2026-07-23

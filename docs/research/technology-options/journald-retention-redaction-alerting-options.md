@@ -1,6 +1,6 @@
 # journald 보존·redaction·경보 선택지
 
-- 상태: Research complete — owner decision required
+- 상태: Research complete — owner decision approved
 - 확인일: 2026-07-23
 - 연결 결정: D-11, `ADR-0011`~`ADR-0013`
 - 연결 요구사항: `FUN-001`~`FUN-002`, `FUN-017`, `PRI-001`~`PRI-003`, `OPS-003`~`OPS-004`, `OWN-004`
@@ -135,4 +135,4 @@ WAW journal namespace는 같은 host에서 접근 등급이나 incident purge �
 
 ## Owner decision
 
-`ADR-0014의 local persistent journald 30일/1GiB 보존, source allowlist redaction, 별도 Discord webhook + Lightsail status-check 경보 계약을 검토해. 승인하면 Accepted로 전환하고 PLAN-0003 Task 1부터 진행해.`
+Owner가 2026-07-23 local persistent journald 30일/1GiB 보존, source allowlist redaction, 별도 Discord webhook과 Lightsail status-check 경보 계약을 승인했다. `ADR-0014`는 Accepted이며 PLAN-0003 Task 1의 local 계약 검증을 시작할 수 있다. Disposable Ubuntu, 실제 webhook, AWS alarm과 production 변경은 각각 남은 gate를 유지한다.
