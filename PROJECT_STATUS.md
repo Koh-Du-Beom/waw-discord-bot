@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; ADR-0014 Accepted·PLAN-0003 Tasks 1~4 production rollout 완료; 최초 vacuum 별도 gate 유지
+PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; PLAN-0003 Tasks 1~4 production monitoring rollout 완료; PLAN-0004 Approved·Task 1 local/disposable GREEN 및 production DB read-only preflight 완료·G1 pre-migration archive publish 완료·offline identity empty-target restore 입력 대기; production migration 미실행; 최초 vacuum 별도 gate 유지
 
 ## 완료
 
@@ -154,20 +154,24 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - 승인된 `waw-discord-bot` channel에서 synthetic backup-timer critical firing과 resolved recovery를 확인; 잘못 연결되거나 노출된 webhook 두 개는 즉시 삭제하고 최종 credential을 no-echo root input과 mode `0600`으로 회전
 - Verified recovery email과 Lightsail `StatusCheckFailed` threshold `1`, 5분 period, evaluation/datapoints `2/2`, `ALARM`·`OK` notification read-back 완료
 - Monitoring asset/credential 제거와 unit 부재·backup 생존을 확인한 rollback rehearsal 뒤 desired state를 재적용하고 production reboot persistence, monitor/backup active+enabled, journald active, monitor exit `0`, host/CloudShell temporary artifact `0` 확인; 최초 vacuum은 실행하지 않음
+- Accepted ADR-0006·0007·0010~0014와 완료 PLAN-0001~0003을 실제 저장소와 대조하고, contract-only 구현과 미구현 Supabase adapter·OAuth/Fastify route·React/Gateway/runtime·production deployment 경계를 명시한 `PLAN-0004` Draft 작성
+- PLAN-0004를 Supabase persistence, OAuth authorization, dashboard vertical slice, Gateway runtime, disposable systemd integration, owner-approved Lightsail rollout, canonical DNS/HTTPS/monitoring 확장의 7개 bounded Task와 독립 credential gate로 분리
+- PLAN-0004 owner 승인 뒤 Task 1 RED에서 PostgreSQL adapter 부재를 확인하고 exact `pg@8.22.0`·`@types/pg@8.20.0`, transactional migration runner, RLS/grant migration, 최소 persistence adapter와 systemd file-credential loader 구현
+- Disposable PostgreSQL 17.10에서 migration/reapply/rollback, FK·RLS와 web/bot deny, session/OAuth/5분 cache, 16-way dedupe·audit rollback, DB size snapshot·failure redaction integration 계약 통과; production Supabase/credential 미사용
 
 ## 진행 중
 
 - 예상 사용량과 고정비가 미확정인 항목의 복수 시나리오 유지
 - D-09 세 region의 공개 latency·plan 재고, 1GB 자원과 VM·GPT·domain·backup 총비용 검증 대기
 - 서울 VM capacity 결과·HTTPS 확인·resource cleanup 결과를 D-09 문서와 PROJECT_STATUS에 반영 완료
-- TypeScript·Python 후보의 Gateway·Go Live·자원·시험성·공급망 검증 대기
-- 저장소·배포·통신·인증 기술 선택은 필요한 별도 승인 Spike 증거 전까지 보류
+- 선택된 TypeScript·Node.js·discord.js product runtime의 실제 Gateway·Go Live·자원·시험성·공급망 검증 대기
+- Accepted 저장소 구조의 local PostgreSQL adapter는 구현됨; G1 production Supabase migration과 뒤 OAuth/배포 통합은 별도 승인 대기
 - Application web/bot/Caddy와 canonical certificate 배포 뒤 monitor expected unit·health·certificate 범위 확장 대기
 - 최초 production journal vacuum은 oldest/newest UTC와 usage를 재확인한 별도 owner-approved maintenance window 대기
 
 ## 다음 작업
 
-`ADR-0014`와 PLAN-0003 Tasks 1~4를 완료했습니다. 다음 prompt는 `application production rollout 계획에서 web/bot/Caddy와 canonical certificate가 준비되면 monitoring expected unit·health·certificate 범위를 확장해.` 입니다. 최초 production vacuum은 계속 별도 owner 승인 전 실행하지 않습니다.
+Repository 밖의 임시 local 경로에 passphrase-protected owner `age` identity를 준비하고 경로만 제공합니다. Identity 내용과 passphrase는 chat·Git·runtime·S3에 두지 않습니다. Exact-object download, wrong-identity failure와 disposable PostgreSQL 17 restore가 통과한 뒤에만 이미 승인된 G1 production baseline adoption과 `0002` migration을 재개합니다. 최초 production vacuum은 계속 별도 owner 승인 전 실행하지 않습니다.
 
 ## 차단 요소
 
@@ -187,17 +191,13 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 
 ## 현재 확정되지 않은 사항
 
-- 언어와 런타임
-- Discord SDK
-- 대시보드 프레임워크
-- 데이터 저장소
-- 봇 실행 환경
-- 단일 지속 server의 임대·소유 host 및 운영체제
 - Riot 및 KBO 데이터 공급 방식
 - 요약 모델 공급자
-- 백업과 모니터링 도구
-- 같은 host의 web·bot process/module 분리와 secret 권한 방식
-- 선택 host에서 D-04 후보별 bot+최소 web의 idle/peak memory와 event-loop pause
+- 실제 product dependency exact version과 lockfile audit 결과
+- Supabase workload role·RLS·connection mode의 production 최소 권한
+- Discord OAuth PKCE 실제 지원 범위와 고정 production redirect 검증
+- 같은 host의 실제 web·bot local role-query 구현과 production credential read deny
+- 선택 host에서 실제 product bot+web+Caddy의 idle/peak memory와 event-loop pause
 - 실제 Gateway 단절·Resume, Go Live reconciliation과 배포 중 단일 bot 실행 검증
 - 저가 VM의 1GB급 bot+web 자원 여유와 VM·backup·domain·GPT 원화 총액
 - KBO 기능 재개 시 30분 지연 측정 시작점
