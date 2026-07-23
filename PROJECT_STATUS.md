@@ -1,6 +1,6 @@
 # 프로젝트 상태
 
-마지막 갱신일: 2026-07-22
+마지막 갱신일: 2026-07-23
 
 ## 현재 단계
 
@@ -136,6 +136,8 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - Credential-free Caddy 2.11.4 local CA Spike에서 config validation/invalid deny, HTTP `308`, HTTPS proxy·forwarded header, wrong-host deny, Authorization/Cookie/OAuth query log redaction과 same-PID reload를 통과하고 RSS `52,572 KiB` 측정; container/listener/temp CA·config·log/image 최종 부재 확인
 - D-11 application secret 주입에서 systemd credential, EnvironmentFile과 AWS Parameter Store/Secrets Manager를 공식 자료로 비교; Lightsail service role 부재로 AWS bootstrap credential을 추가하지 않고 root-owned source + `LoadCredential=`를 잠정 추천해 `ADR-0013`을 Proposed로 작성
 - Owner 승인으로 `ADR-0013`을 Accepted 전환하고 synthetic-only disposable Ubuntu 24.04 credential 격리·rotation·rollback runner를 작성·정적 검증; CloudShell launch 권한 부족을 instance 생성 전에 확인해 최소 임시 managed policy JSON을 저장소 루트에 Git 비추적 상태로 준비
+- Owner 지시에 따른 root CloudShell의 서울 disposable Ubuntu 24.04 systemd credential Spike에서 source/runtime·cross-service 격리, process/environment/journal 부재, stop cleanup, atomic rotation, failed rotation rollback과 singleton 복구를 통과; 검증 runner의 sudo redirection·root-only compare 결함과 singleton lock race를 보정하고 최종 `runner_exit=0` 확인
+- Matching Lightsail instance·key pair·static IP·disk·snapshot, CloudShell runner/result와 local transfer artifact를 모두 `0`으로 확인; eu-north-1/us-east-1 CloudShell environment와 임시 customer-managed IAM policy를 삭제하고 exact policy 검색 `0`건 및 `temporary-cloudshell-policy.json` 부재 확인. 최종 root 실행으로 `waw-spike-operator` CloudShell 경계는 미검증
 
 ## 진행 중
 
@@ -147,7 +149,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 
 ## 다음 작업
 
-로컬 foundation Task 1~5, PLAN-0002 Task 1~3, `ADR-0010`~`ADR-0013`, systemd application deployment와 credential-free Caddy ingress Spike를 완료했습니다. 다음은 `temporary-cloudshell-policy.json`을 별도 customer-managed policy로 `waw-spike-operator`에 연결한 뒤 synthetic credential systemd Spike를 실행하는 작업입니다. Instance는 아직 생성하지 않았습니다. 실행·정리 뒤 임시 정책 파일을 삭제하고 journald 보존·경보를 별도 결정으로 연구합니다. Canonical DNS, public certificate와 production firewall 변경은 별도 owner 승인 전 실행하지 않습니다.
+로컬 foundation Task 1~5, PLAN-0002 Task 1~3, `ADR-0010`~`ADR-0013`, systemd application deployment·credential, credential-free Caddy ingress Spike를 완료했습니다. 다음은 journald 보존·경보를 별도 결정으로 연구하고 Accepted deployment/ingress/credential ADR을 bounded implementation plan으로 연결하는 작업입니다. Canonical DNS, public certificate와 production firewall 변경은 별도 owner 승인 전 실행하지 않습니다.
 
 ## 차단 요소
 

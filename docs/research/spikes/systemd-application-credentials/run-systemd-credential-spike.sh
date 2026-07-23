@@ -180,10 +180,10 @@ echo source_and_runtime_isolation_passed
 web_pid="$(systemctl show waw-web-credential-spike.service -p MainPID --value)"
 bot_pid="$(systemctl show waw-bot-credential-spike.service -p MainPID --value)"
 for value in "$web_old" "$web_new" "$bot_good" "$bot_bad"; do
-  ! sudo tr '\0' '\n' </proc/"$web_pid"/environ | grep -Fq -- "$value"
-  ! sudo tr '\0' '\n' </proc/"$bot_pid"/environ | grep -Fq -- "$value"
-  ! sudo tr '\0' ' ' </proc/"$web_pid"/cmdline | grep -Fq -- "$value"
-  ! sudo tr '\0' ' ' </proc/"$bot_pid"/cmdline | grep -Fq -- "$value"
+  ! sudo cat /proc/"$web_pid"/environ | tr '\0' '\n' | grep -Fq -- "$value"
+  ! sudo cat /proc/"$bot_pid"/environ | tr '\0' '\n' | grep -Fq -- "$value"
+  ! sudo cat /proc/"$web_pid"/cmdline | tr '\0' ' ' | grep -Fq -- "$value"
+  ! sudo cat /proc/"$bot_pid"/cmdline | tr '\0' ' ' | grep -Fq -- "$value"
   ! sudo journalctl -u waw-web-credential-spike.service -u waw-bot-credential-spike.service --no-pager | grep -Fq -- "$value"
 done
 echo process_and_journal_absence_passed
@@ -207,8 +207,8 @@ sudo mv /opt/waw-credential-fixture/web-allowed.next /opt/waw-credential-fixture
 sudo mv /etc/waw-credentials/web.next /etc/waw-credentials/web
 sudo systemctl restart waw-web-credential-spike.service
 systemctl is-active --quiet waw-web-credential-spike.service
-cmp --silent /etc/waw-credentials/web /opt/waw-credential-fixture/web-allowed
-! cmp --silent /etc/waw-credentials/web.previous /opt/waw-credential-fixture/web-allowed
+sudo cmp --silent /etc/waw-credentials/web /opt/waw-credential-fixture/web-allowed
+! sudo cmp --silent /etc/waw-credentials/web.previous /opt/waw-credential-fixture/web-allowed
 web_pid_after="$(systemctl show waw-web-credential-spike.service -p MainPID --value)"
 [[ "$web_pid_after" != "$web_pid_before" ]]
 [[ "$(systemctl show waw-bot-credential-spike.service -p MainPID --value)" == "$bot_pid_before" ]]
@@ -233,13 +233,24 @@ sudo systemctl start waw-bot-credential-spike.service
 systemctl is-active --quiet waw-bot-credential-spike.service
 echo failed_rotation_rollback_passed
 
+bot_pid_after_rollback="$(systemctl show waw-bot-credential-spike.service -p MainPID --value)"
+lock_held=0
+for _ in $(seq 1 50); do
+  if ! sudo -u waw-bot flock -n /run/waw-bot/singleton true; then
+    lock_held=1
+    break
+  fi
+  sleep 0.1
+done
+[[ "$lock_held" == 1 ]]
 set +e
 sudo -u waw-bot env CREDENTIALS_DIRECTORY=/run/credentials/waw-bot-credential-spike.service \
   /opt/waw-credential-fixture/service.sh duplicate unused unused
 duplicate_status=$?
 set -e
 [[ "$duplicate_status" == 73 ]]
-[[ "$(pgrep -u waw-bot -f '/opt/waw-credential-fixture/service.sh bot bot-token' | wc -l)" == 1 ]]
+systemctl is-active --quiet waw-bot-credential-spike.service
+[[ "$(systemctl show waw-bot-credential-spike.service -p MainPID --value)" == "$bot_pid_after_rollback" ]]
 echo singleton_after_rollback_passed
 
 for value in "$web_old" "$web_new" "$bot_good" "$bot_bad"; do
