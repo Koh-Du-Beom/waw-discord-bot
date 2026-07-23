@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료
+PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; ADR-0014 Proposed·PLAN-0003 Draft
 
 ## 완료
 
@@ -138,6 +138,8 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - Owner 승인으로 `ADR-0013`을 Accepted 전환하고 synthetic-only disposable Ubuntu 24.04 credential 격리·rotation·rollback runner를 작성·정적 검증; CloudShell launch 권한 부족을 instance 생성 전에 확인해 최소 임시 managed policy JSON을 저장소 루트에 Git 비추적 상태로 준비
 - Owner 지시에 따른 root CloudShell의 서울 disposable Ubuntu 24.04 systemd credential Spike에서 source/runtime·cross-service 격리, process/environment/journal 부재, stop cleanup, atomic rotation, failed rotation rollback과 singleton 복구를 통과; 검증 runner의 sudo redirection·root-only compare 결함과 singleton lock race를 보정하고 최종 `runner_exit=0` 확인
 - Matching Lightsail instance·key pair·static IP·disk·snapshot, CloudShell runner/result와 local transfer artifact를 모두 `0`으로 확인; eu-north-1/us-east-1 CloudShell environment와 임시 customer-managed IAM policy를 삭제하고 exact policy 검색 `0`건 및 `temporary-cloudshell-policy.json` 부재 확인. 최종 root 실행으로 `waw-spike-operator` CloudShell 경계는 미검증
+- D-11 journald 보존·redaction·경보에서 local persistent journal, WAW namespace와 CloudWatch/remote 수집을 Ubuntu/systemd·AWS·Fastify·Caddy·Discord 공식 자료로 비교; 운영 로그 30일/1GiB/4GiB-free, source allowlist redaction, 별도 Discord webhook과 Lightsail status-check email 조합을 잠정 추천
+- `ADR-0014`를 Proposed로 작성하고 `PLAN-0003`을 local 계약, disposable Ubuntu Spike, production-free asset, owner-approved rollout의 네 bounded Task로 분리; repository workflow에 따라 ADR 승인 전에는 계획을 실행하지 않음
 
 ## 진행 중
 
@@ -146,10 +148,11 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - 서울 VM capacity 결과·HTTPS 확인·resource cleanup 결과를 D-09 문서와 PROJECT_STATUS에 반영 완료
 - TypeScript·Python 후보의 Gateway·Go Live·자원·시험성·공급망 검증 대기
 - 저장소·배포·통신·인증 기술 선택은 필요한 별도 승인 Spike 증거 전까지 보류
+- `ADR-0014` owner 승인과 PLAN-0003 Task 1 실행 여부 대기
 
 ## 다음 작업
 
-로컬 foundation Task 1~5, PLAN-0002 Task 1~3, `ADR-0010`~`ADR-0013`, systemd application deployment·credential, credential-free Caddy ingress Spike를 완료했습니다. 다음은 journald 보존·경보를 별도 결정으로 연구하고 Accepted deployment/ingress/credential ADR을 bounded implementation plan으로 연결하는 작업입니다. Canonical DNS, public certificate와 production firewall 변경은 별도 owner 승인 전 실행하지 않습니다.
+Journald 연구, Proposed `ADR-0014`와 승인 전 실행 금지인 `PLAN-0003` Draft를 작성했습니다. 다음 owner decision prompt는 `ADR-0014의 local persistent journald 30일/1GiB 보존, source allowlist redaction, 별도 Discord webhook + Lightsail status-check 경보 계약을 검토해. 승인하면 Accepted로 전환하고 PLAN-0003 Task 1부터 진행해.` 입니다. Canonical DNS, public certificate, production firewall, 실제 webhook과 AWS alarm은 별도 owner 승인 전 변경하지 않습니다.
 
 ## 차단 요소
 
