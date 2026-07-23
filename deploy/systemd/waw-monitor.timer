@@ -1,0 +1,11 @@
+[Unit]
+Description=Evaluate WAW local health every minute
+
+[Timer]
+OnCalendar=*-*-* *:*:00 UTC
+Persistent=true
+RandomizedDelaySec=5s
+Unit=waw-monitor.service
+
+[Install]
+WantedBy=timers.target

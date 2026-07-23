@@ -1,6 +1,6 @@
 # PLAN-0003: journald 보존·redaction·경보 구현
 
-- Status: In Progress — Tasks 1~2 complete; Task 3 pending
+- Status: In Progress — Tasks 1~3 complete; Task 4 owner gate pending
 - Date: 2026-07-23
 - Related requirements: `FUN-001`~`FUN-002`, `FUN-017`, `PRI-001`~`PRI-003`, `OPS-003`~`OPS-004`, `OWN-004`
 - Related ADRs: [`ADR-0011`](../adr/ADR-0011-systemd-direct-application-deployment.md), [`ADR-0012`](../adr/ADR-0012-caddy-https-ingress.md), [`ADR-0013`](../adr/ADR-0013-systemd-application-credentials.md), [`ADR-0014`](../adr/ADR-0014-journald-retention-redaction-alerting.md)
@@ -98,6 +98,15 @@ Ubuntu 24.04 systemd host에서 operational journal을 30일/1GiB/4GiB-free ceil
 - 완료 기준: Clean disposable root/host에서 install→verify→rollback이 재현되고 production change 없이 operator checklist와 destructive vacuum gate가 문서화된다.
 - 위험: Production unit name, backup marker path와 Caddy state가 template 가정과 다를 수 있다.
 - 롤백: Generated config/unit/runbook을 revert한다. Host/API mutation은 없다.
+
+#### 2026-07-23 실행 결과
+
+- Exact journald drop-in, root monitor service/timer, non-secret config, reversible default-deny installer와 operations runbook을 추가했다. Monitor sender는 Task 1 evaluator를 그대로 호출하고 webhook은 `LoadCredential=` runtime file에서만 읽는다.
+- Loopback fake webhook 통합 test에서 file credential, 429 one-retry, no mentions, 1,800-byte payload ceiling, fixed failure output과 delivery 실패 시 state 미승격을 `1/1`로 검증했다. 새 dependency와 package-lock 변경은 없다.
+- Ubuntu 24.04/systemd 255 clean root에서 installer 두 번 실행, exact production-sized `cat-config`, service/timer verify, unrelated drop-in 보존, rollback과 conflicting target default-deny를 통과해 `monitoring_assets_dry_run_passed`, `ubuntu_24_04_monitoring_assets_passed`, `runner_exit=0`을 확인했다.
+- Local Docker daemon을 사용할 수 없어 container 검증은 mutation 없이 중단했다. 첫 disposable host 실행은 clean-root fixture에 `sysinit.target`이 없어 verify 단계에서 실패했으며 AWS 여섯 resource 유형 cleanup `0`을 확인한 뒤 test fixture만 보정했다.
+- 최종 실행과 별도 inventory에서 matching instance/key/static IP/disk/instance snapshot/disk snapshot이 모두 `0`, CloudShell와 local temporary artifact가 `0`이었다. 실행 CloudShell environment도 삭제해 `No active tabs`를 확인했다. Production host, 실제 Discord webhook/channel, Lightsail alarm과 credential은 변경하지 않았다.
+- Production 실제 unit/health/marker inventory, alert channel/email contact, journald restart와 synthetic failure/rollback rehearsal은 owner 결정을 요구하므로 Task 4 gate에 남기고 Task 3을 **complete**로 전환한다.
 
 ### Task 4 — owner-approved production rollout
 
