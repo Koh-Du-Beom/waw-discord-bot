@@ -6,16 +6,23 @@ import {
   type LowRiskSettingsDto,
   type SessionDto,
   type UpdateLowRiskSettingsRequestDto,
+  type UpdateLowRiskSettingsResponseDto,
 } from "../src/contracts/dashboard.ts";
 import type { DashboardApi } from "./app.tsx";
 
 type ApiFailure = Error & { code?: string; correlationId?: string };
+let csrfToken: string | undefined;
 
 export const browserApi: DashboardApi = {
   async getSession() {
     const response = await fetch(DASHBOARD_API_PATHS.session, requestInit());
-    if (response.status === 401) return null;
-    return readJson<SessionDto>(response);
+    if (response.status === 401) {
+      csrfToken = undefined;
+      return null;
+    }
+    const session = await readJson<SessionDto>(response);
+    csrfToken = session.csrfToken;
+    return session;
   },
   async getOverview() {
     return readJson<DashboardOverviewDto>(
@@ -27,12 +34,27 @@ export const browserApi: DashboardApi = {
       await fetch(DASHBOARD_API_PATHS.settings, requestInit()),
     );
   },
-  async updateSettings(_request: UpdateLowRiskSettingsRequestDto) {
-    const failure: ApiFailure = new Error(
-      "CSRF 계약이 통합될 때까지 설정 변경을 사용할 수 없습니다.",
+  async updateSettings(request: UpdateLowRiskSettingsRequestDto) {
+    if (csrfToken === undefined) {
+      const failure: ApiFailure = new Error(
+        "설정 변경 전에 세션을 다시 확인해야 합니다.",
+      );
+      failure.code = "unauthenticated";
+      throw failure;
+    }
+    const response = await readJson<UpdateLowRiskSettingsResponseDto>(
+      await fetch(DASHBOARD_API_PATHS.settings, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
+        body: JSON.stringify(request),
+      }),
     );
-    failure.code = "unavailable";
-    throw failure;
+    return response.settings;
   },
   async getAudit() {
     return readJson<AuditEventsDto>(await fetch(DASHBOARD_API_PATHS.audit, requestInit()));

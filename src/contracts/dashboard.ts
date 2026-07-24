@@ -24,6 +24,7 @@ export type SessionDto = {
     displayName: string;
     tier: AuthorizationTier;
   };
+  csrfToken: string;
 };
 
 export type ComponentHealthDto = {
@@ -67,6 +68,11 @@ export type AuditEventDto = {
 
 export type AuditEventsDto = {
   events: AuditEventDto[];
+};
+
+export type UpdateLowRiskSettingsResponseDto = {
+  settings: LowRiskSettingsDto;
+  auditEvent: AuditEventDto;
 };
 
 export const DASHBOARD_API_PATHS = {
