@@ -12,8 +12,8 @@
     "build:web": "vite build",
     "start:web": "node dist/server/web/main.js",
     "start:bot": "node dist/server/bot/main.js",
-    "test": "node --test \"src/**/*.test.ts\" && tsx --test --test-isolation=none \"web/**/*.test.ts\" \"web/**/*.test.tsx\"",
-    "test:browser": "tsx --test --test-isolation=none web/browser-accessibility.check.ts",
+    "test": "node scripts/run-tests.mjs",
+    "test:browser": "tsx --test web/browser-accessibility.check.ts",
     "typecheck": "tsc --noEmit && tsc -p web/tsconfig.json --noEmit"
   },
   "devDependencies": {

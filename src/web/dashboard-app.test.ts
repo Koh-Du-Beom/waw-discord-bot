@@ -208,8 +208,8 @@ function createFixture() {
             id: "audit-synthetic-1",
             occurredAt: now.toISOString(),
             actorId: input.actorId,
-            action: "settings.summary.update",
-            outcome: "success",
+            action: "settings.summary.update" as const,
+            outcome: "success" as const,
             reasonCode: "updated",
           },
         }, {

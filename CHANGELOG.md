@@ -17,6 +17,8 @@
 - Transactional PostgreSQL migration runner, workload RLS/grants, session·OAuth·role-cache·operation/audit persistence adapter와 systemd database credential loader
 - Production legacy version 1 fingerprint adoption과 forward `0002` application persistence migration
 - PLAN-0004의 production 중단점, offline identity handoff와 단일 재개 프롬프트
+- Strict Fastify dashboard API, accessible React dashboard states, fake
+  Gateway lifecycle, singleton lease와 discord.js signal adapter
 
 ### Changed
 
@@ -26,6 +28,7 @@
 - `PLAN-0004`를 승인하고 Task 1 local/disposable PostgreSQL RED→GREEN을 완료하되 G1 production migration은 별도 owner gate로 유지
 - Production read-only preflight에서 legacy version 1 schema를 확인하고 migration을 baseline `0001` + forward `0002`로 교정
 - Owner-approved G1에서 새 encrypted pre-migration archive를 publish하고, offline owner identity가 필요한 empty-target restore 전 migration을 정지
+- Dashboard API, UI와 bot runtime 병렬 결과를 단일 local integration으로 통합
 
 ### Fixed
 

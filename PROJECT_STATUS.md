@@ -167,6 +167,12 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
   `last_oauth_completed_at >= created_at` 하한을 제거하고
   `last_oauth_completed_at <= last_seen_at`는 유지; candidate SHA-256
   `7c807c9113524103eed0314565ac6263facc49098e1d0c5eedf13038ddb97a5f`
+- PLAN-0004 Task 3/4 local 구현을 통합해 strict Fastify dashboard API,
+  React 접근성 상태 UI, CSRF-bound mutation, fake Gateway lifecycle,
+  singleton lease, discord.js signal adapter와 loopback web entrypoint를 추가
+- Windows shell glob에 의존하지 않는 TypeScript test discovery runner를 추가;
+  non-PostgreSQL test `123/124` 통과, 기존 monitor delivery test 1건은 Node
+  20 환경에서 실패했고 PostgreSQL integration은 Windows toolchain 부재로 미실행
 
 ## 진행 중
 
@@ -184,8 +190,9 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 
 ## 다음 작업
 
-Task 3 synthetic Fastify/React vertical slice를 검토한다. Actual OAuth G2,
-bot-side member lookup G3, production migration `0003`, 뒤 application production
+Task 3/4 통합 결과를 요구 Node 24와 disposable PostgreSQL에서 재검증하고
+Task 5 production-like systemd integration을 진행한다. Actual OAuth G2,
+bot-side member lookup G3, production migration `0003`, application production
 배포와 최초 production vacuum은 각각 별도 gate를 유지한다.
 
 ## 차단 요소
