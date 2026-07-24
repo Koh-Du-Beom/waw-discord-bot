@@ -6,6 +6,29 @@ import { join } from "node:path";
 import { spawn } from "node:child_process";
 import test from "node:test";
 
+import { journalSuppressionCount } from "./run-monitor.ts";
+
+test("treats journalctl no-match as clear and other failures as invalid", () => {
+  assert.equal(journalSuppressionCount(() => ""), 0);
+  assert.equal(journalSuppressionCount(() => "Suppressed 1 messages\nSuppressed 2 messages\n"), 2);
+  assert.equal(
+    journalSuppressionCount(() => {
+      throw Object.assign(new Error("no matches"), { status: 1, stdout: "", stderr: "" });
+    }),
+    0,
+  );
+  assert.equal(
+    journalSuppressionCount(() => {
+      throw Object.assign(new Error("permission denied"), {
+        status: 1,
+        stdout: "",
+        stderr: "permission denied\n",
+      });
+    }),
+    -1,
+  );
+});
+
 test("reads a file credential, retries 429 once, and preserves state on delivery failure", async () => {
   const root = await mkdtemp(join(tmpdir(), "waw-monitor-test."));
   const credentialDirectory = join(root, "credentials");

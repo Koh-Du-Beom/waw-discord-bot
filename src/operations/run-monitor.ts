@@ -228,15 +228,22 @@ function journalBytes(path: string): number {
   }
 }
 
-function journalSuppressionCount(): number {
-  try {
-    const output = execFileSync(
+type JournalctlRunner = () => string;
+
+export function journalSuppressionCount(
+  run: JournalctlRunner = () =>
+    execFileSync(
       "journalctl",
       ["--quiet", "--since=-2min", "--grep=Suppressed [0-9]+ messages", "--output=cat", "--no-pager"],
       { encoding: "utf8", timeout: 3_000 },
-    );
+    ),
+): number {
+  try {
+    const output = run();
     return Math.min(2, output.split("\n").filter(Boolean).length);
-  } catch {
+  } catch (error) {
+    const failure = error as { status?: unknown; stdout?: unknown; stderr?: unknown };
+    if (failure.status === 1 && failure.stdout === "" && failure.stderr === "") return 0;
     return -1;
   }
 }

@@ -1,6 +1,6 @@
 # Application persistence migration runbook
 
-- Status: Task 1 local/disposable contract verified; G1 approved and pre-migration archive published; offline-identity restore pending; production migration not started
+- Status: Task 1 local/disposable contract and G1 production migration verified; Task 2 not started
 - Scope: `PLAN-0004` Task 1, `ADR-0006`, `ADR-0007`, `ADR-0013`
 - Production domain: `https://waw.dubeom.com`
 
@@ -64,12 +64,17 @@ PLAN-0004 approval and Task 1 local completion do not approve G1.
 
 No schema, row, credential, backup, timer, journald, monitoring or AWS resource was intentionally changed. No backup was created and no journald vacuum was run. The current publication is fresh enough for preflight, but G1 still requires a new migration-compatible encrypted archive plus empty-target verification after owner approval.
 
-## 2026-07-23 G1 execution
+## 2026-07-23~24 G1 execution
 
 - Owner approved the exact `0001` and `0002` hashes and production execution.
 - A new pre-migration archive completed at `2026-07-23T06:22:56Z`: status `published`, schema version 1, expected row count 0, encrypted bytes 7,084, invariant `constraints_valid`, and backup service result `success`.
-- Migration has not started. The required passphrase-protected owner recovery identity is correctly absent from Git, the runtime host, S3 and searchable local paths. Exact-object download, wrong-identity rejection and valid-identity empty-target restore therefore remain pending.
-- Do not adopt the production baseline or apply `0002` until the owner makes the offline identity available through an ephemeral local file path and enters its passphrase through the secure `age` prompt.
+- The exact archive and manifest alone were downloaded through a temporary Get-only IAM user. Other-object Get, Put and Delete were denied; SHA-256 and 7,084-byte size matched the manifest.
+- Wrong identity rejection and valid offline identity restore to disposable PostgreSQL 17 passed with schema version 1, row count 0 and invalid constraint count 0.
+- The temporary IAM user/key/policy, downloaded archive/manifest, decrypted dump, ephemeral SSH material and restore container were removed.
+- Production exact legacy v1 fingerprint matched. Baseline ledger adoption and exact `0002` ran in one transaction; versions `[1,2]` and both approved checksums read back correctly.
+- Five workload tables had RLS enabled, six expected policies existed, `waw_web`/`waw_bot` remained non-login least-privilege roles, PUBLIC access remained denied, row count was 0 and invalid constraint count was 0.
+- Backup/monitor timers and journald remained active, timers enabled, service results successful and the Lightsail alarm `OK`. No vacuum or original-project restore ran.
+- The independent `journal.dropped` false critical was caused by treating `journalctl --grep` no-match exit `1` as invalid despite zero suppression lines. The bounded production fix accepts only exit `1` with empty stdout/stderr as zero and leaves other failures invalid. Ten clear observations produced a resolved notification; monitoring, backup, journald and the alarm remained healthy.
 
 ## Future production execution
 

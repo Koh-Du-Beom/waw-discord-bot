@@ -72,6 +72,48 @@ sudo systemctl daemon-reload
 
 Installer asset과 exact match하지 않는 operator-modified target은 `rollback_target_changed`로 남긴다. Webhook source와 `/var/lib/waw-monitor/state.json` 제거, provider-side webhook revoke는 Task 4 rollback checklist에서 별도로 확인한다. Journald drop-in을 적용해 daemon을 restart했다면 pre-change copy를 복구하고 effective config를 다시 읽는다.
 
+## `journal.dropped` false-critical hotfix
+
+The production source currently has SHA-256
+`abb861d0fe5b5a5be5ad38e599b9afeb19d9be327d524de53b0a3f7af725d44d`.
+The reviewed local fix has SHA-256
+`b3eb58186142b462c89f5d849edd5490e4871e1619eccf3a4613e15a3c29e3dc`.
+Owner-approved production deployment completed on 2026-07-24.
+
+The bounded deployment changes only
+`/opt/waw/current/src/operations/run-monitor.ts`. It must not run the monitoring
+asset installer, restart journald, alter retention, touch the webhook credential,
+reset `/var/lib/waw-monitor/state.json`, or run a vacuum.
+
+After owner approval:
+
+1. Reconfirm the source hash, monitor/backup service results, active/enabled timers,
+   journald state and Lightsail alarm.
+2. Transfer only the reviewed source to a root-only temporary path and verify the
+   fixed hash on the host.
+3. Stop `waw-monitor.timer`, wait until `waw-monitor.service` is inactive, preserve
+   the old exact-hash source as the rollback copy, and atomically rename the staged
+   file into place with owner `root:root` and mode `0644`.
+4. Run one `waw-monitor.service` invocation, require exit status `0`, then start the
+   timer and read back active/enabled plus the installed hash. Keep the existing
+   alert state so ten clear observations produce one resolved notification.
+5. Confirm backup service/timer, journald and the Lightsail alarm remain unchanged.
+   Remove transfer keys, staged files and the rollback copy only after the
+   observation window and owner acceptance.
+
+Rollback stops only the monitor timer, atomically restores the exact old source,
+runs one monitor invocation, restarts the timer and rechecks the same inventory.
+The old behavior will restore the known false critical; backup, journald, webhook,
+alarm and state remain untouched.
+
+Production read-back matched the reviewed fixed hash. The one-shot service returned
+`success`/`0`; the existing state reached ten consecutive clear observations and
+sent one resolved notification at `2026-07-24T08:59:07.035Z`. Monitor and backup
+timers remained active/enabled, both services remained successful, journald stayed
+active and the Lightsail alarm stayed `OK`. The staged source, ephemeral SSH
+material and rollback copy were removed. No journald setting, retention, webhook,
+state file or vacuum was changed.
+
 ## Forbidden-value incident and first vacuum
 
 Forbidden value가 보이면 emitter 중지 → 실제 secret 가능 시 revoke/rotate → metadata-only incident 기록 → fixed synthetic scan → rotate/vacuum 순서로 처리한다. `journalctl --vacuum-*`는 unrelated archived file도 삭제하고 복구할 수 없으므로, 최초 production vacuum 전에 oldest/newest UTC와 usage를 기록하고 별도 owner-approved maintenance window를 받아야 한다.

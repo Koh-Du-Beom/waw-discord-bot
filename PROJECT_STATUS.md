@@ -1,10 +1,10 @@
 # 프로젝트 상태
 
-마지막 갱신일: 2026-07-23
+마지막 갱신일: 2026-07-24
 
 ## 현재 단계
 
-PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; PLAN-0003 Tasks 1~4 production monitoring rollout 완료; PLAN-0004 Approved·Task 1 local/disposable GREEN 및 production DB read-only preflight 완료·G1 pre-migration archive publish 완료·offline identity empty-target restore 입력 대기; production migration 미실행; 최초 vacuum 별도 gate 유지
+PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; PLAN-0003 Tasks 1~4 production monitoring rollout 완료; PLAN-0004 Approved·Task 1 local/disposable 및 G1 production migration 완료; Task 2 미시작; 최초 vacuum 별도 gate 유지
 
 ## 완료
 
@@ -165,13 +165,17 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - D-09 세 region의 공개 latency·plan 재고, 1GB 자원과 VM·GPT·domain·backup 총비용 검증 대기
 - 서울 VM capacity 결과·HTTPS 확인·resource cleanup 결과를 D-09 문서와 PROJECT_STATUS에 반영 완료
 - 선택된 TypeScript·Node.js·discord.js product runtime의 실제 Gateway·Go Live·자원·시험성·공급망 검증 대기
-- Accepted 저장소 구조의 local PostgreSQL adapter는 구현됨; G1 production Supabase migration과 뒤 OAuth/배포 통합은 별도 승인 대기
+- Accepted 저장소 구조의 local PostgreSQL adapter와 G1 production Supabase migration 완료; 뒤 OAuth/배포 통합은 별도 gate 대기
+- G1 exact archive의 SHA-256/7,084 bytes와 manifest를 확인하고 wrong identity 거부 뒤 disposable PostgreSQL 17 restore에서 schema version 1, row count 0, invalid constraint 0을 확인
+- Approved hashes의 production baseline ledger adoption과 `0002`를 단일 transaction으로 적용; versions `[1,2]`, checksum/RLS/policy/grant/role deny matrix read-back 완료
+- Temporary IAM user/key/policy, archive/manifest/dump, SSH key와 restore container 제거; backup/monitor timers·journald active, timers enabled, services success, Lightsail alarm `OK` 확인
+- `journalctl --grep` no-match exit `1`과 empty stdout/stderr만 suppression 0으로 처리하고 다른 실패는 invalid로 유지하는 `journal.dropped` false-critical fix를 production에 배포; 10회 clear 뒤 resolved 전달, timer/service/backup/journald/alarm과 cleanup 확인
 - Application web/bot/Caddy와 canonical certificate 배포 뒤 monitor expected unit·health·certificate 범위 확장 대기
 - 최초 production journal vacuum은 oldest/newest UTC와 usage를 재확인한 별도 owner-approved maintenance window 대기
 
 ## 다음 작업
 
-Repository 밖의 임시 local 경로에 passphrase-protected owner `age` identity를 준비하고 경로만 제공합니다. Identity 내용과 passphrase는 chat·Git·runtime·S3에 두지 않습니다. Exact-object download, wrong-identity failure와 disposable PostgreSQL 17 restore가 통과한 뒤에만 이미 승인된 G1 production baseline adoption과 `0002` migration을 재개합니다. 최초 production vacuum은 계속 별도 owner 승인 전 실행하지 않습니다.
+Task 2 local/disposable 범위로 진행한다. Actual OAuth, 뒤 application production 배포와 최초 production vacuum은 각각 별도 gate를 유지한다.
 
 ## 차단 요소
 

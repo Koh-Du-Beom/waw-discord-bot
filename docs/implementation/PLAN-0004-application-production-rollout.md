@@ -1,6 +1,6 @@
 # PLAN-0004: application production 구현과 단계적 rollout
 
-- Status: In Progress — Task 1 local/disposable GREEN; G1 pre-migration archive published; offline-identity restore pending; production migration not started
+- Status: In Progress — Task 1 local/disposable and G1 production migration complete; Task 2 not started
 - Date: 2026-07-23
 - Owner: Project owner
 - Related requirements: `FUN-001`~`FUN-020`, `DAT-001`~`DAT-004`, `OPS-001`~`OPS-008`, `SEC-001`~`SEC-010`, `DEP-001`~`DEP-002`, `QUA-001`~`QUA-002`, `OWN-022`~`OWN-034`
@@ -154,7 +154,11 @@ GPT 기능은 공급자·모델·비용·보존 경계의 별도 research/Propos
 - Lightsail alarm은 read-only로 확인했다. `2026-07-23T06:03:30Z` host read-back에서 backup/monitor timer active/enabled, 두 service Result `success`, journald active, latest publication age 10,398초·status `published`·schema version 1·row count 0, marker/monitor credential mode `0600`, journal 35.9MB와 free disk 37,456,715,776 bytes를 확인했다.
 - Production schema migration, 새 backup, credential materialization, timer/journald/monitoring 변경과 최초 vacuum은 실행하지 않았다. G1 mutation은 별도 owner 승인 전까지 pending이며 Task 2로 진행하지 않는다.
 - G1 승인 뒤 새 encrypted pre-migration archive를 `2026-07-23T06:22:56Z`에 publish했다. Schema version 1, row count 0, encrypted bytes 7,084, invariant `constraints_valid`, backup service result `success`를 확인했다.
-- Offline owner recovery identity가 repository, runtime, S3와 검색 가능한 local 경로에 없는 보안 경계를 확인했다. Valid identity empty-target restore가 완료될 때까지 baseline adoption과 `0002` production 적용은 시작하지 않았다.
+- `2026-07-24` exact-object reader로 archive/manifest만 download하고 다른 object Get, Put, Delete가 거부됨을 확인했다. Ciphertext SHA-256/7,084 bytes와 manifest가 일치했고 wrong identity는 실패했다.
+- Disposable PostgreSQL 17 empty target restore에서 schema version 1, row count 0, invalid constraint 0을 확인한 뒤 temporary IAM user/key/policy, archive/manifest/dump, SSH key와 container를 제거했다.
+- Production legacy v1 fingerprint를 재확인하고 approved hashes의 baseline ledger adoption과 `0002`를 단일 transaction으로 적용했다. Read-back은 versions `[1,2]`, checksum 2개 일치, RLS table 5개, policy 6개, expected role/grant/deny matrix, row count 0와 invalid constraint 0이었다.
+- Backup/monitor timers와 journald는 active, timers는 enabled, 두 service Result는 `success`, Lightsail alarm은 `OK`였다. 최초 vacuum과 Task 2는 실행하지 않았다.
+- 별도 운영 결함: 실제 suppression 0건에서 `journalctl --grep` no-match exit `1`을 invalid로 처리해 `journal.dropped` false critical이 유지됐다. Empty stdout/stderr를 동반한 exit `1`만 suppression 0으로 처리하고 다른 실패는 invalid로 유지하는 fix를 production에 atomic 배포했다. 10회 clear 뒤 resolved 전달, installed hash, monitor/backup timers와 service results, journald, Lightsail alarm `OK`와 temporary artifact cleanup을 확인했다.
 
 ## Task 2 — Discord OAuth callback, opaque session, guild/role authorization
 
