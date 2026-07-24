@@ -71,7 +71,7 @@ export type AuditEventsDto = {
 
 export const DASHBOARD_API_PATHS = {
   login: "/auth/login",
-  callback: "/auth/callback",
+  callback: "/auth/discord/callback",
   session: "/api/session",
   logout: "/api/logout",
   overview: "/api/overview",

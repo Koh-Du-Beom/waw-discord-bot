@@ -6,7 +6,7 @@ import { DASHBOARD_API_PATHS } from "./dashboard.ts";
 test("dashboard API paths remain same-origin and canonical", () => {
   assert.deepEqual(DASHBOARD_API_PATHS, {
     login: "/auth/login",
-    callback: "/auth/callback",
+    callback: "/auth/discord/callback",
     session: "/api/session",
     logout: "/api/logout",
     overview: "/api/overview",
