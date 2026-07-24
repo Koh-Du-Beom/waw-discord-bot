@@ -67,6 +67,16 @@
 
 환경별 비밀정보를 분리하고, 최소 권한과 정기 교체 절차를 정의합니다.
 
+### 첫 MVP capability 경계
+
+| 주체 | 주입받는 capability | 금지 capability |
+|---|---|---|
+| web runtime | local command service, opaque session 검증 결과 | Discord bot token, Supabase migration/backup credential |
+| bot runtime | Discord bot token, current member/role reader | browser cookie/session ID, OAuth code/token |
+| migration/backup job | 별도 최소 DB role, public `age` recipient, prefix Put-only S3 credential | owner recovery identity, S3 read/delete, Discord bot token, browser session credential |
+
+같은 Lightsail host라도 capability를 명시적으로 주입하고, web과 bot module은 서로의 비밀값을 읽지 않는다. backup job은 별도 system account로 실행하며 secret environment file은 `root:waw-backup` mode `0640`으로 제한한다. production rehearsal에서 backup DB role과 Put-only writer 경계, temporary exact-object reader와 runtime의 owner identity 부재를 검증했다.
+
 ## 6. OAuth와 세션
 
 - OAuth `state` 검증
@@ -137,6 +147,14 @@
 - 롤백 절차
 - 중복 봇 인스턴스 방지
 - 변경 이력 갱신
+
+### Health와 singleton 판정
+
+- `/health`가 `healthy`를 반환하려면 web process, storage, bot process와 Discord Gateway가 모두 정상이어야 한다.
+- Gateway가 disconnected/unknown이면 web과 storage가 살아 있어도 `degraded`로 표시한다.
+- web process 또는 canonical storage가 없으면 `unavailable`로 표시한다.
+- bot 시작은 singleton lease를 먼저 claim하고, 이미 claim된 경우 두 번째 process는 Gateway 연결을 시작하지 않고 실패한다.
+- 실제 process lease, crash/restart, Discord Resume과 Lightsail reboot 측정은 production credential·host 승인 뒤 별도 runbook으로 검증한다.
 
 ## 11. 롤백
 

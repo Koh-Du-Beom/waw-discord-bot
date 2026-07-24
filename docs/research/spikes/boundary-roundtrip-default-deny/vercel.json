@@ -1,0 +1,5 @@
+{
+  "functions": {
+    "index.mjs": { "maxDuration": 10 }
+  }
+}

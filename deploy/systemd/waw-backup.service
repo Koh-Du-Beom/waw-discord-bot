@@ -1,0 +1,19 @@
+[Unit]
+Description=WAW encrypted PostgreSQL backup publication
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=waw-backup
+Group=waw-backup
+ExecStart=/usr/local/lib/waw/backup-postgres-to-s3.sh
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/etc/waw-backup
+ReadWritePaths=/var/lib/waw-backup
+
+[Install]
+WantedBy=multi-user.target

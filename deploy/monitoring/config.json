@@ -1,0 +1,10 @@
+{
+  "serviceVersion": "0.1.0",
+  "expectedUnits": [
+    "waw-backup.timer"
+  ],
+  "healthUrl": null,
+  "backupMarker": "/var/lib/waw-backup/last-published.json",
+  "certificateHost": null,
+  "journalPath": "/var/log/journal"
+}

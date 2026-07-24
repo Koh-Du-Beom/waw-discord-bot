@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/index.mjs": {
+      "maxDuration": 10,
+      "regions": ["sin1"]
+    }
+  }
+}

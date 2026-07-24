@@ -1,0 +1,61 @@
+# Windows/new-host encrypted PostgreSQL restore runbook
+
+- Status: Production publication and empty-target restore rehearsal executed 2026-07-22; Windows fallback not yet executed
+- Scope: `ADR-0008`, `ADR-0009`, `PLAN-0002` Tasks 2~3 recovery verification
+- Success criteria: archive download checksum, `age` decrypt, empty PostgreSQL restore, schema version/row count/foreign key/core invariant verification, cleanup, elapsed time below 8 hours
+
+## Safety boundary
+
+- Restore only into a disposable empty target. A production source dump requires an explicit owner-approved execution window and must never be restored into the original Supabase project by this procedure.
+- Obtain the archive through an owner-operated authenticated S3 download. Do not put AWS access keys, database passwords, private `age` identity contents, or raw dump data in chat, command history, Git, or logs.
+- Keep the owner identity in an ephemeral local file or secure prompt only. Delete it, decrypted dumps, archive copies, temporary database and any temporary AWS credential immediately after the verifier.
+- The runtime backup writer never receives the private identity or S3 read/delete authority.
+
+## Preflight
+
+1. Prepare an isolated Windows machine or newly provisioned host with no production database data.
+2. Install verified `age` and PostgreSQL client tools (`psql`, `pg_restore`); record tool versions, not paths containing personal data.
+3. Start a disposable local PostgreSQL target and create an empty database. Supply target authentication only through the host's secure environment/credential mechanism, not command-line arguments.
+4. Prepare a synthetic archive manifest containing only archive UUID, UTC timestamp, encrypted byte count, SHA-256, schema version, expected row count and expected invariant.
+5. Capture a start timestamp in UTC.
+
+## Recovery verification
+
+1. Owner downloads the encrypted archive from S3 to a temporary local directory.
+2. Compute SHA-256 and byte count; they must exactly match the manifest before decryption.
+3. Decrypt with the offline identity into a temporary custom-format PostgreSQL dump. A wrong identity must fail without producing a verified dump.
+4. Restore into the empty target with `pg_restore --exit-on-error`; do not use `--clean` against any non-disposable target.
+5. Run non-sensitive verifier queries:
+   - schema version equals manifest expectation;
+   - row count equals manifest expectation;
+   - foreign-key checks succeed;
+   - one documented synthetic invariant succeeds.
+6. Record only UTC timestamps, elapsed seconds, archive SHA-256, encrypted byte count, verifier outcome and non-secret reason code.
+7. Mark the archive `verified` only if every prior step succeeds. Otherwise mark it `unverified`; never replace the previous verified archive.
+
+## Cleanup and evidence
+
+1. Drop the disposable target database and stop/remove its local PostgreSQL process or container.
+2. Remove the downloaded archive, decrypted dump, temporary identity copy and any temporary credentials.
+3. If a disposable S3 object/bucket or IAM principal was created for this run, delete it and confirm resource absence in the console.
+4. Record final cleanup outcome and confirm the elapsed time is under 8 hours.
+
+## Execution evidence
+
+On 2026-07-22, the Linux new-host verifier passed on a disposable Seoul Lightsail Ubuntu 24.04 instance: wrong identity rejection, archive byte/hash equality, empty PostgreSQL 16 restore, schema version `1`, row count `2`, foreign-key orphan count `0`, and the synthetic invariant. Verifier containers and the temporary script were removed, then all tagged disposable instances were deleted and the final instance list was empty.
+
+The browser download hook did not deliver the first S3 object, so a bounded CloudShell transport verifier closed that gap. It proved actual encrypted object upload/download byte and SHA-256 continuity, writer Put-only and reader Get-only denial boundaries, and the `backups/`-only 30-day lifecycle. Every disposable object, bucket, IAM user/policy/key and CloudShell artifact was removed; final S3 bucket and matching IAM user counts were `0`.
+
+Transport and recovery remain two explicit contracts: S3 evidence proves ciphertext continuity and least privilege, while the new-host `age` run proves wrong-identity rejection and valid-identity empty-target restore. A production archive must satisfy both before it is marked verified.
+
+## Production operation
+
+Before enabling a production schedule, keep the backup job isolated from web and bot capabilities. Inject only a backup-scoped database credential, the public `age` recipient and the prefix-scoped S3 writer credential. Do not inject an owner recovery identity or S3 read/delete authority.
+
+The local publication contract in `src/backup/backup-publication.ts` may report `published` only after dump, encryption and upload succeed, uploaded size/hash match the manifest, and both plaintext dump and local encrypted copy are removed. `published` is not `verified`; only a separate restore rehearsal may update last-verified state.
+
+The owner-approved 2026-07-22 execution created a backup-only database role, a Put-only S3 writer and a daily systemd timer on the production host. The runtime environment file is owned by `root:waw-backup` with mode `0640`; it contains no recovery identity or S3 read/delete permission. Keep the offline passphrase-encrypted owner identity outside the repository, runtime and S3.
+
+For recovery, create a temporary reader whose policy names exactly one archive object. Prove exact Get succeeds and put/delete/other-object Get/IAM changes fail, then delete its access key, inline policy and user in the same run. Download and verify ciphertext bytes/hash before attempting `age` decryption.
+
+The first production rehearsal proved a wrong identity is rejected and the valid offline identity restores to disposable PostgreSQL 17 with schema version `1`, row count `0`, invalid constraint count `0` in `30` seconds. Publish a non-sensitive verified marker only after all checks pass. The production bucket, Put-only writer credential and billed host intentionally remain for the recurring schedule; restore readers, staged archives, decrypted dumps, containers and deploy credentials must not remain.

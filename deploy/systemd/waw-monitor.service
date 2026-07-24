@@ -1,0 +1,27 @@
+[Unit]
+Description=WAW local health and alert evaluation
+After=network-online.target systemd-journald.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+LoadCredential=discord-webhook:/etc/waw-credentials/monitor-discord-webhook
+ExecStart=/usr/bin/node /opt/waw/current/src/operations/run-monitor.ts
+StateDirectory=waw-monitor
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+ReadOnlyPaths=/etc/waw-monitor/config.json -/var/lib/waw-backup/last-published.json /var/log/journal
+ReadWritePaths=/var/lib/waw-monitor
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+TimeoutStartSec=30
+
+[Install]
+WantedBy=multi-user.target

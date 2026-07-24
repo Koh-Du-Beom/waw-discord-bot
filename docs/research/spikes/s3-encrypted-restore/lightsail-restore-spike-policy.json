@@ -1,0 +1,77 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadRestoreSpikeInventoryInSeoul",
+      "Effect": "Allow",
+      "Action": [
+        "lightsail:GetAlarms",
+        "lightsail:GetActiveNames",
+        "lightsail:GetBlueprints",
+        "lightsail:GetBundles",
+        "lightsail:GetCertificates",
+        "lightsail:GetDisks",
+        "lightsail:GetInstance",
+        "lightsail:GetInstanceAccessDetails",
+        "lightsail:GetInstancePortStates",
+        "lightsail:GetInstanceState",
+        "lightsail:GetInstances",
+        "lightsail:GetInstanceSnapshots",
+        "lightsail:GetKeyPairs",
+        "lightsail:GetLoadBalancers",
+        "lightsail:GetOperation",
+        "lightsail:GetOperations",
+        "lightsail:GetRegions",
+        "lightsail:GetStaticIps"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-northeast-2"
+        }
+      }
+    },
+    {
+      "Sid": "ReadGlobalLightsailConsoleInventory",
+      "Effect": "Allow",
+      "Action": [
+        "lightsail:GetDistributions",
+        "lightsail:GetDomains"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CreateTaggedRestoreSpikeInstanceInSeoul",
+      "Effect": "Allow",
+      "Action": [
+        "lightsail:CreateInstances",
+        "lightsail:TagResource"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-northeast-2",
+          "aws:RequestTag/purpose": "waw-restore-spike"
+        },
+        "ForAllValues:StringEquals": {
+          "aws:TagKeys": [
+            "purpose",
+            "expires"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "DeleteOnlyTaggedRestoreSpikeInstanceInSeoul",
+      "Effect": "Allow",
+      "Action": "lightsail:DeleteInstance",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-northeast-2",
+          "aws:ResourceTag/purpose": "waw-restore-spike"
+        }
+      }
+    }
+  ]
+}

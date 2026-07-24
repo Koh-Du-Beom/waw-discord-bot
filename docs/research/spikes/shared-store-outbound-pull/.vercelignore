@@ -1,0 +1,6 @@
+.env*
+.vercel/
+node_modules/
+README.md
+setup.sql
+worker.mjs
