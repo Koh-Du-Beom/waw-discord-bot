@@ -10,6 +10,7 @@ export type OpaqueSession = {
   lastSeenAt: Date;
   idleExpiresAt: Date;
   absoluteExpiresAt: Date;
+  lastOAuthCompletedAt: Date;
   revokedAt?: Date;
 };
 

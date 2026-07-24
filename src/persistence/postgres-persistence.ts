@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import type { Pool, PoolClient, QueryResult } from "pg";
 
 import type { AuthorizationTier } from "../contracts/local-command.ts";
+import type { CallbackPersistenceInput } from "../auth/oauth-callback.ts";
 import type { OpaqueSession } from "./session-store.ts";
 
 type Queryable = {
@@ -260,8 +261,8 @@ export class PostgresPersistence {
       database.query(
         `insert into app_session (
           session_id_hash, actor_id, authorization_tier, created_at, last_seen_at,
-          idle_expires_at, absolute_expires_at, revoked_at
-        ) values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          idle_expires_at, absolute_expires_at, last_oauth_completed_at, revoked_at
+        ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         sessionValues(session),
       ),
     );
@@ -271,7 +272,7 @@ export class PostgresPersistence {
     return this.run("session_read_failed", async (database) => {
       const result = await database.query<SessionRow>(
         `select session_id_hash, actor_id, authorization_tier, created_at, last_seen_at,
-                idle_expires_at, absolute_expires_at, revoked_at
+                idle_expires_at, absolute_expires_at, last_oauth_completed_at, revoked_at
            from app_session
           where session_id_hash = $1`,
         [sessionIdHash],
@@ -310,8 +311,8 @@ export class PostgresPersistence {
       await client.query(
         `insert into app_session (
           session_id_hash, actor_id, authorization_tier, created_at, last_seen_at,
-          idle_expires_at, absolute_expires_at, revoked_at
-        ) values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          idle_expires_at, absolute_expires_at, last_oauth_completed_at, revoked_at
+        ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         sessionValues(nextSession),
       );
     });
@@ -360,6 +361,20 @@ export class PostgresPersistence {
     });
   }
 
+  async isOAuthStateUsable(stateHash: string, now: Date): Promise<boolean> {
+    return this.run("oauth_state_read_failed", async (database) => {
+      const result = await database.query(
+        `select 1
+           from oauth_state
+          where state_hash = $1
+            and used_at is null
+            and expires_at > $2`,
+        [stateHash, now],
+      );
+      return result.rowCount === 1;
+    });
+  }
+
   async upsertRoleCache(cache: RoleCache): Promise<void> {
     await this.run("role_cache_write_failed", (database) =>
       database.query(
@@ -391,6 +406,55 @@ export class PostgresPersistence {
             authorizationTier: row.authorization_tier,
             verifiedAt: row.verified_at,
           };
+    });
+  }
+
+  async completeOAuthCallback(
+    input: CallbackPersistenceInput,
+  ): Promise<"completed" | "state-invalid"> {
+    return this.transaction("oauth_callback_failed", async (client) => {
+      const consumed = await client.query(
+        `update oauth_state
+            set used_at = $2
+          where state_hash = $1
+            and used_at is null
+            and expires_at > $2`,
+        [input.stateHash, input.completedAt],
+      );
+      if (consumed.rowCount !== 1) {
+        return "state-invalid";
+      }
+
+      if (input.previousSessionIdHash !== undefined) {
+        await client.query(
+          `update app_session
+              set revoked_at = $2
+            where session_id_hash = $1
+              and revoked_at is null`,
+          [input.previousSessionIdHash, input.completedAt],
+        );
+      }
+
+      await client.query(
+        `insert into app_session (
+          session_id_hash, actor_id, authorization_tier, created_at, last_seen_at,
+          idle_expires_at, absolute_expires_at, last_oauth_completed_at, revoked_at
+        ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        sessionValues(input.session),
+      );
+      await client.query(
+        `insert into role_cache (actor_id, authorization_tier, verified_at)
+         values ($1, $2, $3)
+         on conflict (actor_id) do update
+           set authorization_tier = excluded.authorization_tier,
+               verified_at = excluded.verified_at`,
+        [
+          input.roleCache.actorId,
+          input.roleCache.authorizationTier,
+          input.roleCache.verifiedAt,
+        ],
+      );
+      return "completed";
     });
   }
 
@@ -510,6 +574,7 @@ type SessionRow = {
   last_seen_at: Date;
   idle_expires_at: Date;
   absolute_expires_at: Date;
+  last_oauth_completed_at: Date;
   revoked_at: Date | null;
 };
 
@@ -528,6 +593,7 @@ function sessionValues(session: OpaqueSession): unknown[] {
     session.lastSeenAt,
     session.idleExpiresAt,
     session.absoluteExpiresAt,
+    session.lastOAuthCompletedAt,
     session.revokedAt ?? null,
   ];
 }
@@ -541,6 +607,7 @@ function mapSession(row: SessionRow): OpaqueSession {
     lastSeenAt: row.last_seen_at,
     idleExpiresAt: row.idle_expires_at,
     absoluteExpiresAt: row.absolute_expires_at,
+    lastOAuthCompletedAt: row.last_oauth_completed_at,
     ...(row.revoked_at === null ? {} : { revokedAt: row.revoked_at }),
   };
 }

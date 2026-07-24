@@ -104,7 +104,8 @@ function hasValidReadOnlyCache(input: AuthorizationInput): boolean {
     return false;
   }
 
-  return input.now.getTime() - input.cachedRoleVerifiedAt.getTime() <= 5 * 60 * 1000;
+  const age = input.now.getTime() - input.cachedRoleVerifiedAt.getTime();
+  return age >= 0 && age <= 5 * 60 * 1000;
 }
 
 function hasRecentOAuth(input: AuthorizationInput): boolean {
@@ -112,5 +113,6 @@ function hasRecentOAuth(input: AuthorizationInput): boolean {
     return false;
   }
 
-  return input.now.getTime() - input.lastOAuthCompletedAt.getTime() <= 15 * 60 * 1000;
+  const age = input.now.getTime() - input.lastOAuthCompletedAt.getTime();
+  return age >= 0 && age <= 15 * 60 * 1000;
 }

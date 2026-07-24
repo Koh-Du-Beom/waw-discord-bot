@@ -69,6 +69,29 @@ test("requires csrf for mutation", () => {
   });
 });
 
+test("rejects future-dated role cache and recent OAuth evidence", () => {
+  const future = new Date("2026-07-21T00:00:00.001Z");
+  assert.deepEqual(
+    authorize(
+      input({
+        currentRole: "unavailable",
+        cachedRoleVerifiedAt: future,
+      }),
+    ),
+    { kind: "denied", reason: "unavailable" },
+  );
+  assert.deepEqual(
+    authorize(
+      input({
+        kind: "high-risk",
+        lastOAuthCompletedAt: future,
+        explicitConfirmation: true,
+      }),
+    ),
+    { kind: "denied", reason: "recent-auth-required" },
+  );
+});
+
 test("consumes OAuth state exactly once and never stores its raw value", () => {
   const transaction = createOAuthState(now);
   const consumed = consumeOAuthState(transaction.record, transaction.rawState, now);

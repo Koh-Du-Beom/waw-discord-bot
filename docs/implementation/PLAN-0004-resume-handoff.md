@@ -1,9 +1,10 @@
 # PLAN-0004 resume handoff
 
 - Date: 2026-07-24
-- Checkpoint: Task 1 local/disposable and G1 production migration complete; Task 2 not started
+- Checkpoint: Tasks 1~2 local/disposable and G1 production migration complete; G2/G3 and production migration `0003` pending
 - Canonical plan: [`PLAN-0004`](./PLAN-0004-application-production-rollout.md)
 - Persistence runbook: [`application-persistence-runbook`](../operations/application-persistence-runbook.md)
+- Authentication runbook: [`authentication-runbook`](../operations/authentication-runbook.md)
 
 ## Current evidence
 
@@ -14,7 +15,7 @@
 - The owner-approved pre-migration archive completed at `2026-07-23T06:22:56Z`.
 - Publication evidence: schema version 1, expected row count 0, encrypted bytes 7,084, invariant `constraints_valid`, archive SHA-256 `c71a9f61a6d6d14a1e563f5bc5c3ea88bc5344c5635d07bd3c0682474e7d62ab`, backup service result `success`.
 - Existing backup/monitor timers and journald remained active during the preceding read-only preflight.
-- Fresh repository checks at the checkpoint: tests `49/49`, typecheck passed and `git diff --check` passed.
+- Fresh repository checks at the checkpoint: tests `90/90`, typecheck passed and `git diff --check` passed.
 - Exact-object download, ciphertext hash/byte verification, wrong-identity rejection and PostgreSQL 17 empty-target restore passed. Temporary AWS/local restore resources were removed.
 - Post-migration read-back confirmed RLS on five workload tables, six policies, expected role/grant/deny boundaries, zero rows and zero invalid constraints.
 - Backup/monitor services remain successful, timers enabled/active, journald active and the Lightsail alarm `OK`.
@@ -40,7 +41,7 @@
 
 Continue one bounded task per session:
 
-1. Task 2: Discord OAuth callback, opaque session and guild/role authorization, local/disposable first; G2 for actual OAuth secret and redirect.
+1. Task 2 local/disposable is complete. Keep G2 actual OAuth and G3 bot-side member lookup closed; do not apply production migration `0003` without a separate gate.
 2. Task 3: minimal Fastify API plus React dashboard vertical slice; synthetic providers only.
 3. Task 4: Discord Gateway runtime, singleton and health; G3 for actual bot credential/intents.
 4. Task 5: production-like disposable Ubuntu/systemd integration; G4 before creating AWS resources.

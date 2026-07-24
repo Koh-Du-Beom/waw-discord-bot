@@ -8,6 +8,9 @@ import { after, before, test } from "node:test";
 
 import { Pool } from "pg";
 
+import { createAuthService } from "../auth/auth-service.ts";
+import { parseAuthConfiguration } from "../auth/oauth-configuration.ts";
+import { hashOpaqueSessionId } from "./session-store.ts";
 import {
   applyMigration,
   applyPendingMigrations,
@@ -22,8 +25,10 @@ const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(import.meta.dirname, "../..");
 const migrationOnePath = path.join(projectRoot, "migrations/0001_auth_and_operations.sql");
 const migrationTwoPath = path.join(projectRoot, "migrations/0002_application_persistence.sql");
+const migrationThreePath = path.join(projectRoot, "migrations/0003_session_recent_auth.sql");
 const migrationOneSql = await readFile(migrationOnePath, "utf8");
 const migrationTwoSql = await readFile(migrationTwoPath, "utf8");
+const migrationThreeSql = await readFile(migrationThreePath, "utf8");
 
 let clusterDirectory = "";
 let socketDirectory = "";
@@ -90,11 +95,16 @@ test("applies migration transactionally, records version, and rejects reapplicat
     name: "application_persistence",
     sql: migrationTwoSql,
   });
+  await applyMigration(adminPool, {
+    version: 3,
+    name: "session_recent_auth",
+    sql: migrationThreeSql,
+  });
 
   const version = await adminPool.query<{ version: number }>(
     "select version from app_schema_version order by version",
   );
-  assert.deepEqual(version.rows, [{ version: 1 }, { version: 2 }]);
+  assert.deepEqual(version.rows, [{ version: 1 }, { version: 2 }, { version: 3 }]);
 
   await assert.rejects(
     applyMigration(adminPool, {
@@ -139,6 +149,11 @@ test("adopts the exact production legacy version 1 before applying version 2", a
       name: "application_persistence",
       sql: migrationTwoSql,
     });
+    await applyMigration(legacyPool, {
+      version: 3,
+      name: "session_recent_auth",
+      sql: migrationThreeSql,
+    });
 
     const versions = await legacyPool.query<{ version: number }>(
       "select version from app_schema_version order by version",
@@ -146,8 +161,8 @@ test("adopts the exact production legacy version 1 before applying version 2", a
     const ledger = await legacyPool.query<{ version: number }>(
       "select version from waw_schema_migration order by version",
     );
-    assert.deepEqual(versions.rows, [{ version: 1 }, { version: 2 }]);
-    assert.deepEqual(ledger.rows, [{ version: 1 }, { version: 2 }]);
+    assert.deepEqual(versions.rows, [{ version: 1 }, { version: 2 }, { version: 3 }]);
+    assert.deepEqual(ledger.rows, [{ version: 1 }, { version: 2 }, { version: 3 }]);
     assert.equal(
       (
         await legacyPool.query(
@@ -200,6 +215,7 @@ test("resumes a migration sequence and rejects a changed applied checksum", asyn
   const migrations = [
     { version: 1, name: "auth_and_operations", sql: migrationOneSql },
     { version: 2, name: "application_persistence", sql: migrationTwoSql },
+    { version: 3, name: "session_recent_auth", sql: migrationThreeSql },
   ] as const;
   assert.deepEqual(await applyPendingMigrations(adminPool, migrations), []);
   await assert.rejects(
@@ -256,6 +272,7 @@ test("enforces RLS and workload grants for web and bot roles", async () => {
       lastSeenAt: new Date("2026-07-23T00:00:00.000Z"),
       idleExpiresAt: new Date("2026-07-24T00:00:00.000Z"),
       absoluteExpiresAt: new Date("2026-07-30T00:00:00.000Z"),
+      lastOAuthCompletedAt: new Date("2026-07-23T00:00:00.000Z"),
     });
     assert.equal(
       (await webPersistence.findSession("web-role-session-hash"))?.actorId,
@@ -296,6 +313,7 @@ test("persists session rotation, bounded idle touch, OAuth state, and role cache
     lastSeenAt: createdAt,
     idleExpiresAt: new Date("2026-07-24T00:00:00.000Z"),
     absoluteExpiresAt: new Date("2026-07-30T00:00:00.000Z"),
+    lastOAuthCompletedAt: createdAt,
   });
 
   await persistence.rotateSession(
@@ -308,6 +326,7 @@ test("persists session rotation, bounded idle touch, OAuth state, and role cache
       lastSeenAt: new Date("2026-07-23T01:00:00.000Z"),
       idleExpiresAt: new Date("2026-07-24T01:00:00.000Z"),
       absoluteExpiresAt: new Date("2026-07-30T01:00:00.000Z"),
+      lastOAuthCompletedAt: createdAt,
     },
     new Date("2026-07-23T01:00:00.000Z"),
   );
@@ -368,6 +387,204 @@ test("persists session rotation, bounded idle touch, OAuth state, and role cache
   assert.equal(
     await persistence.findFreshRoleCache("actor-1", new Date("2026-07-23T00:05:00.001Z")),
     undefined,
+  );
+});
+
+test("atomically consumes OAuth state, rotates session, and records role evidence", async () => {
+  const persistence = new PostgresPersistence(adminPool);
+  const completedAt = new Date("2026-07-23T04:00:00.000Z");
+  await persistence.createOAuthState({
+    stateHash: "callback-state-hash",
+    expiresAt: new Date("2026-07-23T04:10:00.000Z"),
+  });
+  await persistence.saveSession({
+    sessionIdHash: "callback-previous-session-hash",
+    actorId: "callback-actor",
+    authorizationTier: "operator",
+    createdAt: new Date("2026-07-23T03:00:00.000Z"),
+    lastSeenAt: new Date("2026-07-23T03:00:00.000Z"),
+    idleExpiresAt: new Date("2026-07-24T03:00:00.000Z"),
+    absoluteExpiresAt: new Date("2026-07-30T03:00:00.000Z"),
+    lastOAuthCompletedAt: new Date("2026-07-23T03:00:00.000Z"),
+  });
+  const nextSession = {
+    sessionIdHash: "callback-next-session-hash",
+    actorId: "callback-actor",
+    authorizationTier: "administrator" as const,
+    createdAt: completedAt,
+    lastSeenAt: completedAt,
+    idleExpiresAt: new Date("2026-07-24T04:00:00.000Z"),
+    absoluteExpiresAt: new Date("2026-07-30T04:00:00.000Z"),
+    lastOAuthCompletedAt: completedAt,
+  };
+
+  assert.equal(
+    await persistence.completeOAuthCallback({
+      stateHash: "callback-state-hash",
+      completedAt,
+      previousSessionIdHash: "callback-previous-session-hash",
+      session: nextSession,
+      roleCache: {
+        actorId: "callback-actor",
+        authorizationTier: "administrator",
+        verifiedAt: completedAt,
+      },
+    }),
+    "completed",
+  );
+  assert.equal(
+    (await persistence.findSession("callback-previous-session-hash"))?.revokedAt?.toISOString(),
+    completedAt.toISOString(),
+  );
+  assert.equal(
+    (await persistence.findSession("callback-next-session-hash"))?.lastOAuthCompletedAt.toISOString(),
+    completedAt.toISOString(),
+  );
+  assert.equal(
+    (
+      await persistence.findFreshRoleCache(
+        "callback-actor",
+        new Date("2026-07-23T04:05:00.000Z"),
+      )
+    )?.authorizationTier,
+    "administrator",
+  );
+  assert.equal(
+    await persistence.completeOAuthCallback({
+      stateHash: "callback-state-hash",
+      completedAt: new Date("2026-07-23T04:01:00.000Z"),
+      session: { ...nextSession, sessionIdHash: "callback-replay-session-hash" },
+      roleCache: {
+        actorId: "callback-actor",
+        authorizationTier: "administrator",
+        verifiedAt: new Date("2026-07-23T04:01:00.000Z"),
+      },
+    }),
+    "state-invalid",
+  );
+  assert.equal(await persistence.findSession("callback-replay-session-hash"), undefined);
+});
+
+test("composes login, callback, session touch, and logout against disposable PostgreSQL", async () => {
+  const persistence = new PostgresPersistence(adminPool);
+  const composedAt = new Date("2026-07-23T05:00:00.000Z");
+  const rawState = "postgres-state-canary-0123456789abcdef";
+  const rawSession = "postgres-session-canary-0123456789abcdef";
+  const csrfKey = "postgres-csrf-key-0123456789abcdef";
+  const configuration = parseAuthConfiguration({
+    environment: "production",
+    clientId: "7100",
+    clientSecret: "synthetic-client-secret",
+    redirectUri: "https://waw.dubeom.com/auth/discord/callback",
+    allowedOrigin: "https://waw.dubeom.com",
+    allowedGuildId: "7200",
+    operatorRoleIds: "7300",
+    administratorRoleIds: "7400",
+    providerTimeoutMilliseconds: "2500",
+  });
+  const service = createAuthService({
+    configuration,
+    provider: {
+      createAuthorizationUrl(state) {
+        const url = new URL("https://discord.com/oauth2/authorize");
+        url.searchParams.set("client_id", "7100");
+        url.searchParams.set(
+          "redirect_uri",
+          "https://waw.dubeom.com/auth/discord/callback",
+        );
+        url.searchParams.set("response_type", "code");
+        url.searchParams.set("scope", "identify");
+        url.searchParams.set("state", state);
+        return url.href;
+      },
+      async exchangeCode() {
+        return { accessToken: "synthetic-access-token" };
+      },
+      async fetchIdentity() {
+        return { id: "7500" };
+      },
+    },
+    memberReader: {
+      async readCurrentMember() {
+        return {
+          kind: "member",
+          guildId: "7200",
+          guildOwnerId: "7999",
+          roleIds: ["7300"],
+        };
+      },
+    },
+    persistence,
+    csrfKey,
+    now: () => composedAt,
+    generateOAuthState: () => rawState,
+    generateSessionId: () => rawSession,
+  });
+
+  const login = await service.login();
+  assert.equal(login.statusCode, 302);
+  assert.equal(
+    await persistence.isOAuthStateUsable(
+      hashOpaqueSessionId(rawState),
+      composedAt,
+    ),
+    true,
+  );
+
+  const callback = await service.callback({
+    method: "GET",
+    url:
+      "https://waw.dubeom.com/auth/discord/callback" +
+      `?code=synthetic-code&state=${rawState}`,
+    headers: {
+      cookie: (login.headers["set-cookie"] as readonly string[])[0]?.split(";")[0],
+    },
+  });
+  assert.equal(callback.statusCode, 303);
+  assert.equal(
+    await persistence.isOAuthStateUsable(
+      hashOpaqueSessionId(rawState),
+      composedAt,
+    ),
+    false,
+  );
+  const setCookie = callback.headers["set-cookie"];
+  assert.ok(Array.isArray(setCookie));
+  const cookie = setCookie
+    .map((value) => value.slice(0, value.indexOf(";")))
+    .join("; ");
+  const csrf = cookie
+    .split("; ")
+    .find((value) => value.startsWith("__Host-waw_csrf="))
+    ?.split("=")[1];
+  assert.ok(csrf);
+
+  const read = await service.authorize({
+    kind: "read",
+    headers: { cookie },
+  });
+  assert.equal(read.statusCode, 200);
+  assert.equal(
+    (
+      await persistence.findSession(hashOpaqueSessionId(rawSession))
+    )?.lastSeenAt.toISOString(),
+    composedAt.toISOString(),
+  );
+
+  const logout = await service.logout({
+    method: "POST",
+    headers: {
+      cookie,
+      origin: "https://waw.dubeom.com",
+      "x-csrf-token": csrf,
+    },
+  });
+  assert.equal(logout.statusCode, 204);
+  assert.equal(
+    (
+      await persistence.findSession(hashOpaqueSessionId(rawSession))
+    )?.revokedAt?.toISOString(),
+    composedAt.toISOString(),
   );
 });
 

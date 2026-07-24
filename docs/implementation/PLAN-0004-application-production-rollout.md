@@ -1,6 +1,6 @@
 # PLAN-0004: application production 구현과 단계적 rollout
 
-- Status: In Progress — Task 1 local/disposable and G1 production migration complete; Task 2 not started
+- Status: In Progress — Tasks 1~2 local/disposable and G1 production migration complete; G2/G3 and production migration `0003` pending
 - Date: 2026-07-23
 - Owner: Project owner
 - Related requirements: `FUN-001`~`FUN-020`, `DAT-001`~`DAT-004`, `OPS-001`~`OPS-008`, `SEC-001`~`SEC-010`, `DEP-001`~`DEP-002`, `QUA-001`~`QUA-002`, `OWN-022`~`OWN-034`
@@ -30,8 +30,11 @@
 
 - Production에는 historical v1 baseline만 존재하고 `0002` workload role/grant/RLS policy는 아직 적용되지 않았다.
 - PostgreSQL adapter와 migration transaction은 구현됐지만 production connection lifecycle, retry와 cleanup job은 아직 없다.
-- Discord OAuth authorize/callback route, code exchange, exact redirect 검증, secure cookie 발급·rotation·logout, CSRF/Origin HTTP adapter와 provider failure mapping이 없다.
-- Discord current member/role reader와 guild/role configuration persistence가 없다. OAuth access/refresh token 미보존을 실제 adapter/log/DB에서 검증하지 않았다.
+- Discord OAuth framework-neutral authorize/callback, code exchange, exact redirect,
+  browser-bound state, secure cookie rotation/logout, CSRF/Origin과 provider failure
+  mapping은 local/disposable에서 구현했다. Actual OAuth round trip은 G2 pending이다.
+- Discord current member/role port와 local authorization composition은 구현했지만
+  actual bot-side adapter와 credential/intents integration은 G3 pending이다.
 - Product `package.json`에는 Fastify, React, React Router, Vite와 discord.js가 없다. Fastify server/routes/schema/DTO, static SPA serving, React dashboard와 browser accessibility test가 없다. 기존 dashboard 코드는 폐기 가능한 research Spike다.
 - discord.js Gateway client, Ready/Resume/reconnect/reconciliation, process singleton lease, graceful shutdown과 health heartbeat adapter가 없다.
 - `waw-web.service`, `waw-bot.service`, application installer/release switch, production Caddyfile과 application rollback runbook이 없다.
@@ -207,6 +210,23 @@ GPT 기능은 공급자·모델·비용·보존 경계의 별도 research/Propos
 - G2 전에는 fake provider만 사용한다.
 - Actual OAuth app secret, redirect 등록과 callback 실행은 별도 owner 승인을 받는다.
 - Discord user token은 어떤 환경에서도 저장하지 않는다. Bot token은 web process에 주입하지 않는다.
+
+### Local/disposable result — 2026-07-24
+
+- Browser-bound single-use state, callback length limits, opaque callback/session
+  rotation, 1일 idle/7일 absolute expiry, logout/revoke, current role, 5분 read
+  cache, CSRF/Origin과 high-risk recent-auth/confirmation contract를 구현했다.
+- Privilege tier change는 기존 absolute expiry를 연장하지 않고 session을
+  rotation한다. 이를 위해 아직 production에 적용되지 않은 `0003` candidate에서
+  잘못된 `last_oauth_completed_at >= created_at` 하한을 제거하고
+  `last_oauth_completed_at <= last_seen_at` 검증은 유지했다.
+- Candidate `0003` SHA-256은
+  `7c807c9113524103eed0314565ac6263facc49098e1d0c5eedf13038ddb97a5f`다.
+- Targeted auth `21/21`, disposable PostgreSQL `10/10`, 전체 `90/90`,
+  typecheck와 diff check가 통과했다. G2/G3, Supabase와 production migration
+  `0003`은 실행하지 않았다.
+- 운영 계약과 gate는
+  [`authentication-runbook`](../operations/authentication-runbook.md)에 기록했다.
 
 ## Task 3 — 최소 Fastify API와 React dashboard vertical slice
 

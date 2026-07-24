@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; PLAN-0003 Tasks 1~4 production monitoring rollout 완료; PLAN-0004 Approved·Task 1 local/disposable 및 G1 production migration 완료; Task 2 미시작; 최초 vacuum 별도 gate 유지
+PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; PLAN-0003 Tasks 1~4 production monitoring rollout 완료; PLAN-0004 Approved·Tasks 1~2 local/disposable 및 G1 production migration 완료; G2/G3와 production migration `0003`, 최초 vacuum 별도 gate 유지
 
 ## 완료
 
@@ -158,6 +158,15 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - PLAN-0004를 Supabase persistence, OAuth authorization, dashboard vertical slice, Gateway runtime, disposable systemd integration, owner-approved Lightsail rollout, canonical DNS/HTTPS/monitoring 확장의 7개 bounded Task와 독립 credential gate로 분리
 - PLAN-0004 owner 승인 뒤 Task 1 RED에서 PostgreSQL adapter 부재를 확인하고 exact `pg@8.22.0`·`@types/pg@8.20.0`, transactional migration runner, RLS/grant migration, 최소 persistence adapter와 systemd file-credential loader 구현
 - Disposable PostgreSQL 17.10에서 migration/reapply/rollback, FK·RLS와 web/bot deny, session/OAuth/5분 cache, 16-way dedupe·audit rollback, DB size snapshot·failure redaction integration 계약 통과; production Supabase/credential 미사용
+- PLAN-0004 Task 2에서 browser-bound single-use OAuth state, bounded callback
+  input, exact redirect/Origin, token 미보존, opaque session callback·privilege
+  rotation, logout/revoke, 5분 read cache와 mutation/high-risk default-deny를
+  framework-neutral service로 연결; targeted `21/21`, disposable PostgreSQL
+  `10/10`, 전체 `90/90`과 typecheck 통과
+- Production 미적용 `0003` candidate의 privilege rotation과 충돌하던
+  `last_oauth_completed_at >= created_at` 하한을 제거하고
+  `last_oauth_completed_at <= last_seen_at`는 유지; candidate SHA-256
+  `7c807c9113524103eed0314565ac6263facc49098e1d0c5eedf13038ddb97a5f`
 
 ## 진행 중
 
@@ -175,7 +184,9 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 
 ## 다음 작업
 
-Task 2 local/disposable 범위로 진행한다. Actual OAuth, 뒤 application production 배포와 최초 production vacuum은 각각 별도 gate를 유지한다.
+Task 3 synthetic Fastify/React vertical slice를 검토한다. Actual OAuth G2,
+bot-side member lookup G3, production migration `0003`, 뒤 application production
+배포와 최초 production vacuum은 각각 별도 gate를 유지한다.
 
 ## 차단 요소
 
