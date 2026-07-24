@@ -11,53 +11,25 @@ SPA deep links work. API and auth paths must never fall through to the SPA.
 The document includes a `noscript` explanation. Runtime fetch failures produce
 an announced unavailable state with an explicit retry.
 
-## Shared contract gate
+## Shared contract integration
 
-The frozen settings mutation contract does not yet describe a CSRF value or a
-success response. The UI currently models the minimal response as
-`LowRiskSettingsDto` so version-conflict recovery remains possible. Before
-runtime integration, the browser adapter default-denies this mutation. The
-dashboard-runtime owner should apply this exact shared-contract change (names
-may change only through coordinated review):
-
-```diff
- export type SessionDto = {
-   authenticated: true;
-   actor: {
-     displayName: string;
-     tier: AuthorizationTier;
-   };
-+  csrfToken: string;
- };
-
-+export type UpdateLowRiskSettingsResponseDto = {
-+  settings: LowRiskSettingsDto;
-+  auditEvent: AuditEventDto;
-+};
-```
-
-The runtime route should require the session-bound CSRF value in an
-`X-CSRF-Token` header in addition to exact Origin, current server-side role,
-and operation authorization. The browser adapter can then send
-`SessionDto.csrfToken` and consume `UpdateLowRiskSettingsResponseDto`; no
-client route guard or hidden control is an authorization decision.
+The session DTO now carries the session-bound CSRF value and the settings
+mutation returns both the versioned setting and its audit event. The browser
+adapter sends the value as `X-CSRF-Token`; the Fastify adapter additionally
+requires exact Origin, the CSRF cookie, an active opaque session, and a current
+server-side role matching the session tier. No client route guard or hidden
+control is an authorization decision.
 
 ## Test runner coordination
 
-Node 24 strips TypeScript types but does not execute TSX syntax directly. The
-current `node --test "web/**/*.test.ts"` script also excludes `.tsx`. The
-dashboard-runtime owner should coordinate this package change:
+Node 24 strips TypeScript types but does not execute TSX syntax directly.
+`tsx@4.21.0` and `@types/jsdom@28.0.3` are pinned for UI tests. The test script
+runs source TypeScript tests with Node and browser-facing TS/TSX tests through
+TSX without process isolation, avoiding the Windows loader child-process hang
+observed during the initial integration.
 
-```diff
-   "scripts": {
--    "test": "node --test \"src/**/*.test.ts\" \"web/**/*.test.ts\"",
-+    "test": "node --test \"src/**/*.test.ts\" && tsx --test --test-isolation=none \"web/**/*.test.tsx\"",
-   },
-   "devDependencies": {
-+    "@types/jsdom": "<reviewed exact version>",
-+    "tsx": "4.21.0",
-   }
-```
-
-Until those package changes are accepted, the UI test uses the existing local
-`web/jsdom.d.ts` shim and was verified with an untracked one-time TSX runner.
+`npm run test:browser` serves the production SPA from a synthetic local
+Fastify fixture, launches the installed Microsoft Edge through
+`playwright-core@1.61.1`, runs `@axe-core/playwright@4.12.1`, and verifies the
+keyboard-only settings mutation, result focus, and audit presentation. It
+does not use a real account, OAuth provider, Discord data, or remote database.

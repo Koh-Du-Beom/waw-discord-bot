@@ -8,6 +8,7 @@ import type {
 export const sessionFixture: SessionDto = {
   authenticated: true,
   actor: { displayName: "합성 운영자", tier: "operator" },
+  csrfToken: "csrf-synthetic-browser-fixture",
 };
 
 export const healthyOverviewFixture: DashboardOverviewDto = {
