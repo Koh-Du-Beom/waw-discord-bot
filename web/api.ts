@@ -11,55 +11,59 @@ import {
 import type { DashboardApi } from "./app.tsx";
 
 type ApiFailure = Error & { code?: string; correlationId?: string };
-let csrfToken: string | undefined;
 
-export const browserApi: DashboardApi = {
-  async getSession() {
-    const response = await fetch(DASHBOARD_API_PATHS.session, requestInit());
-    if (response.status === 401) {
-      csrfToken = undefined;
-      return null;
-    }
-    const session = await readJson<SessionDto>(response);
-    csrfToken = session.csrfToken;
-    return session;
-  },
-  async getOverview() {
-    return readJson<DashboardOverviewDto>(
-      await fetch(DASHBOARD_API_PATHS.overview, requestInit()),
-    );
-  },
-  async getSettings() {
-    return readJson<LowRiskSettingsDto>(
-      await fetch(DASHBOARD_API_PATHS.settings, requestInit()),
-    );
-  },
-  async updateSettings(request: UpdateLowRiskSettingsRequestDto) {
-    if (csrfToken === undefined) {
-      const failure: ApiFailure = new Error(
-        "설정 변경 전에 세션을 다시 확인해야 합니다.",
+export function createBrowserApi(fetcher: typeof fetch = fetch): DashboardApi {
+  let csrfToken: string | undefined;
+  return {
+    async getSession() {
+      const response = await fetcher(DASHBOARD_API_PATHS.session, requestInit());
+      if (response.status === 401) {
+        csrfToken = undefined;
+        return null;
+      }
+      const session = await readJson<SessionDto>(response);
+      csrfToken = session.csrfToken;
+      return session;
+    },
+    async getOverview() {
+      return readJson<DashboardOverviewDto>(
+        await fetcher(DASHBOARD_API_PATHS.overview, requestInit()),
       );
-      failure.code = "unauthenticated";
-      throw failure;
-    }
-    const response = await readJson<UpdateLowRiskSettingsResponseDto>(
-      await fetch(DASHBOARD_API_PATHS.settings, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          "X-CSRF-Token": csrfToken,
-        },
-        body: JSON.stringify(request),
-      }),
-    );
-    return response.settings;
-  },
-  async getAudit() {
-    return readJson<AuditEventsDto>(await fetch(DASHBOARD_API_PATHS.audit, requestInit()));
-  },
-};
+    },
+    async getSettings() {
+      return readJson<LowRiskSettingsDto>(
+        await fetcher(DASHBOARD_API_PATHS.settings, requestInit()),
+      );
+    },
+    async updateSettings(request: UpdateLowRiskSettingsRequestDto) {
+      if (csrfToken === undefined) {
+        const failure: ApiFailure = new Error("세션을 다시 확인해야 합니다.");
+        failure.code = "unauthenticated";
+        throw failure;
+      }
+      const response = await readJson<UpdateLowRiskSettingsResponseDto>(
+        await fetcher(DASHBOARD_API_PATHS.settings, {
+          ...requestInit(),
+          body: JSON.stringify(request),
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            "X-CSRF-Token": csrfToken,
+          },
+          method: "PUT",
+        }),
+      );
+      return response.settings;
+    },
+    async getAudit() {
+      return readJson<AuditEventsDto>(
+        await fetcher(DASHBOARD_API_PATHS.audit, requestInit()),
+      );
+    },
+  };
+}
+
+export const browserApi = createBrowserApi();
 
 function requestInit(): RequestInit {
   return {

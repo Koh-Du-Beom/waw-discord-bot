@@ -104,7 +104,7 @@ h2 {
 
 .eyebrow {
   margin-bottom: 0.55rem;
-  color: #63766f;
+  color: #52665f;
   font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.13em;
@@ -179,7 +179,7 @@ h2 {
 }
 
 .metric-card h3 {
-  color: #63766f;
+  color: #52665f;
   font-size: 0.9rem;
   font-weight: 650;
 }
@@ -191,7 +191,7 @@ h2 {
 
 .metric-card p {
   margin: 0.65rem 0 0;
-  color: #63766f;
+  color: #52665f;
   font-size: 0.85rem;
 }
 
@@ -207,7 +207,7 @@ h2 {
 
 .switch-row small {
   margin-top: 0.35rem;
-  color: #63766f;
+  color: #52665f;
 }
 
 .switch-row input {
@@ -246,7 +246,7 @@ h2 {
 
 .audit-list time {
   grid-column: 2;
-  color: #63766f;
+  color: #52665f;
   font-size: 0.84rem;
 }
 
@@ -270,7 +270,7 @@ h2 {
 }
 
 .empty {
-  color: #63766f;
+  color: #52665f;
 }
 
 .state-page {
