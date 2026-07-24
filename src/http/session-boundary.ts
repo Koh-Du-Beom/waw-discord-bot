@@ -277,6 +277,14 @@ export function readSessionCredential(
   return { kind: "present", rawSessionId: values[0]! };
 }
 
+export function readCsrfCookieToken(cookieHeader: string | undefined): string | undefined {
+  const values = parseCookies(cookieHeader)?.get(csrfCookieName);
+  if (values?.length !== 1 || !isValidCsrfToken(values[0] ?? "")) {
+    return undefined;
+  }
+  return values[0];
+}
+
 export function sessionOutcomeLog(
   outcome: SessionOutcome,
 ): Readonly<Record<string, string>> {
