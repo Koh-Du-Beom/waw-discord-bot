@@ -1,0 +1,50 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadProductionInstanceInventoryInSeoul",
+      "Effect": "Allow",
+      "Action": [
+        "lightsail:GetInstance",
+        "lightsail:GetInstanceMetricData",
+        "lightsail:GetInstancePortStates",
+        "lightsail:GetInstanceState",
+        "lightsail:GetOperationsForResource"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-northeast-2"
+        },
+        "Bool": {
+          "aws:MultiFactorAuthPresent": "true"
+        }
+      }
+    },
+    {
+      "Sid": "OpenTemporarySshSessionToExactProductionInstance",
+      "Effect": "Allow",
+      "Action": "lightsail:GetInstanceAccessDetails",
+      "Resource": "arn:aws:lightsail:ap-northeast-2:ACCOUNT_ID:Instance/INSTANCE_ID",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-northeast-2"
+        },
+        "Bool": {
+          "aws:MultiFactorAuthPresent": "true"
+        }
+      }
+    },
+    {
+      "Sid": "DenyLightsailOutsideSeoul",
+      "Effect": "Deny",
+      "Action": "lightsail:*",
+      "Resource": "*",
+      "Condition": {
+        "StringNotEquals": {
+          "aws:RequestedRegion": "ap-northeast-2"
+        }
+      }
+    }
+  ]
+}

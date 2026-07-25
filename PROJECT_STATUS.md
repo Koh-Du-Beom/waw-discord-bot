@@ -207,8 +207,10 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 
 ## 다음 작업
 
-Task 5와 G4는 완료됐다. 다음은 G5 승인 전 production operator 최소 권한
-정책과 Task 6 read-only preflight를 준비한다. Actual OAuth G2, bot-side
+Task 5와 G4는 완료됐다. G5 전 production operator 최소 권한 policy
+template·renderer·local deny contract와 Task 6 runbook도 준비됐다. 다음은
+owner-approved production read-only inventory로 exact instance ARN을 확정하고
+IAM simulation 결과와 G5 승인 record를 완성하는 것이다. Actual OAuth G2, bot-side
 member lookup G3, production migration `0003`, application production 배포,
 DNS/TLS G6, monitoring G7과 최초 production vacuum은 각각 별도 gate를 유지한다.
 

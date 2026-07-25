@@ -21,6 +21,8 @@
   Gateway lifecycle, singleton lease와 discord.js signal adapter
 - Separate web/bot systemd units, `LoadCredential=` isolation, immutable release
   fixture, conflict-safe Caddy assets와 disposable AWS integration runner
+- MFA·서울 region·exact instance ARN으로 제한한 production operator IAM
+  policy template, deterministic renderer/test와 Task 6 deployment runbook
 
 ### Changed
 
@@ -34,6 +36,8 @@
 - G4 owner-approved Ubuntu 24.04/1GB integration에서 PostgreSQL health,
   credential/process isolation, singleton, crash/storage failure, rollback과
   reboot recovery를 검증하고 AWS/CloudShell artifact를 전부 정리
+- G5 전 단계에서 production operator allowlist를 inventory와 temporary SSH
+  access로만 제한하고 IAM/S3/DNS/snapshot/firewall/lifecycle 권한을 제외
 
 ### Fixed
 

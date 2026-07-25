@@ -406,6 +406,19 @@ GPT 기능은 공급자·모델·비용·보존 경계의 별도 research/Propos
 - web/bot systemd units와 Caddy production template
 - deployment inventory/evidence와 operations runbook
 
+### G5 전 준비 증거
+
+- `deploy/iam/waw-production-operator-policy.json.tmpl`은 MFA와 서울 region을
+  강제하고 exact instance ARN의 temporary SSH access와 필요한 inventory
+  allowlist만 허용한다.
+- IAM/S3/DNS, instance create/delete/lifecycle, snapshot과 firewall mutation은
+  포함하지 않는다. Lightsail resource-level restriction을 지원하지 않는 조회
+  action만 `Resource: "*"`를 사용하며 action/region/MFA로 제한한다.
+- Deterministic renderer와 local contract test, G5 승인·preflight·rollback
+  절차는 `docs/operations/production-application-deployment-runbook.md`에 있다.
+- Actual account/instance substitution, IAM simulation/attachment, SSH와 host
+  preflight는 production AWS 접근이므로 owner 승인 전 실행하지 않는다.
+
 ### RED
 
 - IAM policy simulation과 actual operator identity/non-root check, forbidden action deny test를 먼저 실패시킨다.
