@@ -4,7 +4,7 @@
 
 ## 현재 단계
 
-PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; PLAN-0003 Tasks 1~4 production monitoring rollout 완료; PLAN-0004 Approved·Tasks 1~5 및 G1/G4 완료; G5 host preflight 중 발견한 malformed backup marker 수정·재발행 완료; G2/G3와 G5 배포·G6~G7, production migration `0003`, 최초 vacuum 별도 gate 유지
+PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; PLAN-0003 Tasks 1~4 production monitoring rollout 완료; PLAN-0004 Approved·Tasks 1~5 및 G1/G4 완료; G5 host preflight 중 발견한 malformed backup marker 수정·재발행 완료; web→bot current-role process 경계의 구현 공백을 `ADR-0015` Proposed로 분리; G2/G3와 G5 배포·G6~G7, production migration `0003`, 최초 vacuum 별도 gate 유지
 
 ## 완료
 

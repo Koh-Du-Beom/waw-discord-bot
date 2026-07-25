@@ -23,6 +23,8 @@
   fixture, conflict-safe Caddy assets와 disposable AWS integration runner
 - MFA·서울 region·exact instance ARN으로 제한한 production operator IAM
   policy template, deterministic renderer/test와 Task 6 deployment runbook
+- Separate systemd users 사이의 current-role 강제 재조회를 credential 공유나
+  TCP listener 없이 제공하는 Unix socket IPC Proposed ADR
 
 ### Changed
 
