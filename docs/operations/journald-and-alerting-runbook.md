@@ -9,10 +9,12 @@
 - `deploy/journald/60-waw-retention.conf`: persistent 30일/1GiB/4GiB-free ceiling과 forwarding off
 - `deploy/systemd/waw-monitor.service`·`.timer`: 1분 evaluator와 file-based Discord webhook credential
 - `deploy/monitoring/config.json`: unit, loopback health, backup marker와 certificate monitoring의 non-secret 설정
-- `src/operations/run-monitor.ts`: 기존 deterministic evaluator를 호출하고 fixed Discord payload만 전송
+- `src/operations/run-monitor.ts`: 기존 deterministic evaluator를 호출하고 이벤트별 한국어 Discord embed만 전송
 - `deploy/install-journald-monitoring-assets.sh`: exact target이 없거나 동일할 때만 install하며 다른 owner config를 덮어쓰지 않는 reversible installer
 
 Monitor는 root service로 system unit, backup marker, journal suppression과 filesystem state만 읽는다. Raw journal line, provider body, hostname, actor/guild/channel ID와 credential 값은 payload나 state에 넣지 않는다. Webhook은 `/etc/waw-credentials/monitor-discord-webhook`에서 `LoadCredential=`로만 읽으며 unit argument·일반 environment·Git에 두지 않는다.
+
+Discord 경보는 서비스·애플리케이션·백업·인증서·로그 저장 공간·시스템 로그 분기별 한국어 제목과 원인, 문제/복구 상태, 심각도, Discord 현지화 시간을 색상 embed로 표시한다. 등록되지 않은 안전한 alert/reason code는 기술 식별자를 보존한 기본 문구로 표시한다. `allowed_mentions.parse=[]`, 1,800-byte payload ceiling과 raw input 제외 계약은 그대로 유지한다.
 
 ## Production preflight — Task 4 owner gate
 

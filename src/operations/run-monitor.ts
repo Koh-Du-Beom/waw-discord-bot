@@ -14,6 +14,45 @@ import {
 const CONFIG_PATH = "/etc/waw-monitor/config.json";
 const STATE_PATH = "/var/lib/waw-monitor/state.json";
 const SAFE_TOKEN = /^[A-Za-z0-9._:@/+-]{1,128}$/;
+const DISCORD_COLORS = {
+  ok: 0x57f287,
+  warning: 0xfee75c,
+  critical: 0xed4245,
+} as const;
+
+const ALERT_NAMES: Readonly<Record<string, string>> = {
+  "monitor.input": "모니터 입력",
+  "runtime.health": "애플리케이션",
+  "backup.age": "백업",
+  "certificate.expiry": "인증서",
+  "journal.capacity": "로그 저장 공간",
+  "journal.dropped": "시스템 로그",
+  "service.waw-web.service": "웹 서비스",
+  "service.waw-bot.service": "Discord 봇",
+  "service.waw-backup.timer": "백업 스케줄",
+  "service.waw-monitor.timer": "모니터링 스케줄",
+  "service.caddy.service": "웹 보안 연결",
+};
+
+const REASON_MESSAGES: Readonly<Record<string, string>> = {
+  monitor_input_stale: "모니터링 정보가 제때 갱신되지 않았습니다.",
+  monitor_units_invalid: "확인할 서비스 목록이 올바르지 않습니다.",
+  service_inactive: "서비스가 실행 중이 아닙니다.",
+  runtime_unavailable: "애플리케이션에 연결할 수 없습니다.",
+  runtime_degraded: "애플리케이션 일부 기능이 원활하지 않습니다.",
+  backup_marker_invalid: "최근 백업 완료 기록을 확인할 수 없습니다.",
+  backup_age_critical: "마지막 백업 후 24시간 이상 지났습니다.",
+  backup_age_warning: "마지막 백업 후 20시간 이상 지났습니다.",
+  certificate_expiry_invalid: "인증서 만료일을 확인할 수 없습니다.",
+  certificate_expiry_critical: "인증서 만료까지 14일 미만 남았습니다.",
+  certificate_expiry_warning: "인증서 만료까지 21일 미만 남았습니다.",
+  journal_capacity_invalid: "로그 저장 공간 정보를 확인할 수 없습니다.",
+  filesystem_free_critical: "서버의 남은 저장 공간이 4GiB 이하입니다.",
+  journal_capacity_warning: "로그 사용량이 높거나 서버의 남은 공간이 부족합니다.",
+  journal_suppression_invalid: "누락된 시스템 로그 수를 확인할 수 없습니다.",
+  journal_suppression_repeated: "시스템 로그 누락이 반복해서 감지됐습니다.",
+  journal_suppression_detected: "시스템 로그 일부가 누락됐습니다.",
+};
 
 type MonitorConfig = {
   serviceVersion: string;
@@ -40,17 +79,8 @@ export async function deliverNotification(
     throw new Error("delivery_endpoint_invalid");
   }
 
-  const content = [
-    `severity=${notification.severity}`,
-    `alert_key=${notification.alert_key}`,
-    `state=${notification.state}`,
-    `first_observed_at=${notification.first_observed_at}`,
-    `last_observed_at=${notification.last_observed_at}`,
-    `reason_code=${notification.reason_code}`,
-    `service_version=${notification.service_version}`,
-  ].join(" ");
-  const payload = JSON.stringify({ content, allowed_mentions: { parse: [] } });
-  if (content.includes("@") || Buffer.byteLength(payload) > 1_800) {
+  const payload = JSON.stringify(formatDiscordNotification(notification));
+  if (payload.includes("@") || Buffer.byteLength(payload) > 1_800) {
     throw new Error("delivery_payload_invalid");
   }
 
@@ -74,6 +104,87 @@ export async function deliverNotification(
     }
     await new Promise((resolve) => setTimeout(resolve, retryAfter * 1_000));
   }
+}
+
+export function formatDiscordNotification(notification: AlertNotification): {
+  embeds: Array<{
+    title: string;
+    description: string;
+    color: number;
+    fields: Array<{ name: string; value: string; inline: boolean }>;
+    footer: { text: string };
+  }>;
+  allowed_mentions: { parse: [] };
+} {
+  const alertName = alertDisplayName(notification.alert_key);
+  const resolved = notification.state === "resolved";
+  const severityLabel =
+    notification.severity === "critical"
+      ? "긴급"
+      : notification.severity === "warning"
+        ? "주의"
+        : "정상";
+  const icon = resolved ? "🟢" : notification.severity === "critical" ? "🔴" : "🟡";
+  const stateLabel = resolved ? "정상 복구" : "문제 발생";
+  const description = resolved
+    ? `${alertName} 문제가 해소되어 정상 상태로 돌아왔습니다.`
+    : notification.reason_code === "service_inactive"
+      ? `${alertName} 실행이 중단됐습니다.`
+      : (REASON_MESSAGES[notification.reason_code] ??
+        `알 수 없는 원인이 감지됐습니다. (${notification.reason_code})`);
+
+  return {
+    embeds: [
+      {
+        title: `${icon} ${alertName} ${resolved ? "정상 복구" : alertTitleSuffix(notification.alert_key)}`,
+        description,
+        color: DISCORD_COLORS[notification.severity],
+        fields: [
+          { name: "상태", value: stateLabel, inline: true },
+          { name: "심각도", value: severityLabel, inline: true },
+          {
+            name: "최초 감지",
+            value: discordTimestamp(notification.first_observed_at, "F"),
+            inline: false,
+          },
+          {
+            name: "최근 확인",
+            value: discordTimestamp(notification.last_observed_at, "R"),
+            inline: false,
+          },
+        ],
+        footer: {
+          text: `${technicalAlertName(notification.alert_key)} · ${notification.service_version}`,
+        },
+      },
+    ],
+    allowed_mentions: { parse: [] },
+  };
+}
+
+function alertDisplayName(alertKey: string): string {
+  if (ALERT_NAMES[alertKey]) return ALERT_NAMES[alertKey];
+  if (alertKey.startsWith("service.")) {
+    return `${alertKey.slice("service.".length).replace(/\.service$|\.timer$/, "")} 서비스`;
+  }
+  return "운영 모니터링";
+}
+
+function alertTitleSuffix(alertKey: string): string {
+  if (alertKey.startsWith("service.")) return "중단";
+  if (alertKey === "backup.age") return "지연";
+  if (alertKey === "certificate.expiry") return "만료 임박";
+  if (alertKey === "journal.capacity") return "용량 부족";
+  if (alertKey === "journal.dropped") return "누락";
+  return "이상 감지";
+}
+
+function technicalAlertName(alertKey: string): string {
+  return alertKey.startsWith("service.") ? alertKey.slice("service.".length) : alertKey;
+}
+
+function discordTimestamp(value: string, style: "F" | "R"): string {
+  return `<t:${Math.floor(Date.parse(value) / 1_000)}:${style}>`;
 }
 
 async function main(): Promise<void> {

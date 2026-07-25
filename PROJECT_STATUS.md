@@ -153,6 +153,7 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 
 ## 완료
 
+- Discord 운영 경보를 서비스·백업·인증서·저장 공간·시스템 로그별 한국어 임베드로 표시하는 전송 포맷과 안전한 미등록 코드 fallback 구현 및 local test 완료
 - 제품 정책 초안 작성
 - 배포 및 보안 요구사항 초안 작성
 - Codex 작업 흐름 정의

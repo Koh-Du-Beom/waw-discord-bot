@@ -84,11 +84,25 @@ test("reads a file credential, retries 429 once, and preserves state on delivery
     assert.equal(`${success.stdout}${success.stderr}`.includes(syntheticSecret), false);
     assert.equal(requests.length, 2);
     const payload = JSON.parse(requests[0]?.toString("utf8") ?? "") as {
-      content: string;
+      embeds: Array<{
+        title: string;
+        description: string;
+        fields: Array<{ name: string; value: string; inline: boolean }>;
+        footer: { text: string };
+      }>;
       allowed_mentions: { parse: unknown[] };
     };
     assert.deepEqual(payload.allowed_mentions, { parse: [] });
-    assert.equal(payload.content.includes("@"), false);
+    assert.equal(payload.embeds[0]?.title, "🔴 웹 서비스 중단");
+    assert.equal(payload.embeds[0]?.description, "웹 서비스 실행이 중단됐습니다.");
+    assert.deepEqual(payload.embeds[0]?.fields, [
+      { name: "상태", value: "문제 발생", inline: true },
+      { name: "심각도", value: "긴급", inline: true },
+      { name: "최초 감지", value: "<t:1784764800:F>", inline: false },
+      { name: "최근 확인", value: "<t:1784764800:R>", inline: false },
+    ]);
+    assert.equal(payload.embeds[0]?.footer.text, "waw-web.service · 0.1.0");
+    assert.equal(JSON.stringify(payload).includes("@"), false);
     assert.ok(requests[0]!.byteLength <= 1_800);
     assert.match(await readFile(successState, "utf8"), /service\.waw-web\.service/);
 

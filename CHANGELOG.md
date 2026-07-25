@@ -99,6 +99,7 @@
   without receiving Discord member or role payloads in the web process.
 - Dashboard setting mutations now carry the authenticated actor and operation
   correlation into one PostgreSQL setting/operation/audit transaction.
+- Discord 운영 경보를 한 줄 영문 메타데이터 대신 이벤트별 한국어 제목·원인·상태와 Discord 시간 표기를 갖춘 색상 임베드로 표시
 - Production backup publication now selects and validates one latest migration
   version before serializing JSON; the malformed multi-row marker discovered
   during G5 preflight was replaced by a valid schema-version-2 encrypted
