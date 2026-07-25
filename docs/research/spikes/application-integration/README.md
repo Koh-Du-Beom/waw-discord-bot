@@ -31,6 +31,13 @@ root로 실행한다. 다음을 검증한다.
 Actual AWS runner, reboot recovery와 final resource cleanup evidence는 G4 승인 뒤
 별도 실행 결과로 이 문서에 추가한다.
 
+승인 뒤 local committed source를 `waw-application-source.tgz`로 만들고 Orca
+내장 브라우저의 AWS CloudShell에 archive와
+[`run-aws-spike.sh`](./run-aws-spike.sh)를 업로드한다. Runner는 서울
+`micro_3_0` instance와 일회용 key만 만들고 SSH를 CloudShell egress `/32`로
+제한한다. 종료 trap은 instance, key, static IP, disk와 snapshot의 prefix
+count가 모두 `0`이 될 때까지 확인한다.
+
 ## 공식 공급 근거
 
 - Node.js 24.18.0 LTS release의 Linux x64 archive와 공개 SHA-256을 고정한다.

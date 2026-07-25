@@ -31,9 +31,9 @@ grep -q 'reverse_proxy 127\.0\.0\.1:18080' "$caddy"
 grep -q 'output discard' "$caddy"
 
 if command -v systemd-analyze >/dev/null; then
-  install -d -m 755 "$ROOT/usr/bin" "$ROOT/usr/lib/systemd/system"
-  printf '#!/bin/sh\nexit 0\n' >"$ROOT/usr/bin/node"
-  chmod 755 "$ROOT/usr/bin/node"
+  install -d -m 755 "$ROOT/usr/local/bin" "$ROOT/usr/lib/systemd/system"
+  printf '#!/bin/sh\nexit 0\n' >"$ROOT/usr/local/bin/node"
+  chmod 755 "$ROOT/usr/local/bin/node"
   for target in sysinit.target basic.target network.target network-online.target multi-user.target; do
     printf '[Unit]\nDescription=Fixture %s\n' "$target" >"$ROOT/usr/lib/systemd/system/$target"
   done

@@ -17,6 +17,9 @@ SENTINEL_ROOT="$(mktemp -d /tmp/waw-existing-assets.XXXXXX)"
 NODE_TMP="$(mktemp -d /tmp/waw-node.XXXXXX)"
 cleanup() {
   status=$?
+  if [[ "$status" == 0 && "${WAW_KEEP_INTEGRATION:-0}" == 1 ]]; then
+    return
+  fi
   set +e
   systemctl disable --now waw-web.service waw-bot.service >/dev/null 2>&1
   rm -f /etc/systemd/system/waw-web.service /etc/systemd/system/waw-bot.service
@@ -151,7 +154,7 @@ systemd-run --quiet --wait --collect --unit=waw-bot-duplicate \
   --property=User=waw-bot --property=Group=waw-bot \
   --property=RuntimeDirectory=waw-bot \
   --property=LoadCredential=discord-bot-token:/etc/waw-credentials/bot-discord-token \
-  /usr/bin/node /opt/waw/current/dist/server/integration/bot-fixture.js
+  /usr/local/bin/node /opt/waw/current/dist/server/integration/bot-fixture.js
 duplicate_status=$?
 set -e
 [[ "$duplicate_status" == 73 ]]
