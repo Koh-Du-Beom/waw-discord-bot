@@ -11,6 +11,9 @@ import { Pool } from "pg";
 import { createAuthService } from "../auth/auth-service.ts";
 import { parseAuthConfiguration } from "../auth/oauth-configuration.ts";
 import { hashOpaqueSessionId } from "./session-store.ts";
+import { PostgresFeatureStore } from "./feature-store.ts";
+import { RiotAccountLinkService } from "../riot/account-link.ts";
+import { PostgresRiotCommandStore } from "./postgres-riot-command-store.ts";
 import {
   applyMigration,
   applyPendingMigrations,
@@ -27,10 +30,14 @@ const migrationOnePath = path.join(projectRoot, "migrations/0001_auth_and_operat
 const migrationTwoPath = path.join(projectRoot, "migrations/0002_application_persistence.sql");
 const migrationThreePath = path.join(projectRoot, "migrations/0003_session_recent_auth.sql");
 const migrationFourPath = path.join(projectRoot, "migrations/0004_dashboard_settings.sql");
+const migrationFivePath = path.join(projectRoot, "migrations/0005_summary_riot_game.sql");
+const migrationSixPath = path.join(projectRoot, "migrations/0006_admin_command_result.sql");
 const migrationOneSql = await readFile(migrationOnePath, "utf8");
 const migrationTwoSql = await readFile(migrationTwoPath, "utf8");
 const migrationThreeSql = await readFile(migrationThreePath, "utf8");
 const migrationFourSql = await readFile(migrationFourPath, "utf8");
+const migrationFiveSql = await readFile(migrationFivePath, "utf8");
+const migrationSixSql = await readFile(migrationSixPath, "utf8");
 
 let clusterDirectory = "";
 let socketDirectory = "";
@@ -107,6 +114,16 @@ test("applies migration transactionally, records version, and rejects reapplicat
     name: "dashboard_settings",
     sql: migrationFourSql,
   });
+  await applyMigration(adminPool, {
+    version: 5,
+    name: "summary_riot_game",
+    sql: migrationFiveSql,
+  });
+  await applyMigration(adminPool, {
+    version: 6,
+    name: "admin_command_result",
+    sql: migrationSixSql,
+  });
 
   const version = await adminPool.query<{ version: number }>(
     "select version from app_schema_version order by version",
@@ -116,6 +133,8 @@ test("applies migration transactionally, records version, and rejects reapplicat
     { version: 2 },
     { version: 3 },
     { version: 4 },
+    { version: 5 },
+    { version: 6 },
   ]);
 
   await assert.rejects(
@@ -139,6 +158,172 @@ test("applies migration transactionally, records version, and rejects reapplicat
   );
   assert.equal(rolledBack.rows[0]?.exists, null);
 });
+
+test("enforces Riot 1:N ownership and platform/game deduplication in PostgreSQL", async () => {
+  const service = new RiotAccountLinkService(new PostgresFeatureStore(adminPool));
+  const base = {
+    platformId: "KR",
+    gameName: "표시 이름",
+    tagLine: "KR1",
+    administratorId: "administrator",
+    createdAt: new Date("2026-07-25T00:00:00Z"),
+  };
+  await service.approve({
+    ...base,
+    linkId: "pg-link-1",
+    discordUserId: "discord-1",
+    puuid: "pg-puuid-1",
+  });
+  await service.approve({
+    ...base,
+    linkId: "pg-link-2",
+    discordUserId: "discord-1",
+    puuid: "pg-puuid-2",
+  });
+  assert.equal((await service.list("discord-1")).length, 2);
+  await assert.rejects(
+    adminPool.query(
+      `insert into riot_account_link (
+        link_id, discord_user_id, puuid, platform_id, game_name, tag_line,
+        verification_method, is_primary, approved_by, created_at
+      ) values (
+        'pg-link-conflict', 'discord-2', 'pg-puuid-1', 'KR', '다른 이름',
+        'KR1', 'admin_approved_unverified', false, 'administrator', now()
+      )`,
+    ),
+    /duplicate key/,
+  );
+  await adminPool.query(
+    `insert into riot_game (game_key, platform_id, game_id, queue_id, started_at)
+     values ('KR:game-1', 'KR', 'game-1', 420, now())`,
+  );
+  await assert.rejects(
+    adminPool.query(
+      `insert into riot_game (game_key, platform_id, game_id, queue_id, started_at)
+       values ('another-key', 'KR', 'game-1', 420, now())`,
+    ),
+    /duplicate key/,
+  );
+});
+
+test("keeps Riot requests pending before approval and commits conflicts with audit atomically", async () => {
+  const store = new PostgresRiotCommandStore(adminPool);
+  const occurredAt = new Date("2026-07-25T05:00:00Z");
+  const request = async (
+    operationId: string,
+    requestId: string,
+    gameName: string,
+  ) =>
+    store.requestLinkWithAudit({
+      operationId,
+      requestId,
+      discordUserId: "riot-command-user",
+      platformId: "KR",
+      gameName,
+      tagLine: "KR1",
+      requestedAt: occurredAt,
+      audit: commandAudit(operationId, "라이엇계정 연결", occurredAt),
+    });
+  assert.equal(await request("riot-request-op-1", "riot-request-1", "첫계정"), "created");
+  assert.equal(
+    await request("riot-request-op-duplicate", "riot-request-duplicate", "첫계정"),
+    "already_pending",
+  );
+  const beforeApproval = await store.list({
+    discordUserId: "riot-command-user",
+    includePending: true,
+  });
+  assert.deepEqual(beforeApproval.map((item) => item.kind), ["pending"]);
+
+  assert.equal(
+    await store.approveRequestWithAudit({
+      operationId: "riot-approve-op-1",
+      requestId: "riot-request-1",
+      expectedVersion: 0,
+      linkId: "riot-approved-link-1",
+      puuid: "riot-approved-puuid",
+      administratorId: "administrator",
+      decidedAt: occurredAt,
+      audit: commandAudit("riot-approve-op-1", "라이엇계정 연결", occurredAt),
+    }),
+    "approved",
+  );
+  assert.equal(await request("riot-request-op-2", "riot-request-2", "둘째계정"), "created");
+  assert.equal(
+    await store.approveRequestWithAudit({
+      operationId: "riot-approve-op-conflict",
+      requestId: "riot-request-2",
+      expectedVersion: 0,
+      linkId: "riot-approved-link-conflict",
+      puuid: "riot-approved-puuid",
+      administratorId: "administrator",
+      decidedAt: occurredAt,
+      audit: commandAudit("riot-approve-op-conflict", "라이엇계정 연결", occurredAt),
+    }),
+    "puuid_conflict",
+  );
+  const conflict = await adminPool.query<{ status: string; reason_code: string }>(
+    `select request.status, audit.reason_code
+       from riot_account_link_request request
+       join audit_event audit on audit.event_id = 'riot-approve-op-conflict'
+      where request.request_id = 'riot-request-2'`,
+  );
+  assert.deepEqual(conflict.rows, [{
+    status: "pending_admin_approval",
+    reason_code: "riot_active_puuid_conflict",
+  }]);
+
+  await adminPool.query(`
+    create function reject_audit_fixture() returns trigger language plpgsql as $$
+    begin
+      if new.event_id = 'audit-failure-operation' then
+        raise exception 'synthetic audit failure';
+      end if;
+      return new;
+    end
+    $$;
+    create trigger reject_audit_fixture
+      before insert on audit_event
+      for each row execute function reject_audit_fixture()
+  `);
+  try {
+    await assert.rejects(
+      request("audit-failure-operation", "audit-failure-request", "감사실패계정"),
+      PersistenceError,
+    );
+    const rolledBack = await adminPool.query<{ operations: string; requests: string }>(`
+      select
+        (select count(*)::text from operation_ledger
+          where operation_id = 'audit-failure-operation') as operations,
+        (select count(*)::text from riot_account_link_request
+          where request_id = 'audit-failure-request') as requests
+    `);
+    assert.deepEqual(rolledBack.rows, [{ operations: "0", requests: "0" }]);
+  } finally {
+    await adminPool.query(`
+      drop trigger reject_audit_fixture on audit_event;
+      drop function reject_audit_fixture()
+    `);
+  }
+});
+
+function commandAudit(
+  eventId: string,
+  commandName: "라이엇계정 연결",
+  occurredAt: Date,
+) {
+  return {
+    eventId,
+    correlationId: `correlation:${eventId}`,
+    occurredAt,
+    actorId: "riot-command-user",
+    guildId: "guild",
+    channelId: "channel",
+    commandName,
+    outcome: "success" as const,
+    reasonCode: "fixture",
+  };
+}
 
 test("adopts the exact production legacy version 1 before applying version 2", async () => {
   const databaseName = "waw_legacy_version_one_fixture";
@@ -252,6 +437,33 @@ test("resumes a migration sequence and rejects a changed applied checksum", asyn
       migrations[1],
     ]),
     MigrationChecksumMismatchError,
+  );
+});
+
+test("resumes from the exact mixed-line-ending production ledger", async () => {
+  const productionHistoricalChecksums = [
+    [1, "337cb749ea8eab659a09a8906c8887bcc49e7d47930448610149d13ac046db10"],
+    [2, "fabb240cfc7104b6bd9650bb0ade6cdd3c099934a9ad95fbff8d836debaa165d"],
+    [3, "f7f94d1f2c5b4d5f39fd763f36f7b7d8819462f818d37052bf51507058edc184"],
+    [4, "a48187b28dc3726726e5bef174a6e9b01a33ba7779c75ad93c68b0e3485e6419"],
+  ] as const;
+  for (const [version, sha256] of productionHistoricalChecksums) {
+    await adminPool.query(
+      "update waw_schema_migration set sha256 = $2 where version = $1",
+      [version, sha256],
+    );
+  }
+
+  assert.deepEqual(
+    await applyPendingMigrations(adminPool, [
+      { version: 1, name: "auth_and_operations", sql: migrationOneSql },
+      { version: 2, name: "application_persistence", sql: migrationTwoSql },
+      { version: 3, name: "session_recent_auth", sql: migrationThreeSql },
+      { version: 4, name: "dashboard_settings", sql: migrationFourSql },
+      { version: 5, name: "summary_riot_game", sql: migrationFiveSql },
+      { version: 6, name: "admin_command_result", sql: migrationSixSql },
+    ]),
+    [],
   );
 });
 

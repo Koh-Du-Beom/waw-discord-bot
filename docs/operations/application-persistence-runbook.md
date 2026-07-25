@@ -12,6 +12,36 @@
 - `src/persistence/postgres-persistence.ts` uses parameterized queries and transactions for session rotation, OAuth state consumption, operation dedupe plus audit append, role-cache expiry and database-size observation.
 - `src/persistence/database-credential.ts` reads a database URL only from an absolute systemd credential directory. Provider errors are converted to fixed reason codes.
 - `src/persistence/run-migration.ts` applies pending migrations in order, verifies checksums on resume and emits only applied versions or a fixed reason code.
+- Migration checksums canonicalize `CRLF` and lone `CR` to `LF` before hashing.
+  Resume also accepts the exact `CRLF` rendering checksum of the unchanged
+  current migration text so the historical production 0001-0004 ledger remains
+  valid across checkout platforms. Any change other than line endings remains
+  a checksum mismatch. Newly applied migrations always record the canonical
+  `LF` checksum.
+- `migrations/0005_summary_riot_game.sql` adds additive Riot link, normalized
+  link-request, game/observation, incident and immutable revision tables.
+  Requests remain `pending_admin_approval` until an administrator decision
+  supplies a PUUID; they are never represented as ownership verification. Active PUUID and
+  `(platform_id, game_id)` uniqueness are enforced by PostgreSQL. Web remains
+  read-only for these tables; bot mutation access is limited to the feature
+  tables and command operation/audit inserts.
+- `migrations/0006_admin_command_result.sql` adds the bot-only durable terminal
+  result table for PLAN-0006. It stores only operation ID, allowlisted command,
+  allowlisted outcome/reason and completion time; Riot IDs, PUUIDs, Discord
+  message content and provider responses are excluded.
+- `PostgresRiotCommandStore` commits link requests, unlink, administrator
+  approval and their command audit in one transaction. A PUUID conflict keeps
+  the request pending and commits a fixed failure audit; an audit write failure
+  rolls the domain mutation and operation ledger back.
+- Dashboard administrator command dispatch writes a separate
+  `dashboard.admin_command.dispatch` audit event before IPC transmission. It
+  correlates by operation ID without claiming the bot-owned operation ledger
+  row and excludes request payload, Riot ID and PUUID. Audit failure prevents
+  transport dispatch.
+- Administrator decisions use a request `version` read from the pending list.
+  Approval and rejection lock the row and require the same version; stale or
+  already-decided requests cannot create a link. PUUID validation is a separate
+  port and only its normalized value enters the approval transaction.
 
 The migration creates non-login capability roles. Production login role creation, membership and credential materialization remain G1 operations and must use distinct credentials from backup and future bot/web runtimes.
 
@@ -36,6 +66,11 @@ The test must prove:
 - One winner from 16 concurrent operation attempts and audit failure rollback.
 - Non-secret DB-size snapshot and provider-error canary absence.
 - Temporary PostgreSQL process and directory absence after the test.
+
+On Windows without host `initdb`, the same migration sequence may be verified
+in an ephemeral official PostgreSQL 17 container. The container must be removed
+after schema versions 1 through 6, active-PUUID uniqueness and game-key
+deduplication are checked. This does not authorize production migration.
 
 ## G1 owner gate
 

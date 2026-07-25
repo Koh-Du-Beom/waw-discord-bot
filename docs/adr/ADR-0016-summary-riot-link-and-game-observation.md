@@ -1,6 +1,6 @@
 # ADR-0016: Conversation summary, Riot account links, and game observation
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-25
 - Owners: Product owner
 - Related requirements: FUN-004, FUN-005, FUN-010 through FUN-015, PRI-001 through PRI-003, OWN-007, OWN-008, OWN-010 through OWN-012, OWN-015
@@ -53,16 +53,18 @@ Choose Option B and the following boundaries.
 
 ### Commands
 
-- `/summary start:<time> end:<time>` summarizes the current channel or thread.
-- `/riot link riot-id:<name#tag> platform:<platform>` requests a link.
-- `/riot list [member]` lists active links visible to the caller.
-- `/riot unlink account:<account>` removes the caller's link.
-- `/game status [member]` shows Riot and Go Live observations separately.
-- `/game correct event:<event> ...` and `/game cancel event:<event> reason:<reason>`
+- `/요약 시작:<time> 종료:<time>` summarizes the current channel or thread.
+- `/라이엇계정 연결 라이엇아이디:<name#tag> 플랫폼:<platform>` requests a link.
+- `/라이엇계정 목록 [사용자]` lists active links visible to the caller.
+- `/라이엇계정 연결해제 계정:<account>` removes the caller's link.
+- `/몰랭검거 현황 [사용자]` shows Riot and Go Live observations separately.
+- `/몰랭검거 정정 사건:<event> ...` and
+  `/몰랭검거 취소 사건:<event> 사유:<reason>`
   are administrator-only corrections.
 
-Command responses use Korean user-facing text. Stable command identifiers remain
-English to simplify Discord registration, documentation, and support.
+Command identifiers, options and responses use Korean user-facing text. Internal
+domain and reason-code identifiers remain stable English strings for logging,
+documentation and support.
 
 ### Conversation summary
 
@@ -158,5 +160,13 @@ external approvals and operational constraints are known.
 
 ## Approval
 
-- Owner decision:
-- Approved date:
+- Owner decision: Approved as proposed, including the 1:N Riot-account link
+  model with globally unique active PUUID ownership, explicit verification
+  labels, complete and ephemeral summaries, separate Riot and Discord evidence,
+  `unknown` on insufficient evidence, the five-minute/two-minute timing policy,
+  platform-and-game-ID deduplication, and administrator-only correction and
+  cancellation.
+- Approved date: 2026-07-25
+- Owner amendment: On 2026-07-25, approved Korean Discord command identifiers
+  and the `/몰랭검거 현황|정정|취소` naming in place of the original English
+  command identifiers. Internal identifiers remain English.

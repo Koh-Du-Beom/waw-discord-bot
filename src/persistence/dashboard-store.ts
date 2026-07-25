@@ -117,6 +117,37 @@ export class PostgresDashboardStore {
     }
   }
 
+  async recordAdminCommandDispatch(input: {
+    eventId: string;
+    operationId: string;
+    occurredAt: Date;
+    actorId: string;
+    guildId: string;
+    commandName: string;
+  }): Promise<void> {
+    try {
+      await this.pool.query(
+        `insert into audit_event (
+           event_id, occurred_at, event_type, actor_id, outcome, reason_code,
+           correlation_id, guild_id, channel_id, command_name
+         ) values (
+           $1,$2,'dashboard.admin_command.dispatch',$3,'success',
+           'dispatch_authorized',$4,$5,'dashboard',$6
+         )`,
+        [
+          input.eventId,
+          input.occurredAt,
+          input.actorId,
+          input.operationId,
+          input.guildId,
+          input.commandName,
+        ],
+      );
+    } catch {
+      throw new PersistenceError("dashboard_admin_dispatch_audit_failed");
+    }
+  }
+
   private async transaction<T>(
     operation: (client: PoolClient) => Promise<T>,
   ): Promise<T> {

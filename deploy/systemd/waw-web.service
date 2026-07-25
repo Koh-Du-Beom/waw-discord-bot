@@ -18,6 +18,8 @@ Environment=WAW_WEB_PORT=18080
 Environment=WAW_MEMBER_ROLE_SOCKET=/run/waw-member-role/member-role.sock
 Environment=WAW_BOT_HEALTH_PATH=/run/waw-member-role/health.json
 Environment=WAW_BACKUP_MARKER_PATH=/var/lib/waw-backup/last-published.json
+Environment=WAW_ADMIN_COMMAND_IPC_ENABLED=0
+Environment=WAW_ADMIN_COMMAND_SOCKET=/run/waw-admin-command/admin-command.sock
 ExecStart=/usr/local/bin/node /opt/waw/current/dist/server/web/main.js
 Restart=on-failure
 RestartSec=1s
@@ -36,7 +38,7 @@ ProtectKernelTunables=true
 ProtectSystem=strict
 ReadOnlyPaths=/opt/waw/current
 ReadWritePaths=/var/lib/waw-web
-SupplementaryGroups=waw-member-role
+SupplementaryGroups=waw-member-role waw-admin-command
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 StateDirectory=waw-web
 StateDirectoryMode=0700

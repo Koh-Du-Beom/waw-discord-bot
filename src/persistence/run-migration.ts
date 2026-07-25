@@ -32,6 +32,16 @@ const migrations = [
     name: "dashboard_settings",
     path: path.resolve(import.meta.dirname, "../../migrations/0004_dashboard_settings.sql"),
   },
+  {
+    version: 5,
+    name: "summary_riot_game",
+    path: path.resolve(import.meta.dirname, "../../migrations/0005_summary_riot_game.sql"),
+  },
+  {
+    version: 6,
+    name: "admin_command_result",
+    path: path.resolve(import.meta.dirname, "../../migrations/0006_admin_command_result.sql"),
+  },
 ] as const;
 
 async function main(): Promise<void> {

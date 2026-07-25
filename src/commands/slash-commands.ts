@@ -1,0 +1,112 @@
+import {
+  ApplicationCommandOptionType,
+  ApplicationCommandType,
+  type APIApplicationCommandStringOption,
+  type RESTPostAPIApplicationCommandsJSONBody,
+} from "discord.js";
+
+const stringOption = (
+  name: string,
+  description: string,
+  required = true,
+): APIApplicationCommandStringOption => ({
+  type: ApplicationCommandOptionType.String,
+  name,
+  description,
+  required,
+});
+
+export const WAW_SLASH_COMMANDS: readonly RESTPostAPIApplicationCommandsJSONBody[] = [
+  {
+    type: ApplicationCommandType.ChatInput,
+    name: "요약",
+    description: "현재 채널 또는 스레드의 대화를 요약합니다.",
+    options: [
+      stringOption("시작", "요약 시작 시각(ISO 8601)"),
+      stringOption("종료", "요약 종료 시각(ISO 8601)"),
+    ],
+  },
+  {
+    type: ApplicationCommandType.ChatInput,
+    name: "라이엇계정",
+    description: "Riot 계정 연결을 관리합니다.",
+    options: [
+      {
+        type: ApplicationCommandOptionType.Subcommand,
+        name: "연결",
+        description: "Riot 계정 연결을 요청합니다.",
+        options: [
+          stringOption("라이엇아이디", "Riot ID(name#tag)"),
+          stringOption("플랫폼", "Riot platform ID"),
+        ],
+      },
+      {
+        type: ApplicationCommandOptionType.Subcommand,
+        name: "목록",
+        description: "활성 Riot 계정 연결을 조회합니다.",
+        options: [
+          {
+            type: ApplicationCommandOptionType.User,
+            name: "사용자",
+            description: "조회할 Discord 사용자",
+            required: false,
+          },
+        ],
+      },
+      {
+        type: ApplicationCommandOptionType.Subcommand,
+        name: "연결해제",
+        description: "내 Riot 계정 연결을 해제합니다.",
+        options: [stringOption("계정", "해제할 계정 연결 ID")],
+      },
+    ],
+  },
+  {
+    type: ApplicationCommandType.ChatInput,
+    name: "몰랭검거",
+    description: "게임 관측과 사건을 관리합니다.",
+    options: [
+      {
+        type: ApplicationCommandOptionType.Subcommand,
+        name: "현황",
+        description: "Riot와 Go Live 관측을 각각 조회합니다.",
+        options: [
+          {
+            type: ApplicationCommandOptionType.User,
+            name: "사용자",
+            description: "조회할 Discord 사용자",
+            required: false,
+          },
+        ],
+      },
+      {
+        type: ApplicationCommandOptionType.Subcommand,
+        name: "정정",
+        description: "관리자가 게임 사건을 정정합니다.",
+        options: [
+          stringOption("사건", "정정할 사건 ID"),
+          stringOption("사유", "정정 사유"),
+        ],
+      },
+      {
+        type: ApplicationCommandOptionType.Subcommand,
+        name: "취소",
+        description: "관리자가 게임 사건을 취소합니다.",
+        options: [
+          stringOption("사건", "취소할 사건 ID"),
+          stringOption("사유", "취소 사유"),
+        ],
+      },
+    ],
+  },
+] as const;
+
+export const KOREAN_COMMAND_RESPONSES = {
+  invalidRange: "시작 시각은 종료 시각보다 빨라야 하며 범위는 최대 24시간입니다.",
+  incompleteSummary: "요청한 전체 대화 범위를 확인할 수 없어 요약하지 않았습니다.",
+  providerUnavailable: "요약 제공자가 아직 설정되지 않았습니다.",
+  riotPendingApproval: "관리자 확인 전에는 소유권이 검증되지 않은 연결로 표시됩니다.",
+  riotConflict: "이 Riot 계정은 이미 다른 Discord 사용자에게 연결되어 있습니다.",
+  adminOnly: "이 명령은 관리자만 사용할 수 있습니다.",
+  unknownEvidence: "증거가 부족하거나 외부 API를 확인할 수 없어 상태를 알 수 없습니다.",
+} as const;

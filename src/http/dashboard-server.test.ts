@@ -86,6 +86,9 @@ function ports(overrides: Partial<DashboardHttpPorts> = {}): DashboardHttpPorts 
       settings: { summaryEnabled: false, version: 4 },
     }),
     readAudit: async () => audit,
+    listPendingRiotLinks: async () => ({ requests: [] }),
+    approveRiotLink: async () => ({ message: "승인했습니다." }),
+    rejectRiotLink: async () => ({ message: "거절했습니다." }),
     ...overrides,
   };
 }
@@ -165,6 +168,136 @@ test("composes auth and protected read routes with allowlisted DTOs", async () =
     headers: mutationHeaders,
   });
   assert.equal(logout.statusCode, 204);
+  await app.close();
+});
+
+test("Riot administrator routes require current admin, CSRF, recent auth, confirmation and version", async () => {
+  const authorizationCalls: {
+    kind: string;
+    explicitConfirmation?: boolean;
+    headers: Readonly<Record<string, string | undefined>>;
+  }[] = [];
+  const portCalls: string[] = [];
+  const app = server({
+    auth: {
+      async authorize(input) {
+        authorizationCalls.push(input);
+        return authResponse(200, {
+          kind: "authorized",
+          actorId: "administrator-1",
+          authorizationTier: "administrator",
+          source: "current-role",
+        });
+      },
+    },
+    ports: {
+      async listPendingRiotLinks(input) {
+        portCalls.push(`list:${input.authorizationTier}`);
+        return {
+          requests: [{
+            requestId: "request-1",
+            discordUserId: "member-1",
+            platformId: "KR",
+            gameName: "계정",
+            tagLine: "KR1",
+            requestedAt: "2026-07-25T00:00:00.000Z",
+            version: 3,
+          }],
+        };
+      },
+      async approveRiotLink(input) {
+        portCalls.push(`approve:${input.request.expectedVersion}`);
+        return { message: "승인했습니다." };
+      },
+      async rejectRiotLink(input) {
+        portCalls.push(`reject:${input.request.expectedVersion}`);
+        throw new HttpPortError("conflict", "riot_link_request_stale");
+      },
+    },
+  });
+
+  const list = await app.inject({
+    method: "POST",
+    url: "/api/riot/requests/list",
+    headers: mutationHeaders,
+    payload: {},
+  });
+  assert.equal(list.statusCode, 200);
+  assert.equal(list.json().requests[0].version, 3);
+
+  const approve = await app.inject({
+    method: "POST",
+    url: "/api/riot/requests/approve",
+    headers: mutationHeaders,
+    payload: {
+      requestId: "request-1",
+      expectedVersion: 3,
+      linkId: "link-1",
+      puuid: "synthetic-puuid-00000001",
+      confirmation: true,
+    },
+  });
+  assert.equal(approve.statusCode, 200);
+
+  const reject = await app.inject({
+    method: "POST",
+    url: "/api/riot/requests/reject",
+    headers: mutationHeaders,
+    payload: {
+      requestId: "request-1",
+      expectedVersion: 2,
+      confirmation: true,
+    },
+  });
+  assert.equal(reject.statusCode, 409);
+  assert.equal(reject.json().error.code, "conflict");
+  assert.deepEqual(
+    authorizationCalls.map((call) => ({
+      kind: call.kind,
+      confirmation: call.explicitConfirmation ?? false,
+      csrf: call.headers["x-csrf-token"],
+    })),
+    [
+      { kind: "mutation", confirmation: false, csrf: csrfToken },
+      { kind: "high-risk", confirmation: true, csrf: csrfToken },
+      { kind: "high-risk", confirmation: true, csrf: csrfToken },
+    ],
+  );
+  assert.deepEqual(portCalls, ["list:administrator", "approve:3", "reject:2"]);
+
+  const missingConfirmation = await app.inject({
+    method: "POST",
+    url: "/api/riot/requests/approve",
+    headers: mutationHeaders,
+    payload: {
+      requestId: "request-1",
+      expectedVersion: 3,
+      linkId: "link-1",
+      puuid: "synthetic-puuid-00000001",
+    },
+  });
+  assert.equal(missingConfirmation.statusCode, 400);
+  await app.close();
+});
+
+test("Riot administrator routes reject a current operator before invoking ports", async () => {
+  let portCalls = 0;
+  const app = server({
+    ports: {
+      async listPendingRiotLinks() {
+        portCalls += 1;
+        return { requests: [] };
+      },
+    },
+  });
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/riot/requests/list",
+    headers: mutationHeaders,
+    payload: {},
+  });
+  assert.equal(response.statusCode, 403);
+  assert.equal(portCalls, 0);
   await app.close();
 });
 

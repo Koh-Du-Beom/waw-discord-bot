@@ -84,7 +84,8 @@ The production units require these exact inputs:
 
 - web file credentials: `web-database-url`, `web-oauth-client-secret`,
   `web-csrf-key`;
-- bot file credential: `bot-discord-token`;
+- bot file credentials: `bot-discord-token`, and the separately scoped
+  `bot-database-url` for the `waw_bot` application role;
 - web non-secret environment: production auth environment, Discord client ID,
   exact canonical origin/redirect, guild ID, operator/admin role IDs, provider
   timeout and release version;
@@ -95,6 +96,41 @@ Never place credential values in the environment files. Apply pending
 separately approved Supabase migration gate before starting the new web
 release. The `0004` migration creates the singleton low-risk setting and grants
 only `waw_web` read/update access; `waw_bot` remains denied.
+
+PLAN-0005 adds `0005` feature tables and command audit inserts for `waw_bot`.
+Do not materialize `bot-database-url`, apply `0005`, restart the bot or register
+Discord commands until the corresponding production migration and credential
+gate is separately approved.
+
+PLAN-0006 adds the `0006` durable administrator-command terminal result table.
+Task 2 disposable verification does not authorize applying `0006` to Supabase,
+changing a production credential or enabling the administrator IPC transport.
+
+The repository units define the administrator IPC as disabled by default with
+`WAW_ADMIN_COMMAND_IPC_ENABLED=0`. The reviewed host rollout must create the
+`waw-admin-command` group before either unit starts, verify
+`/run/waw-admin-command` is `waw-bot:waw-admin-command` mode `0750`, and verify
+the socket is mode `0660`. `waw-web` may receive only supplementary group
+membership; it must not receive the bot token or bot database credential.
+Changing the feature flag or host group/unit remains a separate owner gate.
+
+Task 6 process-boundary evidence used disposable Ubuntu 24.04 and PostgreSQL 17.
+It verified directory `0750`, socket `0660`, `waw-web` access, unrelated-user
+denial, crash-stale restart, bounded connections, timeout reconciliation and
+audit rollback. This evidence does not authorize creating the production group,
+installing units, applying migration `0006` or enabling the feature flag.
+
+The Riot administrator dashboard routes must not receive direct `waw_bot`
+database mutation capability. Until an accepted local-command IPC contract
+connects web authorization to the bot-owned executor, production ports return
+`riot_admin_ipc_unavailable` and HTTP 503. Do not work around this by granting
+feature-table writes to `waw_web`.
+
+The bot service currently pins `WAW_GAME_OBSERVATION_ENABLED=0`. Do not change
+it to `1` until an approved Riot observer credential/adapter is present and the
+consented propagation spike in ADR-0016 has passed. The current release fails
+fast if the flag is enabled without that adapter; it must not silently run a
+partial scheduler.
 
 For the Supabase session pooler, preserve encrypted libpq-compatible TLS
 semantics in the file credential with both `sslmode=require` and

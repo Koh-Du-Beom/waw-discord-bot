@@ -75,6 +75,40 @@ export type UpdateLowRiskSettingsResponseDto = {
   auditEvent: AuditEventDto;
 };
 
+export type PendingRiotLinkRequestDto = {
+  requestId: string;
+  discordUserId: string;
+  platformId: string;
+  gameName: string;
+  tagLine: string;
+  requestedAt: string;
+  version: number;
+};
+
+export type PendingRiotLinkRequestsDto = {
+  requests: PendingRiotLinkRequestDto[];
+  nextCursor?: string;
+};
+
+export type ListPendingRiotLinksRequestDto = {
+  cursor?: string;
+};
+
+export type DecideRiotLinkRequestDto = {
+  requestId: string;
+  expectedVersion: number;
+  confirmation: true;
+};
+
+export type ApproveRiotLinkRequestDto = DecideRiotLinkRequestDto & {
+  linkId: string;
+  puuid: string;
+};
+
+export type RiotLinkDecisionResponseDto = {
+  message: string;
+};
+
 export const DASHBOARD_API_PATHS = {
   login: "/auth/login",
   callback: "/auth/discord/callback",
@@ -83,4 +117,7 @@ export const DASHBOARD_API_PATHS = {
   overview: "/api/overview",
   settings: "/api/settings/summary",
   audit: "/api/audit",
+  riotRequests: "/api/riot/requests/list",
+  riotApprove: "/api/riot/requests/approve",
+  riotReject: "/api/riot/requests/reject",
 } as const;

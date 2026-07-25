@@ -15,6 +15,11 @@ import {
   type AuditEventsDto,
   type DashboardOverviewDto,
   type LowRiskSettingsDto,
+  type PendingRiotLinkRequestsDto,
+  type ListPendingRiotLinksRequestDto,
+  type ApproveRiotLinkRequestDto,
+  type DecideRiotLinkRequestDto,
+  type RiotLinkDecisionResponseDto,
   type UpdateLowRiskSettingsRequestDto,
 } from "../contracts/dashboard.ts";
 import type { AuthorizationTier } from "../contracts/local-command.ts";
@@ -42,6 +47,24 @@ export type DashboardHttpPorts = {
     | { kind: "conflict" }
   >;
   readAudit(): Promise<AuditEventsDto>;
+  listPendingRiotLinks(input: {
+    request: ListPendingRiotLinksRequestDto;
+    actorId: string;
+    authorizationTier: AuthorizationTier;
+    operationId: string;
+  }): Promise<PendingRiotLinkRequestsDto>;
+  approveRiotLink(input: {
+    request: ApproveRiotLinkRequestDto;
+    actorId: string;
+    authorizationTier: AuthorizationTier;
+    operationId: string;
+  }): Promise<RiotLinkDecisionResponseDto>;
+  rejectRiotLink(input: {
+    request: DecideRiotLinkRequestDto;
+    actorId: string;
+    authorizationTier: AuthorizationTier;
+    operationId: string;
+  }): Promise<RiotLinkDecisionResponseDto>;
 };
 
 export type OperationalLogEvent = Readonly<{
@@ -65,10 +88,13 @@ export type DashboardServerOptions = {
 };
 
 export class HttpPortError extends Error {
-  readonly code: "timeout" | "unavailable";
+  readonly code: "timeout" | "unavailable" | "conflict";
   readonly reasonCode: string;
 
-  constructor(code: "timeout" | "unavailable", reasonCode: string) {
+  constructor(
+    code: "timeout" | "unavailable" | "conflict",
+    reasonCode: string,
+  ) {
     super("dashboard dependency failed");
     this.name = "HttpPortError";
     this.code = code;
@@ -229,6 +255,78 @@ const auditSchema = {
       },
     },
   },
+} as const;
+
+const riotRequestSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "requestId",
+    "discordUserId",
+    "platformId",
+    "gameName",
+    "tagLine",
+    "requestedAt",
+    "version",
+  ],
+  properties: {
+    requestId: { type: "string" },
+    discordUserId: { type: "string" },
+    platformId: { type: "string" },
+    gameName: { type: "string" },
+    tagLine: { type: "string" },
+    requestedAt: { type: "string", format: "date-time" },
+    version: { type: "integer", minimum: 0 },
+  },
+} as const;
+
+const riotRequestsSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["requests"],
+  properties: {
+    requests: { type: "array", maxItems: 100, items: riotRequestSchema },
+    nextCursor: { type: "string", minLength: 1, maxLength: 256 },
+  },
+} as const;
+
+const listRiotLinksSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    cursor: { type: "string", minLength: 1, maxLength: 256 },
+  },
+} as const;
+
+const riotDecisionBaseProperties = {
+  requestId: { type: "string", minLength: 1, maxLength: 160 },
+  expectedVersion: { type: "integer", minimum: 0 },
+  confirmation: { type: "boolean", const: true },
+} as const;
+
+const approveRiotLinkSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["requestId", "expectedVersion", "linkId", "puuid", "confirmation"],
+  properties: {
+    ...riotDecisionBaseProperties,
+    linkId: { type: "string", minLength: 1, maxLength: 160 },
+    puuid: { type: "string", minLength: 16, maxLength: 160 },
+  },
+} as const;
+
+const rejectRiotLinkSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["requestId", "expectedVersion", "confirmation"],
+  properties: riotDecisionBaseProperties,
+} as const;
+
+const riotDecisionResponseSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["message"],
+  properties: { message: { type: "string" } },
 } as const;
 
 export function buildDashboardServer(
@@ -503,6 +601,123 @@ export function buildDashboardServer(
     },
     protectedRead(options.auth, options.ports.readAudit),
   );
+  app.post<{ Body: ListPendingRiotLinksRequestDto }>(
+    DASHBOARD_API_PATHS.riotRequests,
+    {
+      schema: {
+        querystring: emptyObjectSchema,
+        body: listRiotLinksSchema,
+        response: {
+          200: riotRequestsSchema,
+          "4xx": errorSchema,
+          "5xx": errorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const authorization = await authorize(options.auth, request, "mutation");
+      if (!authorization.allowed) {
+        sendAuthorizationError(reply, authorization.response, request.id);
+        return;
+      }
+      if (authorization.tier !== "administrator") {
+        sendError(reply, 403, "forbidden", request.id);
+        return;
+      }
+      try {
+        reply.send(await options.ports.listPendingRiotLinks({
+          request: request.body,
+          actorId: authorization.actorId,
+          authorizationTier: authorization.tier,
+          operationId: request.id,
+        }));
+      } catch (error) {
+        sendPortError(reply, error, request.id);
+      }
+    },
+  );
+  app.post<{ Body: ApproveRiotLinkRequestDto }>(
+    DASHBOARD_API_PATHS.riotApprove,
+    {
+      schema: {
+        querystring: emptyObjectSchema,
+        body: approveRiotLinkSchema,
+        response: {
+          200: riotDecisionResponseSchema,
+          409: errorSchema,
+          "4xx": errorSchema,
+          "5xx": errorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const authorization = await authorize(
+        options.auth,
+        request,
+        "high-risk",
+        request.body.confirmation,
+      );
+      if (!authorization.allowed) {
+        sendAuthorizationError(reply, authorization.response, request.id);
+        return;
+      }
+      if (authorization.tier !== "administrator") {
+        sendError(reply, 403, "forbidden", request.id);
+        return;
+      }
+      try {
+        reply.send(await options.ports.approveRiotLink({
+          request: request.body,
+          actorId: authorization.actorId,
+          authorizationTier: authorization.tier,
+          operationId: request.id,
+        }));
+      } catch (error) {
+        sendPortError(reply, error, request.id);
+      }
+    },
+  );
+  app.post<{ Body: DecideRiotLinkRequestDto }>(
+    DASHBOARD_API_PATHS.riotReject,
+    {
+      schema: {
+        querystring: emptyObjectSchema,
+        body: rejectRiotLinkSchema,
+        response: {
+          200: riotDecisionResponseSchema,
+          409: errorSchema,
+          "4xx": errorSchema,
+          "5xx": errorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const authorization = await authorize(
+        options.auth,
+        request,
+        "high-risk",
+        request.body.confirmation,
+      );
+      if (!authorization.allowed) {
+        sendAuthorizationError(reply, authorization.response, request.id);
+        return;
+      }
+      if (authorization.tier !== "administrator") {
+        sendError(reply, 403, "forbidden", request.id);
+        return;
+      }
+      try {
+        reply.send(await options.ports.rejectRiotLink({
+          request: request.body,
+          actorId: authorization.actorId,
+          authorizationTier: authorization.tier,
+          operationId: request.id,
+        }));
+      } catch (error) {
+        sendPortError(reply, error, request.id);
+      }
+    },
+  );
 
   if (options.spaRoot !== undefined) {
     void app.register(fastifyStatic, {
@@ -551,13 +766,18 @@ function protectedRead<T>(
 async function authorize(
   auth: AuthService,
   request: FastifyRequest,
-  kind: "read" | "mutation",
+  kind: "read" | "mutation" | "high-risk",
+  explicitConfirmation = false,
 ): Promise<
   | { allowed: true; tier: AuthorizationTier; actorId: string }
   | { allowed: false; response: AuthServiceResponse }
 > {
   const response = await safeAuthCall(() =>
-    auth.authorize({ kind, headers: authHeaders(request) }),
+    auth.authorize({
+      kind,
+      headers: authHeaders(request),
+      ...(kind === "high-risk" ? { explicitConfirmation } : {}),
+    }),
   );
   const tier = response.body.authorizationTier;
   const actorId = response.body.actorId;
@@ -652,7 +872,7 @@ function sendPortError(
   if (error instanceof HttpPortError) {
     sendError(
       reply,
-      error.code === "timeout" ? 504 : 503,
+      error.code === "timeout" ? 504 : error.code === "conflict" ? 409 : 503,
       error.code,
       correlationId,
     );

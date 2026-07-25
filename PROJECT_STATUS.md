@@ -4,6 +4,124 @@
 
 ## 현재 단계
 
+PLAN-0005 In Progress: `ADR-0016` Accepted, Task 1 완료, Task 2 local/disposable
+PostgreSQL GREEN, Tasks 3~7 port·도메인 구현 진행 중. Production `/health`는
+2026-07-25 재확인 시 HTTP 200 `healthy`로 회복됐으며 이전 transient
+`degraded`의 정확한 component는 미확정. 외부 provider/RSO/API key, Discord
+등록, production migration·배포는 승인 gate 유지.
+
+Dashboard의 Riot 관리자 기능을 bot executor에 연결하는 경계는
+`ADR-0017-dashboard-bot-admin-command-ipc.md` Accepted 상태다. 결정은 기존
+4 KiB member-role lookup socket을 범용화하지 않고 별도 권한 제한 Unix socket,
+bot-side current-role 재확인, 안정된 operation ID와 timeout 후 영구 결과 조회,
+mutation·terminal result·감사 원자 transaction을 사용한다. PLAN-0006 승인과
+구현 전까지 production dashboard port는 계속 503 fail-closed다.
+후속 `PLAN-0006-dashboard-bot-admin-command-ipc.md`는 owner 승인 뒤
+In Progress 상태다.
+
+2026-07-26 owner가 PLAN-0006 bounded sequence를 승인했고 Tasks 1~7은
+local/disposable 완료다. Version 1은 네 관리자 command만 허용하고 32KiB
+frame, 최대 15초 TTL, exact keys, request/operation ID 분리와 allowlisted
+response를 강제한다. `0006_admin_command_result`와 bot application service는
+current administrator 선검사, bounded cursor pagination, durable duplicate
+readback, stale·active PUUID conflict·validator unavailable을 처리한다.
+Disposable PostgreSQL 17에서 강제 audit 실패 시 domain mutation·operation·
+terminal result 전체 rollback을 확인했다. 별도 socket transport는 기본 3초
+deadline, 한 request/reply, 최대 8 connection과 안전한 owned-stale-path 검사를
+구현했고 mutation timeout은 `outcome_unknown`이다. Bot/web assembly, systemd와
+production 연결은 아직 구현하지 않아 기본 dashboard port는 계속 503
+fail-closed다. 주입형 dashboard IPC ports는 HTTP current admin·CSRF·recent
+OAuth·confirmation 뒤 영구 web 감사를 먼저 저장하고, 감사 실패 시 IPC를
+호출하지 않는다. Unavailable/stale/unknown은 각각 503/409/504이며 duplicate는
+원 operation 결과를 조회해 mutation 재실행 없이 재조정한다.
+Bot/web main assembly와 repository systemd assets에는 관리자 IPC가 기본
+비활성 feature gate로 조립됐다. Duplicate bot은 socket listen 전에 종료하고
+shutdown은 admin socket→member-role socket→Gateway→DB 순서다. 전용 runtime
+path/group과 web supplementary group을 선언했으며 web의 bot token, bot의 OAuth
+secret·CSRF key 비주입을 asset test로 확인했다. Production host의 unit, group,
+directory와 실행 서비스는 변경하지 않았다.
+Disposable Ubuntu 24.04/PostgreSQL 17 process 검증에서 실제
+`waw-bot:waw-admin-command` socket `0660`, directory `0750`, `waw-web` 허용,
+unrelated user 거부, SIGKILL stale restart, malformed flood와 8 connection
+상한 후 회복을 통과했다. Concurrent 승인은 link 하나만 만들었고 50ms timeout
+뒤 terminal success를 조회했으며 audit trigger 실패는 request·operation·result
+전체를 rollback했다. Harness 종료 뒤 container/network/image는 모두 0개다.
+Task 7 최종 증거는 local `198 pass / 1 intentional Windows Unix-path skip`,
+typecheck/build, production·integration asset dry-run, Ubuntu 24.04/PostgreSQL
+17 migration 1~6 process 재검증과 forbidden canary 부재다. PLAN-0006은
+Local/Disposable Complete이며 production Task 8은 별도 owner approval,
+read-only AWS/Supabase preflight, 새 backup/restore와 provider 결정 전에는
+시작하지 않는다.
+PLAN-0006 Task 8 Gate A는 2026-07-26 owner 승인 뒤 metadata-only로
+시작했다. Canonical `/`와 `/health`는 각각 HTTPS 200이고 health body는
+`healthy`였다. AWS CLI read는 invalid security token, 필수 Orca CLI guide는
+timeout이었으며 승인된 host/Supabase read-only session이 없어 instance,
+release, unit, group/socket, backup/monitor와 schema/RLS/grant는 미검증으로
+남겼다. Production 변경은 0이며 Gate B는 승인 불가 상태다.
+
+Gate A 보완에서 migration checksum을 LF canonical form으로 전환하고, 내용이
+동일한 CRLF rendering만 legacy 대안으로 인정하도록 제한했다. Production
+0001-0004의 실제 mixed-line-ending ledger 회귀와 disposable PostgreSQL resume,
+고정 SHA-256 source archive의 격리 stage/typecheck/build가 GREEN이다. 따라서
+checksum portability blocker는 해소됐으며 production 변경은 없었다.
+Lightsail alarm metadata는 여전히 별도 read-only 확인 대상이다.
+
+2026-07-25 PLAN-0005 bounded slice에서 owner-approved 한국어 명령 명칭,
+`/몰랭검거` 체계, interaction normalization, PostgreSQL command audit,
+한국어 summary handler와 cache 없는 Discord history pagination/failure
+adapter를 local 구현했다. Discord listener 조립·명령 등록과 외부 provider
+연결은 아직 수행하지 않았다.
+
+후속 bounded slice에서 Discord listener 조립을 완료했다. Listener는 singleton
+bot에만 부착되고 shutdown 전에 해제되며, 일곱 한국어 명령 dispatch와 command
+audit DB 실패의 fixed-code·무응답 경로가 fake client 통합 테스트를 통과했다.
+외부 command 등록·Portal 변경과 production bot DB credential 주입은 미실행이다.
+
+PLAN-0005 Task 5 request slice에서 Riot command executor를 bot main에
+조립했다. 연결 요청은 PUUID 없이 `pending_admin_approval`로 저장되고,
+관리자 승인 adapter가 PUUID를 제공한 뒤에만 활성화된다. Disposable
+PostgreSQL에서 활성 PUUID 충돌·감사 보존과 감사 실패 전체 rollback을
+검증했다. 외부 Riot API/RSO와 production migration은 미실행이다.
+
+관리자 요청 목록·승인·거절 executor와 주입형 PUUID validation port를
+추가했다. Non-admin 선거부, request version 기반 stale·중복 결정 거부,
+승인/거절/권한 감사와 transaction rollback이 local/disposable PostgreSQL에서
+GREEN이다. 실제 validator adapter와 관리자 UI는 아직 미연결이다.
+
+Riot 관리자 dashboard API의 DTO·route·port와 high-risk 인증 경계를 local
+구현했다. Web runtime의 DB 권한은 확대하지 않았으며 production port는
+bot local-command IPC가 승인·구현될 때까지 503 fail-closed다.
+
+PLAN-0005 Task 6 persistence slice에서 외부 API를 호출하지 않는 게임 관측
+executor와 PostgreSQL store를 추가했다. Riot과 Go Live 증거는 별도 행으로,
+비교 결과는 incident에 저장된다. Queue 420 allowlist, `(platform, game ID)`
+중복 재사용, stale 거부, 명시적 `unknown`, 5분 시작 유예·2분 중단 허용과
+부분 generation 충돌의 transaction rollback이 local/disposable PostgreSQL에서
+GREEN이다. Scheduler와 실제 Riot/Discord 관측 adapter 조립은 아직 미실행이다.
+
+Task 7 command slice에서 `/몰랭검거 현황|정정|취소` executor를 bot main에
+조립했다. 현황은 Riot·Go Live·비교 상태를 분리해 한국어로 표시한다.
+정정·취소는 Discord current-role을 incident 조회 전에 재확인하고, 현재
+incident version을 읽어 mutation에 전달한다. Disposable PostgreSQL에서
+stale 거부, revision·operation·감사 동시 commit과 감사 실패 전체 rollback을
+검증했다. 외부 등록과 production 변경은 수행하지 않았다.
+
+Task 6 scheduler slice에서 주입형 Riot observer와 Discord voice source를
+결합하는 scheduler를 구현했다. Link별 동시 poll을 하나로 제한하고,
+rate-limit·timeout·adapter 장애를 `unknown`으로 정규화하며 timeout 뒤 늦게
+도착한 응답은 저장하지 않는다. Gateway disconnect는 기존 Go Live 증거를
+`unknown`으로 바꾸고 reconnect 전체 조회가 끝난 뒤에만 reconciled 상태로
+복구한다. Fake source와 실제 비교 executor 통합 테스트는 GREEN이며 외부
+Riot/Discord 호출과 production timer 조립은 수행하지 않았다.
+
+후속 scheduler assembly slice에서 활성 PostgreSQL Riot 링크만 조회하는 target
+source와 Discord `VoiceStateUpdate`·Ready/Resume·Disconnect adapter를
+추가했다. Bot assembly는 singleton claim 성공 뒤 listener·timer를 붙이고
+shutdown 전에 timer와 listener를 제거한다. systemd feature gate는 명시적으로
+`0`이며 실제 Riot observer가 없는 상태에서 `1`은 fail-fast한다. Fake
+discord.js client와 disposable PostgreSQL 검증은 GREEN이고 외부 API·Portal과
+production 상태는 변경하지 않았다.
+
 PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; PLAN-0003 Tasks 1~4 production monitoring rollout 완료; PLAN-0004 Approved·Tasks 1~5 및 G1/G4 완료; G5 host preflight 중 발견한 malformed backup marker 수정·재발행 완료; `ADR-0015` Accepted와 production entrypoint/release assembly local GREEN; G2/G3, production migrations `0003`~`0004`, G5 배포·G6~G7와 최초 vacuum은 별도 gate 유지
 
 ## 완료

@@ -1,0 +1,61 @@
+# PLAN-0006 Task 8 Gate A read-only preflight — 2026-07-26
+
+- Status: Incomplete — Gate B blocked by one unverified Lightsail alarm
+- Scope: Metadata-only AWS Lightsail, production host and Supabase preflight
+- Production changes: None
+- Canonical domain: `https://waw.dubeom.com`
+
+No schema, credential, user/group, unit, service, firewall, DNS, feature flag,
+file or external resource was changed.
+
+## Confirmed
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Canonical root | PASS | HTTPS `200`, `text/html; charset=utf-8` |
+| Canonical health | PASS | HTTPS `200`, `application/json; charset=utf-8`, fixed body `{"status":"healthy"}` |
+| DNS presence | PASS | Canonical hostname returned an A record; address intentionally omitted |
+| Reviewed local commit | INFO | `38dc17ff6f8438f81ee559769f2cd3532b3d5a2c` |
+| Reviewed migration 0001 SHA-256 | INFO | Worktree bytes: `8fb915c343e0dbc09439d9f787d10103d56aa962579236a484162dded9f5dbe2`; LF bytes: `337cb749ea8eab659a09a8906c8887bcc49e7d47930448610149d13ac046db10` |
+| Reviewed migration 0002 SHA-256 | INFO | Worktree bytes: `972eff5483799f9594e91cb09ca54a73b49f708bab60abac34f0b55aa53b34c7`; LF bytes: `fabb240cfc7104b6bd9650bb0ade6cdd3c099934a9ad95fbff8d836debaa165d` |
+| Reviewed migration 0003 SHA-256 | INFO | Worktree bytes: `f7f94d1f2c5b4d5f39fd763f36f7b7d8819462f818d37052bf51507058edc184`; LF bytes: `7c807c9113524103eed0314565ac6263facc49098e1d0c5eedf13038ddb97a5f` |
+| Reviewed migration 0004 SHA-256 | INFO | `9142361bec0d953f14e8cd835cec5a5fb77c66bfbb80c859b7afdcd23ccc7b45` |
+| Reviewed migration 0005 SHA-256 | INFO | `d4f1dac70fafb0d43ec18ee63303db4be25b13b7f4ba66a6d71f97972b71d32a` |
+| Reviewed migration 0006 SHA-256 | INFO | `cbb29bf17b60aba6d0106a97085a559ab7dad4ecaffdd5fb2e2d338262a3eb78` |
+| Active production release | PASS | `/opt/waw/current` resolves to release `1943fd8`; previous resolves to `b454092` |
+| Core services | PASS | `waw-web`, `waw-bot`, `caddy`, `waw-backup.timer`, and `waw-monitor.timer` are active and enabled; no failed unit was listed |
+| Effective service identities | PASS | `waw-web` runs as `waw-web:waw-web` with `waw-member-role`; `waw-bot` runs as `waw-bot:waw-member-role` |
+| Admin IPC disabled state | PASS | No `WAW_ADMIN_COMMAND_IPC_ENABLED` value, `waw-admin-command` group, runtime directory, or socket exists |
+| Backup and monitor | PASS | Both timers are active/enabled; latest `waw-backup.service` and `waw-monitor.service` results are `success` with exit status `0` |
+| Production migration ledger | ATTENTION | Versions 1–4 are present; versions 5–6 are not applied |
+| Production table RLS | PASS | RLS is enabled for every queried existing application table |
+| Production policy/grant inventory | INFO | Seven policies and 26 explicit `waw_web`/`waw_bot` table grants were returned |
+| Production workload roles | PASS | `waw_web` and `waw_bot` are non-login, non-inheriting and have no create/replication/bypass-RLS capabilities; `waw_web_runtime` is login/inheriting without elevated database capabilities |
+| Migration checksum portability | PASS | The runner records canonical LF hashes and accepts only LF/CRLF renderings of otherwise identical SQL. Exact production 0001-0004 mixed-ledger regression passed. |
+| Exact rollout input preflight | PASS | Temporary source archive SHA-256 `7ae3ee57ad1025cf25a0d8d4c0e10a0b5ba07d765a96b0f83b40b1e38629c236` passed isolated release staging, typecheck, build, checksum unit tests, and production-ledger resume on disposable PostgreSQL. The archive is evidence only and was not deployed. |
+
+The local working tree contains the approved in-progress PLAN-0005/0006 work
+and is not an immutable production release artifact. The reviewed commit must
+not be treated as the rollout release without a separately reviewed clean
+archive and hash.
+
+## Remaining blocker and resolved migration finding
+
+| Required Gate A check | State | Reason |
+| --- | --- | --- |
+| Lightsail alarm | BLOCKED | Read-only retry still failed: both configured AWS CLI profiles returned an invalid-security-token result, while the authenticated Lightsail console reported an explicit identity-policy deny before alarm metadata could be read. |
+| Migration checksum portability | RESOLVED | Production versions 1-2 match the canonical LF rendering and versions 3-4 match the exact CRLF rendering of unchanged current SQL. Both representations are now accepted; changed SQL still fails. |
+
+The approved browser SSH session was used only for the listed read-only
+commands. A local SSH connection was also attempted with strict batch options
+and failed public-key authentication. No host file, service, user, group,
+socket, flag or credential was changed.
+
+## Stop decision
+
+Gate A is not complete, so Gate B approval is not requested yet. Before Gate B:
+
+1. restore permission to read the Lightsail alarm and verify its current state.
+
+Do not create a backup, run migrations, install a group/unit, restart a service
+or change a feature flag from this evidence.

@@ -47,6 +47,18 @@ export type Migration = {
   sql: string;
 };
 
+export function migrationChecksum(sql: string): string {
+  return createHash("sha256").update(normalizeMigrationSql(sql), "utf8").digest("hex");
+}
+
+export function acceptedMigrationChecksums(sql: string): ReadonlySet<string> {
+  const normalized = normalizeMigrationSql(sql);
+  return new Set([
+    migrationChecksum(normalized),
+    createHash("sha256").update(normalized.replaceAll("\n", "\r\n"), "utf8").digest("hex"),
+  ]);
+}
+
 export async function applyPendingMigrations(
   pool: Pool,
   migrations: readonly Migration[],
@@ -64,8 +76,7 @@ export async function applyPendingMigrations(
             [migration.version],
           );
     if (existing !== undefined && existing.rowCount !== 0) {
-      const expected = createHash("sha256").update(migration.sql, "utf8").digest("hex");
-      if (existing.rows[0]?.sha256 !== expected) {
+      if (!acceptedMigrationChecksums(migration.sql).has(existing.rows[0]?.sha256 ?? "")) {
         throw new MigrationChecksumMismatchError(migration.version);
       }
       continue;
@@ -152,9 +163,13 @@ async function recordMigration(client: PoolClient, migration: Migration): Promis
     [
       migration.version,
       migration.name,
-      createHash("sha256").update(migration.sql, "utf8").digest("hex"),
+      migrationChecksum(migration.sql),
     ],
   );
+}
+
+function normalizeMigrationSql(sql: string): string {
+  return sql.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
 }
 
 async function isExactLegacyVersionOne(client: PoolClient): Promise<boolean> {

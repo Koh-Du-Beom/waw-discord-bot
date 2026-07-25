@@ -1,0 +1,12 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { observationFeatureEnabled } from "./observation-feature.ts";
+
+test("keeps game observation disabled by default and accepts only exact flags", () => {
+  assert.equal(observationFeatureEnabled(undefined), false);
+  assert.equal(observationFeatureEnabled("0"), false);
+  assert.equal(observationFeatureEnabled("1"), true);
+  assert.throws(() => observationFeatureEnabled("true"));
+  assert.throws(() => observationFeatureEnabled(""));
+});

@@ -17,6 +17,8 @@ import {
 } from "../persistence/database-credential.ts";
 import { PostgresPersistence } from "../persistence/postgres-persistence.ts";
 import { createProductionDashboardPorts } from "./production-dashboard-ports.ts";
+import { createAdminCommandIpcClient } from "../ipc/admin-command-ipc.ts";
+import { adminCommandFeatureEnabled } from "../ipc/admin-command-feature.ts";
 
 const credentialsDirectory = process.env.CREDENTIALS_DIRECTORY;
 const [databaseUrl, clientSecret, csrfKey] = await Promise.all([
@@ -78,6 +80,18 @@ const app = buildDashboardServer({
       "/var/lib/waw-backup/last-published.json",
     botHealthPath:
       process.env.WAW_BOT_HEALTH_PATH ?? "/run/waw-bot/health.json",
+    ...(adminCommandFeatureEnabled(process.env.WAW_ADMIN_COMMAND_IPC_ENABLED)
+      ? {
+          adminCommand: {
+            transport: createAdminCommandIpcClient({
+              socketPath:
+                process.env.WAW_ADMIN_COMMAND_SOCKET ??
+                "/run/waw-admin-command/admin-command.sock",
+            }),
+            guildId: configuration.allowedGuildId,
+          },
+        }
+      : {}),
   }),
   serviceVersion: process.env.WAW_SERVICE_VERSION ?? "unknown",
   callbackOrigin: configuration.allowedOrigin,

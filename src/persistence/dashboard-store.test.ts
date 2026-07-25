@@ -100,6 +100,34 @@ test("dashboard setting version conflict is denied and audited without applying"
   assert.equal(calls.at(-1)?.text, "commit");
 });
 
+test("administrator pre-dispatch audit stores only correlation metadata", async () => {
+  const calls: Call[] = [];
+  const pool = {
+    async query(text: string, values?: readonly unknown[]) {
+      calls.push({ text, ...(values === undefined ? {} : { values }) });
+      return result([]);
+    },
+  } as unknown as Pool;
+  const store = new PostgresDashboardStore(pool);
+  await store.recordAdminCommandDispatch({
+    eventId: "dispatch-event-01",
+    operationId: "dispatch-operation-01",
+    occurredAt: new Date("2026-07-26T07:00:00.000Z"),
+    actorId: "123456789012345678",
+    guildId: "223456789012345678",
+    commandName: "riot_link_request_approve",
+  });
+  assert.match(calls[0]?.text ?? "", /dashboard\.admin_command\.dispatch/);
+  assert.deepEqual(calls[0]?.values, [
+    "dispatch-event-01",
+    new Date("2026-07-26T07:00:00.000Z"),
+    "123456789012345678",
+    "dispatch-operation-01",
+    "223456789012345678",
+    "riot_link_request_approve",
+  ]);
+});
+
 function transactionClient(calls: Call[], updates: boolean): PoolClient {
   return {
     async query(text: string, values?: readonly unknown[]) {

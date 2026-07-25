@@ -5,16 +5,36 @@ import type { Pool } from "pg";
 import type {
   DashboardOverviewDto,
 } from "../contracts/dashboard.ts";
-import type { DashboardHttpPorts } from "../http/dashboard-server.ts";
+import {
+  HttpPortError,
+  type DashboardHttpPorts,
+} from "../http/dashboard-server.ts";
 import { PostgresDashboardStore } from "../persistence/dashboard-store.ts";
 import { evaluateRuntimeHealth } from "../runtime/health.ts";
+import type { AdminCommandTransport } from "../ipc/admin-command-ipc.ts";
+import { createAdminCommandDashboardPorts } from "./admin-command-dashboard-ports.ts";
 
 export function createProductionDashboardPorts(input: {
   pool: Pool;
   backupMarkerPath: string;
   botHealthPath: string;
+  adminCommand?: {
+    transport: AdminCommandTransport;
+    guildId: string;
+    now?: () => Date;
+    generateId?: () => string;
+  };
 }): DashboardHttpPorts {
   const store = new PostgresDashboardStore(input.pool);
+  const adminPorts =
+    input.adminCommand === undefined
+      ? undefined
+      : createAdminCommandDashboardPorts({
+          ...input.adminCommand,
+          audit: {
+            append: (event) => store.recordAdminCommandDispatch(event),
+          },
+        });
   return {
     async readDisplayName() {
       return "Discord 운영자";
@@ -30,6 +50,18 @@ export function createProductionDashboardPorts(input: {
     },
     async readAudit() {
       return store.readAudit();
+    },
+    async listPendingRiotLinks(request) {
+      if (adminPorts) return adminPorts.listPendingRiotLinks(request);
+      throw new HttpPortError("unavailable", "riot_admin_ipc_unavailable");
+    },
+    async approveRiotLink(request) {
+      if (adminPorts) return adminPorts.approveRiotLink(request);
+      throw new HttpPortError("unavailable", "riot_admin_ipc_unavailable");
+    },
+    async rejectRiotLink(request) {
+      if (adminPorts) return adminPorts.rejectRiotLink(request);
+      throw new HttpPortError("unavailable", "riot_admin_ipc_unavailable");
     },
   };
 }
