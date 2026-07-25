@@ -6,6 +6,9 @@
 
 ### Added
 
+- Repeatable exact-source PostgreSQL 17 full-test harness and fail-closed
+  `WAW_REQUIRE_POSTGRES_INTEGRATION` mode. Toolchain-less local runs now report
+  their PostgreSQL scope as an explicit skip instead of false test failures.
 - Platform-independent migration checksums and an exact production 0001-0004
   mixed-line-ending ledger regression. New ledger rows use canonical LF hashes;
   resume accepts only LF/CRLF renderings of otherwise identical migration text.
@@ -117,6 +120,8 @@
 
 ### Fixed
 
+- Updated the workload-role regression to match the approved atomic command
+  audit contract: bot may insert audit events but cannot read or update them.
 - Current-role IPC rejects unknown/oversized frames, request mismatches,
   unavailable sockets, and unsafe stale regular-file or symlink targets.
 - Production systemd units no longer start disposable integration fixtures;

@@ -531,13 +531,25 @@ test("enforces RLS and workload grants for web and bot roles", async () => {
       botPool.query("select summary_enabled from dashboard_setting"),
       /permission denied/,
     );
+    await botPool.query(
+      `insert into audit_event (
+        event_id, occurred_at, event_type, actor_id, outcome, reason_code, correlation_id
+      ) values (
+        'bot-allowed-audit', now(), 'fixture', null, 'success', 'fixture', 'fixture'
+      )`,
+    );
+    assert.equal(
+      (
+        await adminPool.query<{ count: string }>(
+          "select count(*)::text as count from audit_event where event_id = 'bot-allowed-audit'",
+        )
+      ).rows[0]?.count,
+      "1",
+    );
+    await assert.rejects(botPool.query("select event_id from audit_event"), /permission denied/);
     await assert.rejects(
       botPool.query(
-        `insert into audit_event (
-          event_id, occurred_at, event_type, actor_id, outcome, reason_code, correlation_id
-        ) values (
-          'bot-forbidden-audit', now(), 'fixture', null, 'success', 'fixture', 'fixture'
-        )`,
+        "update audit_event set reason_code = 'forbidden' where event_id = 'bot-allowed-audit'",
       ),
       /permission denied/,
     );

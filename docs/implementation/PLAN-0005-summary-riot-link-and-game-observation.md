@@ -1,6 +1,6 @@
 # 구현 계획: 대화 요약, Riot 계정 연결 및 게임 관측
 
-- Status: In Progress
+- Status: Local/Disposable Complete — Tasks 1-8 GREEN; Task 9 production gate
 - Related requirements: FUN-004, FUN-005, FUN-010 through FUN-015, PRI-001 through PRI-003, OWN-007, OWN-008, OWN-010 through OWN-012, OWN-015
 - Related ADRs: ADR-0001, ADR-0004, ADR-0006, ADR-0007, ADR-0014, ADR-0015, ADR-0016
 - Owner: Product owner
@@ -156,6 +156,15 @@
 - Approved date: 2026-07-25
 
 ## 진행 기록
+
+- 2026-07-26 Task 8: 기본 local runner가 PostgreSQL toolchain 부재를
+  명시적으로 skip하고 강제 검증 모드에서는 fail-closed하도록 보완했다.
+  Exact-source PostgreSQL 17 harness에서 전체 `215 pass / 6 explicit external-URL
+  integration skips / 0 fail`을 확인했다. Bot의 명령 감사 계약에 맞춰
+  `audit_event` INSERT는 허용하되 SELECT·UPDATE는 거부되는 실제 role 검증으로
+  오래된 기대를 수정했다. Typecheck/build와 문서 일관성 검증 뒤 Tasks 1~8을
+  Local/Disposable Complete로 전환했다. 외부 summary provider, Riot API/RSO,
+  Discord command 등록과 production Task 9는 별도 승인 gate를 유지한다.
 
 - 2026-07-25 Task 1: ADR 승인 기록과 계획 작성을 완료했다. 공개
   `https://waw.dubeom.com/health`는 재검증 시 HTTP 200

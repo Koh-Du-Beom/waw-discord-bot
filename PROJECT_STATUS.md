@@ -4,8 +4,15 @@
 
 ## 현재 단계
 
-PLAN-0005 In Progress: `ADR-0016` Accepted, Task 1 완료, Task 2 local/disposable
-PostgreSQL GREEN, Tasks 3~7 port·도메인 구현 진행 중. Production `/health`는
+PLAN-0005는 2026-07-26 기준 Local/Disposable Complete다. Tasks 1~8의
+summary·Riot link·game observation port, domain, PostgreSQL과 fake Discord
+통합이 완료됐다. Exact-source PostgreSQL 17 전체 실행은
+`215 pass / 6 explicit external-URL integration skips / 0 fail`이며, bot은
+감사 INSERT만 가능하고 감사 SELECT·UPDATE는 거부됨을 실제 workload role로
+검증했다. 외부 summary provider, Riot API/RSO, Discord command 등록과
+production Task 9는 별도 승인 gate를 유지한다.
+
+Production `/health`는
 2026-07-25 재확인 시 HTTP 200 `healthy`로 회복됐으며 이전 transient
 `degraded`의 정확한 component는 미확정. 외부 provider/RSO/API key, Discord
 등록, production migration·배포는 승인 gate 유지.

@@ -49,6 +49,24 @@ The migration creates non-login capability roles. Production login role creation
 
 PostgreSQL 17 must provide `initdb`, `pg_ctl` and a Unix socket. The integration test creates a temporary trust-authenticated cluster, uses synthetic records only and removes the cluster after the run.
 
+The default test runner prints
+`postgres_integration_skipped reason=postgres_tools_unavailable` when the host
+does not provide `initdb` and `pg_ctl`; this is an explicit unverified scope,
+not a passing PostgreSQL result. CI and disposable PostgreSQL verification must
+set `WAW_REQUIRE_POSTGRES_INTEGRATION=1`, which fails closed when either tool is
+missing. `WAW_SKIP_POSTGRES_INTEGRATION=1` remains available only for an
+intentional non-PostgreSQL test slice.
+
+Run the repeatable PostgreSQL 17 boundary from a host with Docker:
+
+```bash
+bash deploy/integration/postgres/run.sh
+```
+
+The harness builds from the exact working source, runs the complete test
+command as the unprivileged `postgres` user with the integration requirement
+enabled, and removes its temporary image on exit.
+
 ```bash
 node --test \
   src/persistence/database-credential.test.ts \
