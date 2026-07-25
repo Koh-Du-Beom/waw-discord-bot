@@ -217,8 +217,10 @@ DNS/TLS G6, monitoring G7과 최초 production vacuum은 각각 별도 gate를 �
 2026-07-25 owner-approved AWS console read-only inventory에서 production host가
 Running, 서울 1GB/2vCPU/40GB dual-stack이고 public firewall은 IPv4/IPv6 SSH
 22만 열려 있으며 status-check alarm은 enabled/OK임을 확인했다. Console UI에
-instance UUID/ARN이 노출되지 않아 exact-ARN policy rendering과 host SSH
-preflight는 아직 실행하지 않았다. AWS/IAM/network/host 변경은 없었다.
+instance UUID/ARN이 노출되지 않았지만 별도 승인된 root CloudShell read-only
+조회로 exact UUID와 running state를 확정했다. Exact-target operator policy를
+로컬 렌더링하고 SHA-256과 allowlist contract를 검증했으며 IAM 생성/연결과
+host SSH preflight는 실행하지 않았다. AWS/IAM/network/host 변경은 없었다.
 
 ## 차단 요소
 

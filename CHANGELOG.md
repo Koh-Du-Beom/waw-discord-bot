@@ -40,6 +40,8 @@
   access로만 제한하고 IAM/S3/DNS/snapshot/firewall/lifecycle 권한을 제외
 - Owner-approved production console read-only inventory에서 exact host의
   state/capacity/network/firewall/alarm baseline을 기록하고 변경 없이 종료
+- Root CloudShell read-only 조회로 exact Lightsail UUID를 확정하고 production
+  operator policy의 exact-target rendering/hash/allowlist를 로컬 검증
 
 ### Fixed
 

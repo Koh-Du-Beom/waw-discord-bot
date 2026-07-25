@@ -18,6 +18,7 @@ network, alarm, DNS, certificate, snapshot or application state was changed.
   - `purpose=waw-production-backup`
 - SSH user: `ubuntu`
 - Custom key name: `waw-production-backup-key`
+- Lightsail instance UUID: `b6c495e7-c6e3-4d84-b559-56503996dfab`
 - Load balancer: none
 - Distribution origin: none
 - Static IPv4: not attached; the console warns that the current public IPv4
@@ -44,11 +45,23 @@ The instance status-check alarm was enabled and in `OK` state. Its visible
 condition was at least one status-check failure, twice within ten minutes, with
 missing data excluded from evaluation.
 
-## G5 gaps
+## Exact-target read-only follow-up
 
-- The Lightsail console UI did not expose the instance UUID/ARN. The exact ARN
-  must be obtained through an approved read-only API call before rendering or
-  attaching the production-operator policy.
+An owner-approved root CloudShell session ran only caller-identity and
+`lightsail get-instance` reads. It confirmed the root caller, exact instance
+UUID above, name `waw-production-backup-host` and state `running`. The full ARN
+and account ID are intentionally omitted from this durable metadata record.
+
+The repository policy template was rendered locally for that exact target. Its
+SHA-256 was:
+
+`b7963044614bade61d8fb70e39d4f93a1fe30ded973b5309502e47300282177d`
+
+The rendered policy was kept outside the repository and its allowlist contract
+test passed. No IAM policy was created or attached.
+
+## Remaining G5 gaps
+
 - Host-local backup, monitoring, journald, disk, memory, listener, unit,
   credential-path and schema checks still require the separately approved
   non-root SSH preflight.
