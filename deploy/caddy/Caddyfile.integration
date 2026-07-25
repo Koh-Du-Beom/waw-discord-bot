@@ -1,0 +1,12 @@
+{
+	admin 127.0.0.1:2019
+	auto_https disable_redirects
+}
+
+https://waw-spike.invalid {
+	tls internal
+	reverse_proxy 127.0.0.1:18080
+	log {
+		output discard
+	}
+}

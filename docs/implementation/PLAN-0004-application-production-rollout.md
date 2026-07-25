@@ -327,6 +327,13 @@ GPT 기능은 공급자·모델·비용·보존 경계의 별도 research/Propos
 
 ## Task 5 — systemd credential 격리와 disposable Ubuntu 통합 Spike
 
+> 2026-07-25 production-free 준비: synthetic-only web/bot integration
+> entrypoint, 별도 systemd unit, Caddy fixture, conflict-safe installer,
+> local asset verifier와 Ubuntu host runner를 추가했다. Node 24 build/typecheck,
+> non-PostgreSQL `124/124`, browser `1/1`, audit high/critical `0`,
+> `systemd-analyze verify`를 통과했다. AWS resource 생성·PostgreSQL 17 실제
+> 통합·reboot·cleanup은 G4 owner 승인 전 실행하지 않았다.
+
 ### 목적과 범위
 
 - Production과 같은 Ubuntu 24.04/1GB에서 built web/bot release, PostgreSQL adapter, OAuth fake/approved integration adapter, Gateway fake/approved integration adapter와 local Caddy fixture를 함께 검증한다.

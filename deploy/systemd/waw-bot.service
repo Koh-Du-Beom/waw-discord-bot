@@ -1,0 +1,38 @@
+[Unit]
+Description=WAW Discord Gateway bot
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=30s
+StartLimitBurst=4
+
+[Service]
+Type=simple
+User=waw-bot
+Group=waw-bot
+LoadCredential=discord-bot-token:/etc/waw-credentials/bot-discord-token
+ExecStart=/usr/bin/node /opt/waw/current/dist/server/integration/bot-fixture.js
+Restart=on-failure
+RestartSec=1s
+TimeoutStopSec=15s
+MemoryHigh=192M
+MemoryMax=256M
+TasksMax=96
+UMask=0077
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+ReadOnlyPaths=/opt/waw/current
+ReadWritePaths=/var/lib/waw-bot /run/waw-bot
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RuntimeDirectory=waw-bot
+RuntimeDirectoryMode=0700
+StateDirectory=waw-bot
+StateDirectoryMode=0700
+
+[Install]
+WantedBy=multi-user.target

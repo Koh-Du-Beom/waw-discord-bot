@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { dirname } from "node:path";
 import { mkdir, readFile, rename, statfs, writeFile } from "node:fs/promises";
 import { connect } from "node:tls";
+import { pathToFileURL } from "node:url";
 
 import {
   evaluateMonitoring,
@@ -266,7 +267,7 @@ async function writeStates(path: string, states: AlertStates): Promise<void> {
   await rename(temporary, path);
 }
 
-if (process.argv[1]?.endsWith("/run-monitor.ts")) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch(() => {
     console.error("monitor_failed");
     process.exitCode = 1;

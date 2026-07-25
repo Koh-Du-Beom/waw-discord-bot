@@ -173,6 +173,15 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - Windows shell glob에 의존하지 않는 TypeScript test discovery runner를 추가;
   non-PostgreSQL test `123/124` 통과, 기존 monitor delivery test 1건은 Node
   20 환경에서 실패했고 PostgreSQL integration은 Windows toolchain 부재로 미실행
+- Node 24.18.0 재검증에서 monitor child entrypoint의 Windows path 판정과
+  PostgreSQL fixture의 Unix-only `mkdir`를 수정하고 non-PostgreSQL `124/124`,
+  browser accessibility `1/1`, typecheck와 build를 통과
+- React Router CSRF advisory 범위였던 `8.2.0`을 fixed `8.3.0`으로 갱신해
+  `npm audit` high/critical finding `0` 확인
+- PLAN-0004 Task 5 production-free 준비로 web/bot 분리 unit, synthetic-only
+  integration entrypoint, Caddy fixture, conflict-safe installer와 Ubuntu host
+  verifier를 추가; local asset test와 `systemd-analyze verify` 통과, G4 전
+  AWS resource와 production credential은 사용하지 않음
 
 ## 진행 중
 
@@ -190,8 +199,8 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 
 ## 다음 작업
 
-Task 3/4 통합 결과를 요구 Node 24와 disposable PostgreSQL에서 재검증하고
-Task 5 production-like systemd integration을 진행한다. Actual OAuth G2,
+Task 3/4 PostgreSQL 통합과 Task 5 production-like systemd integration을
+G4 승인된 disposable Ubuntu에서 재검증한다. Actual OAuth G2,
 bot-side member lookup G3, production migration `0003`, application production
 배포와 최초 production vacuum은 각각 별도 gate를 유지한다.
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -48,7 +48,7 @@ async function createPool(user = process.env.USER ?? "postgres"): Promise<Pool> 
 before(async () => {
   clusterDirectory = await mkdtemp(path.join(tmpdir(), "waw-postgres-task1-"));
   socketDirectory = path.join(clusterDirectory, "socket");
-  await execFileAsync("mkdir", [socketDirectory]);
+  await mkdir(socketDirectory);
   await execFileAsync("initdb", [
     "-D",
     path.join(clusterDirectory, "data"),
