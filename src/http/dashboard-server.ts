@@ -510,6 +510,7 @@ export function buildDashboardServer(
       maxAge: "1y",
       immutable: true,
       index: false,
+      wildcard: false,
     });
   }
   app.setNotFoundHandler(async (request, reply) => {
