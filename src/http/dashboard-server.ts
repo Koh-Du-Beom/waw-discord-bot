@@ -47,7 +47,7 @@ export type DashboardHttpPorts = {
 export type OperationalLogEvent = Readonly<{
   timestamp: string;
   correlation_id: string;
-  event_type: "http.request";
+  event_type: "http.request" | "http.error";
   route: string;
   outcome: "success" | "denied" | "failed";
   reason_code: string;
@@ -310,6 +310,22 @@ export function buildDashboardServer(
   });
 
   app.setErrorHandler((error, request, reply) => {
+    const errorMetadata = error as { code?: unknown; name?: unknown };
+    options.operationalLog?.({
+      timestamp: new Date().toISOString(),
+      correlation_id: request.id,
+      event_type: "http.error",
+      route: request.routeOptions.url ?? "unmatched",
+      outcome: "failed",
+      reason_code:
+        typeof errorMetadata.code === "string"
+          ? errorMetadata.code
+          : typeof errorMetadata.name === "string"
+            ? errorMetadata.name
+            : "unknown_error",
+      duration: Math.max(0, Math.round(reply.elapsedTime)),
+      service_version: options.serviceVersion,
+    });
     const httpError = error as {
       statusCode?: number;
       validation?: unknown;
