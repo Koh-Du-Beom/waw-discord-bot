@@ -331,8 +331,10 @@ GPT 기능은 공급자·모델·비용·보존 경계의 별도 research/Propos
 > entrypoint, 별도 systemd unit, Caddy fixture, conflict-safe installer,
 > local asset verifier와 Ubuntu host runner를 추가했다. Node 24 build/typecheck,
 > non-PostgreSQL `124/124`, browser `1/1`, audit high/critical `0`,
-> `systemd-analyze verify`를 통과했다. AWS resource 생성·PostgreSQL 17 실제
-> 통합·reboot·cleanup은 G4 owner 승인 전 실행하지 않았다.
+> `systemd-analyze verify`를 통과했다. G4 owner-approved 서울 disposable
+> Ubuntu 24.04 실행에서 PostgreSQL 17, credential/process 격리, singleton,
+> crash/storage failure, failed release rollback과 reboot recovery를 통과했고
+> final 및 독립 AWS inventory count와 CloudShell artifact count가 모두 `0`이다.
 
 ### 목적과 범위
 

@@ -87,28 +87,30 @@ sudo -u waw-build -H bash -lc "cd '$RELEASE' && npm ci --ignore-scripts && npm r
 sudo -u waw-build -H bash -lc \
   "cd '$RELEASE' && WAW_SKIP_POSTGRES_INTEGRATION=1 npm test"
 npm audit --prefix "$RELEASE" --audit-level=high >/dev/null
-find "$RELEASE" -type d -exec chmod a-w {} +
-find "$RELEASE" -type f -exec chmod a-w {} +
+find "$RELEASE" -type d -exec chmod 755 {} +
+find "$RELEASE" -type f -exec chmod a+r,a-w {} +
 if [[ -L /opt/waw/current ]]; then
   PREVIOUS_LINK="$(readlink -f /opt/waw/current)"
 fi
 ln -sfn "$RELEASE" /opt/waw/current
+sudo -u waw-web test -r /opt/waw/current/dist/server/integration/web-fixture.js
+sudo -u waw-bot test -r /opt/waw/current/dist/server/integration/bot-fixture.js
 
 systemctl enable --now postgresql >/dev/null
 sudo -u postgres psql --set ON_ERROR_STOP=1 <<'SQL' >/dev/null
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'waw_fixture') THEN
-    CREATE ROLE waw_fixture LOGIN;
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'waw-web') THEN
+    CREATE ROLE "waw-web" LOGIN;
   END IF;
 END
 $$;
-SELECT 'CREATE DATABASE waw_fixture OWNER waw_fixture'
+SELECT 'CREATE DATABASE waw_fixture OWNER "waw-web"'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'waw_fixture')\gexec
 SQL
 
 install -d -m 700 /etc/waw-credentials
-printf '%s\n' 'postgresql://waw_fixture@/waw_fixture?host=%2Fvar%2Frun%2Fpostgresql' \
+printf '%s\n' 'postgresql://waw-web@/waw_fixture?host=%2Fvar%2Frun%2Fpostgresql' \
   >/etc/waw-credentials/web-database-url
 printf '%s\n' 'SYNTHETIC_OAUTH_TASK5' \
   >/etc/waw-credentials/web-oauth-client-secret
@@ -116,6 +118,11 @@ printf '%s\n' 'SYNTHETIC_DISCORD_TASK5' \
   >/etc/waw-credentials/bot-discord-token
 chmod 600 /etc/waw-credentials/*
 
+# The Caddy package owns a non-application default on a fresh disposable host.
+# Remove only that expected fixture before exercising the conflict-safe installer.
+[[ -f /etc/caddy/Caddyfile ]]
+grep -q '^[[:space:]]*:80[[:space:]]*{' /etc/caddy/Caddyfile
+rm -f /etc/caddy/Caddyfile
 "$RELEASE/deploy/install-application-integration-assets.sh" install
 systemd-analyze verify /etc/systemd/system/waw-web.service /etc/systemd/system/waw-bot.service
 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
@@ -133,14 +140,17 @@ ss -lnt | grep -q '127.0.0.1:18080'
 ! ss -lnt | grep -q '0.0.0.0:18080'
 echo loopback_web_and_storage_passed
 
-web_runtime="$(systemctl show waw-web.service -p Credentials --value)"
-bot_runtime="$(systemctl show waw-bot.service -p Credentials --value)"
-[[ "$web_runtime" == *database-url* && "$web_runtime" == *oauth-client-secret* ]]
-[[ "$web_runtime" != *discord-bot-token* ]]
-[[ "$bot_runtime" == *discord-bot-token* ]]
-[[ "$bot_runtime" != *database-url* && "$bot_runtime" != *oauth-client-secret* ]]
 web_pid="$(systemctl show waw-web.service -p MainPID --value)"
 bot_pid="$(systemctl show waw-bot.service -p MainPID --value)"
+web_runtime="$(tr '\0' '\n' </proc/"$web_pid"/environ |
+  sed -n 's/^CREDENTIALS_DIRECTORY=//p')"
+bot_runtime="$(tr '\0' '\n' </proc/"$bot_pid"/environ |
+  sed -n 's/^CREDENTIALS_DIRECTORY=//p')"
+[[ "$web_runtime" == /* && "$bot_runtime" == /* ]]
+[[ -f "$web_runtime/database-url" && -f "$web_runtime/oauth-client-secret" ]]
+[[ ! -e "$web_runtime/discord-bot-token" ]]
+[[ -f "$bot_runtime/discord-bot-token" ]]
+[[ ! -e "$bot_runtime/database-url" && ! -e "$bot_runtime/oauth-client-secret" ]]
 ! tr '\0' '\n' </proc/"$web_pid"/environ | grep -q SYNTHETIC_
 ! tr '\0' '\n' </proc/"$bot_pid"/environ | grep -q SYNTHETIC_
 ! tr '\0' ' ' </proc/"$web_pid"/cmdline | grep -q SYNTHETIC_
@@ -168,7 +178,8 @@ for _ in $(seq 1 20); do
   [[ "$web_pid_after" != 0 && "$web_pid_after" != "$web_pid_before" ]] && break
 done
 [[ "$web_pid_after" != 0 && "$web_pid_after" != "$web_pid_before" ]]
-curl --fail --silent http://127.0.0.1:18080/health >/dev/null
+curl --retry 20 --retry-delay 1 --retry-connrefused --fail --silent \
+  http://127.0.0.1:18080/health >/dev/null
 echo crash_restart_passed
 
 systemctl stop postgresql

@@ -1,10 +1,10 @@
 # 프로젝트 상태
 
-마지막 갱신일: 2026-07-24
+마지막 갱신일: 2026-07-25
 
 ## 현재 단계
 
-PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; PLAN-0003 Tasks 1~4 production monitoring rollout 완료; PLAN-0004 Approved·Tasks 1~2 local/disposable 및 G1 production migration 완료; G2/G3와 production migration `0003`, 최초 vacuum 별도 gate 유지
+PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; PLAN-0003 Tasks 1~4 production monitoring rollout 완료; PLAN-0004 Approved·Tasks 1~5 및 G1/G4 완료; G2/G3와 G5~G7, production migration `0003`, 최초 vacuum 별도 gate 유지
 
 ## 완료
 
@@ -180,8 +180,16 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
   `npm audit` high/critical finding `0` 확인
 - PLAN-0004 Task 5 production-free 준비로 web/bot 분리 unit, synthetic-only
   integration entrypoint, Caddy fixture, conflict-safe installer와 Ubuntu host
-  verifier를 추가; local asset test와 `systemd-analyze verify` 통과, G4 전
-  AWS resource와 production credential은 사용하지 않음
+  verifier를 추가; local asset test와 `systemd-analyze verify` 통과
+- G4 owner-approved 서울 disposable Ubuntu 24.04/1GB 실행에서 Node 24.18.0,
+  PostgreSQL 17, tests `124/124`, web/storage loopback, cross-credential와
+  process/journal 격리, duplicate bot exit `73`, crash restart, storage failure,
+  failed-release rollback, cgroup와 reboot recovery를 통과
+- Fresh Caddy default conflict, release traversal, PostgreSQL peer role,
+  runtime credential introspection과 listener readiness race를 실제 host에서
+  발견해 runner를 보정; 각 실패와 최종 실행 뒤 prefix resource를 정리하고
+  별도 AWS inventory의 instance/key/static IP/disk/snapshot count `0` 및
+  CloudShell artifact 제거를 확인
 
 ## 진행 중
 
@@ -199,10 +207,10 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 
 ## 다음 작업
 
-Task 3/4 PostgreSQL 통합과 Task 5 production-like systemd integration을
-G4 승인된 disposable Ubuntu에서 재검증한다. Actual OAuth G2,
-bot-side member lookup G3, production migration `0003`, application production
-배포와 최초 production vacuum은 각각 별도 gate를 유지한다.
+Task 5와 G4는 완료됐다. 다음은 G5 승인 전 production operator 최소 권한
+정책과 Task 6 read-only preflight를 준비한다. Actual OAuth G2, bot-side
+member lookup G3, production migration `0003`, application production 배포,
+DNS/TLS G6, monitoring G7과 최초 production vacuum은 각각 별도 gate를 유지한다.
 
 ## 차단 요소
 
