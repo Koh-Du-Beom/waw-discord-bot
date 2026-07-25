@@ -1,10 +1,10 @@
 # 프로젝트 상태
 
-마지막 갱신일: 2026-07-25
+마지막 갱신일: 2026-07-26
 
 ## 현재 단계
 
-PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; PLAN-0003 Tasks 1~4 production monitoring rollout 완료; PLAN-0004 Approved·Tasks 1~5 및 G1/G4 완료; G5 host preflight 중 발견한 malformed backup marker 수정·재발행 완료; web→bot current-role process 경계의 구현 공백을 `ADR-0015` Proposed로 분리; G2/G3와 G5 배포·G6~G7, production migration `0003`, 최초 vacuum 별도 gate 유지
+PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup/restore 완료; PLAN-0003 Tasks 1~4 production monitoring rollout 완료; PLAN-0004 Approved·Tasks 1~5 및 G1/G4 완료; G5 host preflight 중 발견한 malformed backup marker 수정·재발행 완료; `ADR-0015` Accepted와 production entrypoint/release assembly local GREEN; G2/G3, production migrations `0003`~`0004`, G5 배포·G6~G7와 최초 vacuum은 별도 gate 유지
 
 ## 완료
 
@@ -95,6 +95,13 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
   socket client/server, 4KiB allowlist frame, 3초 fail-closed deadline,
   request-ID binding, unsafe stale path 거부와 AuthService의 tier-only reader
   composition을 구현
+- 실제 `dist/server/web/main.js`·`bot/main.js` production assembly, Discord
+  live member fetch/role mapping, loopback `/health`, bot health snapshot,
+  PostgreSQL `0004` low-risk setting과 operation/audit atomic persistence를 구현
+- Production unit과 G4 fixture unit을 분리하고 staged loopback Caddy,
+  conflict-safe asset installer, immutable source stage·activate·previous
+  rollback manager를 추가; local 136 tests(Windows Unix-path test 1 skip),
+  typecheck, server/web build와 shell contract 3종 통과
 - TypeScript Node 24 workspace와 local command contract를 추가해 valid/expired/malformed/duplicate operation의 합성 단위 시험 4개를 통과; 외부 credential·network·Supabase 연결 없이 Task 1 완료
 - versioned Supabase PostgreSQL migration 초안과 session hash·revocation·idle/absolute expiry persistence contract를 추가해 합성 단위 시험 4개를 통과; remote database에는 연결·변경하지 않아 Task 2 완료
 - OAuth state hash·single-use/expiry, 5분 read-only role cache, mutation default-deny, high-risk recent-auth·CSRF·explicit confirmation contract를 추가해 합성 단위 시험 6개를 통과; Discord OAuth credential·network 호출 없이 Task 3 완료

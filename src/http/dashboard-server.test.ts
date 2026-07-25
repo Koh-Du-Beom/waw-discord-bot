@@ -40,6 +40,7 @@ function authService(overrides: Partial<AuthService> = {}): AuthService {
     authorize: async () =>
       authResponse(200, {
         kind: "authorized",
+        actorId: "500",
         authorizationTier: "operator",
         source: "current-role",
       }),
@@ -167,6 +168,14 @@ test("composes auth and protected read routes with allowlisted DTOs", async () =
   await app.close();
 });
 
+test("exposes only allowlisted loopback health without a session", async () => {
+  const app = server();
+  const response = await app.inject({ method: "GET", url: "/health" });
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.json(), { status: "healthy" });
+  await app.close();
+});
+
 test("default-denies missing, expired, revoked, wrong-role and unavailable sessions", async () => {
   const paths = [
     { response: authResponse(401, { kind: "denied", reason: "session-invalid" }), code: "unauthenticated" },
@@ -201,6 +210,7 @@ test("requires mutation authorization and preserves duplicate semantics", async 
         observedKind = input.kind;
         return authResponse(200, {
           kind: "authorized",
+          actorId: "500",
           authorizationTier: "administrator",
           source: "current-role",
         });
@@ -223,6 +233,7 @@ test("requires mutation authorization and preserves duplicate semantics", async 
       authorize: async () =>
         authResponse(200, {
           kind: "authorized",
+          actorId: "500",
           authorizationTier: "administrator",
           source: "current-role",
         }),

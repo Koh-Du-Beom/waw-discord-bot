@@ -1,7 +1,7 @@
 # PLAN-0004 resume handoff
 
 - Date: 2026-07-24
-- Checkpoint: Tasks 1~2 local/disposable and G1 production migration complete; G2/G3 and production migration `0003` pending
+- Checkpoint: Tasks 1~5 local/disposable, G1 and production assembly complete; G2/G3, production migrations `0003`~`0004` and G5~G7 pending
 - Canonical plan: [`PLAN-0004`](./PLAN-0004-application-production-rollout.md)
 - Persistence runbook: [`application-persistence-runbook`](../operations/application-persistence-runbook.md)
 - Authentication runbook: [`authentication-runbook`](../operations/authentication-runbook.md)
@@ -41,7 +41,7 @@
 
 Continue one bounded task per session:
 
-1. Task 2 local/disposable is complete. Keep G2 actual OAuth and G3 bot-side member lookup closed; do not apply production migration `0003` without a separate gate.
+1. Local production assembly is complete. Keep G2 actual OAuth and G3 bot-side member lookup closed; do not apply production migrations `0003`~`0004` without a separate gate.
 2. Task 3: minimal Fastify API plus React dashboard vertical slice; synthetic providers only.
 3. Task 4: Discord Gateway runtime, singleton and health; G3 for actual bot credential/intents.
 4. Task 5: production-like disposable Ubuntu/systemd integration; G4 before creating AWS resources.

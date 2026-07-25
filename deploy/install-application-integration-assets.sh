@@ -32,8 +32,8 @@ rollback_asset() {
 }
 
 assets=(
-  "$SCRIPT_DIR/systemd/waw-web.service|$(target /etc/systemd/system/waw-web.service)|644"
-  "$SCRIPT_DIR/systemd/waw-bot.service|$(target /etc/systemd/system/waw-bot.service)|644"
+  "$SCRIPT_DIR/systemd/waw-web.integration.service|$(target /etc/systemd/system/waw-web.service)|644"
+  "$SCRIPT_DIR/systemd/waw-bot.integration.service|$(target /etc/systemd/system/waw-bot.service)|644"
   "$SCRIPT_DIR/caddy/Caddyfile.integration|$(target /etc/caddy/Caddyfile)|644"
 )
 

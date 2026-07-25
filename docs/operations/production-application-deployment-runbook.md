@@ -80,6 +80,28 @@ After a clean preflight and explicit continuation:
 5. Recheck backup, monitoring, journald and alarm after each bounded step.
 6. Switch `/opt/waw/current` only after health passes.
 
+The production units require these exact inputs:
+
+- web file credentials: `web-database-url`, `web-oauth-client-secret`,
+  `web-csrf-key`;
+- bot file credential: `bot-discord-token`;
+- web non-secret environment: production auth environment, Discord client ID,
+  exact canonical origin/redirect, guild ID, operator/admin role IDs, provider
+  timeout and release version;
+- bot non-secret environment: guild ID and the same operator/admin role IDs.
+
+Never place credential values in the environment files. Apply pending
+`0003_session_recent_auth.sql` and `0004_dashboard_settings.sql` only through a
+separately approved Supabase migration gate before starting the new web
+release. The `0004` migration creates the singleton low-risk setting and grants
+only `waw_web` read/update access; `waw_bot` remains denied.
+
+Use `deploy/manage-production-release.sh stage` with the approved source archive
+SHA-256. `activate` changes only the immutable symlink; service restart and
+loopback `/health` verification remain explicit bounded runbook steps.
+`rollback` restores only the recorded previous release and does not reverse
+compatible database migrations.
+
 On failure, disable the application Caddy route, stop the web/bot units, restore
 the previous release symlink and credential-source version atomically, and
 recheck existing backup/monitoring/journald. Do not roll back the compatible

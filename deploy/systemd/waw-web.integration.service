@@ -1,5 +1,5 @@
 [Unit]
-Description=WAW Discord Gateway bot
+Description=WAW dashboard web application integration fixture
 After=network-online.target
 Wants=network-online.target
 StartLimitIntervalSec=30s
@@ -7,13 +7,13 @@ StartLimitBurst=4
 
 [Service]
 Type=simple
-User=waw-bot
-Group=waw-member-role
-LoadCredential=discord-bot-token:/etc/waw-credentials/bot-discord-token
-EnvironmentFile=-/etc/waw/bot.env
-Environment=WAW_MEMBER_ROLE_SOCKET=/run/waw-member-role/member-role.sock
-Environment=WAW_BOT_HEALTH_PATH=/run/waw-member-role/health.json
-ExecStart=/usr/local/bin/node /opt/waw/current/dist/server/bot/main.js
+User=waw-web
+Group=waw-web
+LoadCredential=database-url:/etc/waw-credentials/web-database-url
+LoadCredential=oauth-client-secret:/etc/waw-credentials/web-oauth-client-secret
+Environment=WAW_WEB_HOST=127.0.0.1
+Environment=WAW_WEB_PORT=18080
+ExecStart=/usr/local/bin/node /opt/waw/current/dist/server/integration/web-fixture.js
 Restart=on-failure
 RestartSec=1s
 TimeoutStopSec=15s
@@ -30,11 +30,9 @@ ProtectKernelModules=true
 ProtectKernelTunables=true
 ProtectSystem=strict
 ReadOnlyPaths=/opt/waw/current
-ReadWritePaths=/var/lib/waw-bot /run/waw-bot /run/waw-member-role
+ReadWritePaths=/var/lib/waw-web
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
-RuntimeDirectory=waw-bot waw-member-role
-RuntimeDirectoryMode=0750
-StateDirectory=waw-bot
+StateDirectory=waw-web
 StateDirectoryMode=0700
 
 [Install]

@@ -31,7 +31,11 @@ export type DashboardHttpPorts = {
   readOverview(): Promise<DashboardOverviewDto>;
   readSettings(): Promise<LowRiskSettingsDto>;
   updateSettings(
-    request: UpdateLowRiskSettingsRequestDto,
+    input: {
+      request: UpdateLowRiskSettingsRequestDto;
+      actorId: string;
+      operationId: string;
+    },
   ): Promise<
     | { kind: "updated"; settings: LowRiskSettingsDto }
     | { kind: "conflict" }
@@ -240,6 +244,45 @@ export function buildDashboardServer(
       },
     },
   });
+
+  app.get(
+    "/health",
+    {
+      schema: {
+        response: {
+          200: {
+            type: "object",
+            additionalProperties: false,
+            required: ["status"],
+            properties: {
+              status: {
+                type: "string",
+                enum: ["healthy", "degraded", "unavailable"],
+              },
+            },
+          },
+          503: {
+            type: "object",
+            additionalProperties: false,
+            required: ["status"],
+            properties: {
+              status: { type: "string", const: "unavailable" },
+            },
+          },
+        },
+      },
+    },
+    async (_request, reply) => {
+      try {
+        const overview = await options.ports.readOverview();
+        if (overview.health.status === "unavailable") reply.code(503);
+        return { status: overview.health.status };
+      } catch {
+        reply.code(503);
+        return { status: "unavailable" };
+      }
+    },
+  );
   const callbackOrigin = options.callbackOrigin ?? "https://waw.dubeom.com";
 
   app.addHook("onRequest", async (_request, reply) => {
@@ -418,7 +461,11 @@ export function buildDashboardServer(
         return;
       }
       try {
-        const result = await options.ports.updateSettings(request.body);
+        const result = await options.ports.updateSettings({
+          request: request.body,
+          actorId: authorization.actorId,
+          operationId: request.id,
+        });
         if (result.kind === "conflict") {
           sendError(reply, 409, "conflict", request.id);
           return;
@@ -487,18 +534,20 @@ async function authorize(
   request: FastifyRequest,
   kind: "read" | "mutation",
 ): Promise<
-  | { allowed: true; tier: AuthorizationTier }
+  | { allowed: true; tier: AuthorizationTier; actorId: string }
   | { allowed: false; response: AuthServiceResponse }
 > {
   const response = await safeAuthCall(() =>
     auth.authorize({ kind, headers: authHeaders(request) }),
   );
   const tier = response.body.authorizationTier;
+  const actorId = response.body.actorId;
   if (
     response.statusCode === 200 &&
-    (tier === "operator" || tier === "administrator")
+    (tier === "operator" || tier === "administrator") &&
+    typeof actorId === "string"
   ) {
-    return { allowed: true, tier };
+    return { allowed: true, tier, actorId };
   }
   return { allowed: false, response };
 }

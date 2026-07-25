@@ -11,9 +11,14 @@ User=waw-web
 Group=waw-web
 LoadCredential=database-url:/etc/waw-credentials/web-database-url
 LoadCredential=oauth-client-secret:/etc/waw-credentials/web-oauth-client-secret
+LoadCredential=csrf-key:/etc/waw-credentials/web-csrf-key
+EnvironmentFile=-/etc/waw/web.env
 Environment=WAW_WEB_HOST=127.0.0.1
 Environment=WAW_WEB_PORT=18080
-ExecStart=/usr/local/bin/node /opt/waw/current/dist/server/integration/web-fixture.js
+Environment=WAW_MEMBER_ROLE_SOCKET=/run/waw-member-role/member-role.sock
+Environment=WAW_BOT_HEALTH_PATH=/run/waw-member-role/health.json
+Environment=WAW_BACKUP_MARKER_PATH=/var/lib/waw-backup/last-published.json
+ExecStart=/usr/local/bin/node /opt/waw/current/dist/server/web/main.js
 Restart=on-failure
 RestartSec=1s
 TimeoutStopSec=15s
@@ -31,6 +36,7 @@ ProtectKernelTunables=true
 ProtectSystem=strict
 ReadOnlyPaths=/opt/waw/current
 ReadWritePaths=/var/lib/waw-web
+SupplementaryGroups=waw-member-role
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 StateDirectory=waw-web
 StateDirectoryMode=0700

@@ -1,7 +1,8 @@
 # Authentication runbook
 
 - Scope: `PLAN-0004` Task 2 local/disposable authentication contract
-- Status: local/disposable complete; G2, G3 and production migration `0003` pending
+- Status: local production assembly complete; G2, G3 and production migrations
+  `0003`~`0004` pending
 - Canonical origin: `https://waw.dubeom.com`
 
 ## Contract
@@ -40,7 +41,7 @@ revoke. It does not connect to Supabase or Discord.
 - G2: actual Discord OAuth application secret, exact redirect registration and
   OAuth round trip.
 - G3: actual bot-side current member/role adapter and bot credential/intents.
-- Production migration `0003`: candidate SHA-256
+- Production migrations `0003`~`0004`: candidate SHA-256 values
   `7c807c9113524103eed0314565ac6263facc49098e1d0c5eedf13038ddb97a5f`.
   Do not apply it until a separately approved backup, migration and rollback
   window.

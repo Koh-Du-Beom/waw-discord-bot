@@ -1,6 +1,6 @@
 # PLAN-0004: application production 구현과 단계적 rollout
 
-- Status: In Progress — Tasks 1~2 local/disposable and G1 production migration complete; G2/G3 and production migration `0003` pending
+- Status: In Progress — Tasks 1~5 local/disposable, G1 and production assembly complete; G2/G3, production migrations `0003`~`0004` and G5~G7 pending
 - Date: 2026-07-23
 - Owner: Project owner
 - Related requirements: `FUN-001`~`FUN-020`, `DAT-001`~`DAT-004`, `OPS-001`~`OPS-008`, `SEC-001`~`SEC-010`, `DEP-001`~`DEP-002`, `QUA-001`~`QUA-002`, `OWN-022`~`OWN-034`

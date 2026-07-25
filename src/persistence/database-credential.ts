@@ -9,12 +9,24 @@ export async function readDatabaseUrlCredential(
   credentialsDirectory: string | undefined,
   credentialName = "database-url",
 ): Promise<string> {
+  return readSystemdCredential(
+    credentialsDirectory,
+    credentialName,
+    "database_credential",
+  );
+}
+
+export async function readSystemdCredential(
+  credentialsDirectory: string | undefined,
+  credentialName: string,
+  reasonPrefix = "credential",
+): Promise<string> {
   if (
     credentialsDirectory === undefined ||
     !path.isAbsolute(credentialsDirectory) ||
     !credentialNamePattern.test(credentialName)
   ) {
-    throw new PersistenceError("database_credential_path_invalid");
+    throw new PersistenceError(`${reasonPrefix}_path_invalid`);
   }
 
   try {
@@ -25,6 +37,6 @@ export async function readDatabaseUrlCredential(
     }
     return value;
   } catch {
-    throw new PersistenceError("database_credential_read_failed");
+    throw new PersistenceError(`${reasonPrefix}_read_failed`);
   }
 }

@@ -507,6 +507,7 @@ test("read uses current role or a valid five-minute cache, while mutation reject
   });
   assert.deepEqual(read.body, {
     kind: "authorized",
+    actorId: "500",
     authorizationTier: "operator",
     source: "role-cache",
   });

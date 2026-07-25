@@ -27,6 +27,11 @@ const migrations = [
     name: "session_recent_auth",
     path: path.resolve(import.meta.dirname, "../../migrations/0003_session_recent_auth.sql"),
   },
+  {
+    version: 4,
+    name: "dashboard_settings",
+    path: path.resolve(import.meta.dirname, "../../migrations/0004_dashboard_settings.sql"),
+  },
 ] as const;
 
 async function main(): Promise<void> {

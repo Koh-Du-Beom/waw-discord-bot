@@ -26,9 +26,11 @@ const projectRoot = path.resolve(import.meta.dirname, "../..");
 const migrationOnePath = path.join(projectRoot, "migrations/0001_auth_and_operations.sql");
 const migrationTwoPath = path.join(projectRoot, "migrations/0002_application_persistence.sql");
 const migrationThreePath = path.join(projectRoot, "migrations/0003_session_recent_auth.sql");
+const migrationFourPath = path.join(projectRoot, "migrations/0004_dashboard_settings.sql");
 const migrationOneSql = await readFile(migrationOnePath, "utf8");
 const migrationTwoSql = await readFile(migrationTwoPath, "utf8");
 const migrationThreeSql = await readFile(migrationThreePath, "utf8");
+const migrationFourSql = await readFile(migrationFourPath, "utf8");
 
 let clusterDirectory = "";
 let socketDirectory = "";
@@ -100,11 +102,21 @@ test("applies migration transactionally, records version, and rejects reapplicat
     name: "session_recent_auth",
     sql: migrationThreeSql,
   });
+  await applyMigration(adminPool, {
+    version: 4,
+    name: "dashboard_settings",
+    sql: migrationFourSql,
+  });
 
   const version = await adminPool.query<{ version: number }>(
     "select version from app_schema_version order by version",
   );
-  assert.deepEqual(version.rows, [{ version: 1 }, { version: 2 }, { version: 3 }]);
+  assert.deepEqual(version.rows, [
+    { version: 1 },
+    { version: 2 },
+    { version: 3 },
+    { version: 4 },
+  ]);
 
   await assert.rejects(
     applyMigration(adminPool, {
@@ -154,6 +166,11 @@ test("adopts the exact production legacy version 1 before applying version 2", a
       name: "session_recent_auth",
       sql: migrationThreeSql,
     });
+    await applyMigration(legacyPool, {
+      version: 4,
+      name: "dashboard_settings",
+      sql: migrationFourSql,
+    });
 
     const versions = await legacyPool.query<{ version: number }>(
       "select version from app_schema_version order by version",
@@ -161,8 +178,18 @@ test("adopts the exact production legacy version 1 before applying version 2", a
     const ledger = await legacyPool.query<{ version: number }>(
       "select version from waw_schema_migration order by version",
     );
-    assert.deepEqual(versions.rows, [{ version: 1 }, { version: 2 }, { version: 3 }]);
-    assert.deepEqual(ledger.rows, [{ version: 1 }, { version: 2 }, { version: 3 }]);
+    assert.deepEqual(versions.rows, [
+      { version: 1 },
+      { version: 2 },
+      { version: 3 },
+      { version: 4 },
+    ]);
+    assert.deepEqual(ledger.rows, [
+      { version: 1 },
+      { version: 2 },
+      { version: 3 },
+      { version: 4 },
+    ]);
     assert.equal(
       (
         await legacyPool.query(
@@ -216,6 +243,7 @@ test("resumes a migration sequence and rejects a changed applied checksum", asyn
     { version: 1, name: "auth_and_operations", sql: migrationOneSql },
     { version: 2, name: "application_persistence", sql: migrationTwoSql },
     { version: 3, name: "session_recent_auth", sql: migrationThreeSql },
+    { version: 4, name: "dashboard_settings", sql: migrationFourSql },
   ] as const;
   assert.deepEqual(await applyPendingMigrations(adminPool, migrations), []);
   await assert.rejects(
@@ -236,11 +264,12 @@ test("enforces RLS and workload grants for web and bot roles", async () => {
         'oauth_state',
         'role_cache',
         'operation_ledger',
-        'audit_event'
+        'audit_event',
+        'dashboard_setting'
       )
       order by relname`,
   );
-  assert.equal(rls.rows.length, 5);
+  assert.equal(rls.rows.length, 6);
   assert.equal(rls.rows.every((row) => row.relrowsecurity), true);
   const foreignKeys = await adminPool.query<{ constraint_name: string }>(
     `select constraint_name
@@ -263,6 +292,7 @@ test("enforces RLS and workload grants for web and bot roles", async () => {
   try {
     await webPool.query("select session_id_hash from app_session");
     await webPool.query("select actor_id from role_cache");
+    await webPool.query("select summary_enabled from dashboard_setting");
     const webPersistence = new PostgresPersistence(webPool);
     await webPersistence.saveSession({
       sessionIdHash: "web-role-session-hash",
@@ -285,6 +315,10 @@ test("enforces RLS and workload grants for web and bot roles", async () => {
     );
 
     await assert.rejects(botPool.query("select session_id_hash from app_session"), /permission denied/);
+    await assert.rejects(
+      botPool.query("select summary_enabled from dashboard_setting"),
+      /permission denied/,
+    );
     await assert.rejects(
       botPool.query(
         `insert into audit_event (

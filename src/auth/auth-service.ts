@@ -361,6 +361,7 @@ export function createAuthService(
             : { "set-cookie": responseCookies },
         body: {
           kind: "authorized",
+          actorId: session.actorId,
           authorizationTier:
             authorizationTier ?? session.authorizationTier,
           source: outcome.source,

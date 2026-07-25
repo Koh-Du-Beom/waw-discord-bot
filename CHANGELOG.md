@@ -25,11 +25,16 @@
   policy template, deterministic renderer/test와 Task 6 deployment runbook
 - Separate systemd users 사이의 current-role 강제 재조회를 credential 공유나
   TCP listener 없이 제공하는 Unix socket IPC Proposed ADR
+- Production web/bot entrypoints, dashboard setting/audit migration, staged
+  loopback health/Caddy assets and immutable release stage/activate/rollback
+  tooling
 
 ### Changed
 
 - Authentication can now use a fail-closed, versioned local current-role reader
   without receiving Discord member or role payloads in the web process.
+- Dashboard setting mutations now carry the authenticated actor and operation
+  correlation into one PostgreSQL setting/operation/audit transaction.
 - Production backup publication now selects and validates one latest migration
   version before serializing JSON; the malformed multi-row marker discovered
   during G5 preflight was replaced by a valid schema-version-2 encrypted
@@ -55,6 +60,8 @@
 
 - Current-role IPC rejects unknown/oversized frames, request mismatches,
   unavailable sockets, and unsafe stale regular-file or symlink targets.
+- Production systemd units no longer start disposable integration fixtures;
+  the G4 installer uses separate fixture-only units.
 - Fresh Caddy package default takeover, service-readable immutable release mode,
   PostgreSQL peer role, runtime credential inspection과 crash health readiness
   경합을 disposable host evidence에 맞게 보정
