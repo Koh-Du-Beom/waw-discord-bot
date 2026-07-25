@@ -116,6 +116,128 @@ active and the Lightsail alarm stayed `OK`. The staged source, ephemeral SSH
 material and rollback copy were removed. No journald setting, retention, webhook,
 state file or vacuum was changed.
 
+## 한국어 Discord embed 전환
+
+- Status: reviewed procedure; not deployed
+- Branch: `feat/korean-discord-alert-embeds`
+- Implementation commit: `383ca86`
+- Display-branch test commit: `07a4c60`
+- Candidate `run-monitor.ts` SHA-256:
+  `ebb81df5b96e0fa9f4160f9fb5030ffce734fc31c3bcc161e8504eccc2cb2174`
+- Expected predecessor when no newer approved monitor source exists:
+  `b3eb58186142b462c89f5d849edd5490e4871e1619eccf3a4613e15a3c29e3dc`
+
+이 전환은 Discord payload 표현만 바꾼다. Alert threshold, debounce, dedupe,
+reminder, recovery state, webhook credential, monitoring config, systemd unit,
+journald와 backup은 변경하지 않는다. Exact predecessor hash가 다르면 newer
+approved source 여부를 먼저 조사하고 배포를 중단한다. Candidate로 무조건
+덮어쓰지 않는다.
+
+### Read-only preflight
+
+아래 검사는 production mutation 승인이 없어도 실행할 수 있지만 credential
+내용과 raw journal line을 출력하지 않는다.
+
+```bash
+sudo sha256sum /opt/waw/current/src/operations/run-monitor.ts
+readlink -f /opt/waw/current
+node --version
+sudo stat -c '%U:%G %a %n' \
+  /opt/waw/current/src/operations/run-monitor.ts \
+  /etc/waw-credentials/monitor-discord-webhook \
+  /var/lib/waw-monitor/state.json
+sudo systemctl is-active waw-monitor.timer waw-backup.timer systemd-journald.service
+sudo systemctl is-enabled waw-monitor.timer waw-backup.timer
+sudo systemctl show waw-monitor.service waw-backup.service \
+  --property=Result,ExecMainStatus,ExecMainStartTimestamp
+sudo systemctl cat waw-monitor.service waw-monitor.timer
+sudo journalctl --disk-usage
+sudo node -e "const fs=require('node:fs');const p='/var/lib/waw-monitor/state.json';const s=JSON.parse(fs.readFileSync(p,'utf8'));for(const [k,v] of Object.entries(s)){console.log(JSON.stringify({alert_key:k,severity:v.severity,candidate:v.candidate,candidate_count:v.candidateCount,reason_code:v.reasonCode,last_observed_at:v.lastObservedAt,last_notified_at:v.lastNotifiedAt}))}"
+```
+
+Operator는 별도 read-only provider inventory에서 Lightsail status-check alarm이
+`OK`인지 확인하고, Discord UI에서 webhook이 승인된 `waw-discord-bot` channel을
+가리키는지만 확인한다. Webhook URL은 출력하거나 API argument에 넣지 않는다.
+
+다음을 모두 만족해야 배포 gate를 열 수 있다.
+
+1. Candidate branch가 clean이고 관련 monitor tests, typecheck와
+   `git diff --check`가 통과한다.
+2. Installed source hash가 expected predecessor와 일치한다. 다르면 배포를
+   중단하고 installed source와 candidate를 review한다.
+3. Monitor/backup timer가 active+enabled이고 최근 oneshot result/status가
+   `success`/`0`이다.
+4. Journald가 active이고 Lightsail alarm이 `OK`다.
+5. Credential은 root-owned mode `0600`이며 내용을 읽거나 교체하지 않는다.
+6. State file이 parse 가능하고 기존 firing/candidate 상태와 마지막 알림 시각을
+   metadata-only로 기록한다.
+7. 기존 Discord critical이 있다면 `alert_key`, `reason_code`, `first_observed_at`,
+   `last_observed_at`만 기록해 신규 장애와 6시간 reminder를 구분한다.
+8. Owner가 한 파일 교체, 합성 firing/resolved 각 1건과 observation window를
+   명시적으로 승인한다.
+
+### Bounded rollout and acceptance
+
+배포는 기존 hotfix와 같은 한 파일 atomic replacement 절차를 사용한다.
+`/var/lib/waw-monitor/run-monitor.ts.pre-korean-embed`를 rollback copy의 exact
+path로 사용하고 그 hash가 preflight predecessor와 일치하는지 확인한다.
+Timer를 중지하고 active oneshot이 없을 때만 candidate를 같은 target directory의
+staged file에 mode `0644`, owner `root:root`로 설치한 뒤 atomic rename한다.
+
+Candidate 설치 뒤 한 번의 monitor invocation이 `success`/`0`이어야 한다.
+기존 state는 초기화하지 않는다. Timer를 다시 시작하기 전에 승인 channel에
+metadata-only 합성 critical/resolved embed를 각각 한 건만 보내 다음을
+확인한다.
+
+- 한국어 title과 description
+- critical red, resolved green 및 textual severity
+- 최초 감지/최근 확인 Discord timestamp
+- technical alert key와 service version footer
+- mention 부재와 raw journal/credential 부재
+
+Timer를 active+enabled로 복구한 뒤 최소 10분 관찰한다. Monitor/backup result,
+journald와 Lightsail alarm이 preflight와 같고 예상하지 않은 duplicate alert가
+없어야 acceptance다. 그 전에는 rollback copy를 삭제하지 않는다.
+
+### Exact rollback
+
+다음 중 하나면 즉시 rollback한다.
+
+- candidate hash 불일치
+- monitor oneshot non-zero 또는 payload delivery 실패
+- Discord embed 누락, 잘못된 channel, mention 또는 금지값 노출
+- 기존 alert state 손상
+- backup timer, journald 또는 Lightsail alarm의 예상하지 않은 상태 변화
+
+Rollback은 monitor source만 복원한다. 아래 명령 전에 rollback copy hash가
+preflight에서 기록한 predecessor hash와 정확히 일치해야 한다.
+
+```bash
+sudo systemctl stop waw-monitor.timer
+sudo systemctl stop waw-monitor.service
+sudo test -f /var/lib/waw-monitor/run-monitor.ts.pre-korean-embed
+sudo sha256sum /var/lib/waw-monitor/run-monitor.ts.pre-korean-embed
+sudo install -o root -g root -m 0644 \
+  /var/lib/waw-monitor/run-monitor.ts.pre-korean-embed \
+  /opt/waw/current/src/operations/.run-monitor.ts.rollback
+sudo mv -f \
+  /opt/waw/current/src/operations/.run-monitor.ts.rollback \
+  /opt/waw/current/src/operations/run-monitor.ts
+sudo sha256sum /opt/waw/current/src/operations/run-monitor.ts
+sudo systemctl start waw-monitor.service
+sudo systemctl show waw-monitor.service --property=Result,ExecMainStatus
+sudo systemctl start waw-monitor.timer
+sudo systemctl is-active waw-monitor.timer waw-backup.timer systemd-journald.service
+sudo systemctl is-enabled waw-monitor.timer waw-backup.timer
+```
+
+복원된 source hash, monitor `success`/`0`, timer active+enabled, backup/journald와
+Lightsail alarm 불변을 확인한다. `/var/lib/waw-monitor/state.json`,
+`/etc/waw-credentials/monitor-discord-webhook`, monitoring config, systemd unit과
+journal은 수정·삭제하지 않는다. 잘못된 channel 또는 금지값 노출이 원인이면
+source rollback 뒤 webhook revoke/rotation을 별도 credential incident로
+처리한다. Rollback copy는 owner가 복구 결과를 승인한 뒤에만 삭제한다.
+
 ## Forbidden-value incident and first vacuum
 
 Forbidden value가 보이면 emitter 중지 → 실제 secret 가능 시 revoke/rotate → metadata-only incident 기록 → fixed synthetic scan → rotate/vacuum 순서로 처리한다. `journalctl --vacuum-*`는 unrelated archived file도 삭제하고 복구할 수 없으므로, 최초 production vacuum 전에 oldest/newest UTC와 usage를 기록하고 별도 owner-approved maintenance window를 받아야 한다.
