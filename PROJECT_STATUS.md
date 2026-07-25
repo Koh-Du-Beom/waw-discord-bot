@@ -208,10 +208,12 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 ## 다음 작업
 
 Task 5와 G4는 완료됐다. G5 전 production operator 최소 권한 policy
-template·renderer·local deny contract와 Task 6 runbook도 준비됐다. 다음은
-owner-approved production read-only inventory로 exact instance ARN을 확정하고
-IAM simulation 결과와 G5 승인 record를 완성하는 것이다. Actual OAuth G2, bot-side
-member lookup G3, production migration `0003`, application production 배포,
+template·renderer·local deny contract와 Task 6 runbook도 준비됐다. Exact instance
+inventory, named operator, browser SSH와 host preflight까지 완료했으며 preflight에서
+발견한 malformed backup marker도 별도 승인 후 수정·재발행했다. 다음 bounded
+local task는 현재 integration fixture를 가리키는 units를 배포 가능한 production
+web/bot assembly와 immutable release installer로 교체하는 것이다. Actual OAuth G2,
+bot-side member lookup G3, production migration `0003`, application production 배포,
 DNS/TLS G6, monitoring G7과 최초 production vacuum은 각각 별도 gate를 유지한다.
 
 2026-07-25 owner-approved AWS console read-only inventory에서 production host가
@@ -220,7 +222,17 @@ Running, 서울 1GB/2vCPU/40GB dual-stack이고 public firewall은 IPv4/IPv6 SSH
 instance UUID/ARN이 노출되지 않았지만 별도 승인된 root CloudShell read-only
 조회로 exact UUID와 running state를 확정했다. Exact-target operator policy를
 로컬 렌더링하고 SHA-256과 allowlist contract를 검증했으며 IAM 생성/연결과
-host SSH preflight는 실행하지 않았다. AWS/IAM/network/host 변경은 없었다.
+host SSH preflight는 당시 아직 실행하지 않았다. 그 inventory 단계에서는
+AWS/IAM/network/host 변경이 없었다.
+
+이후 owner-approved named-operator SSH preflight에서 Ubuntu 24.04.4, capacity,
+SSH-only listener, backup/monitor timers, journald와 protected path를 확인했다.
+Backup marker의 migration rows `1`/`2` 직렬화 결함을 발견해 rollout을 중단하고
+single latest version validation을 구현·production 적용했으며 새 marker는 valid
+JSON, schema version 2, published, row count 0이다. Lightsail alarm은 root
+read-only CloudShell에서 다시 `OK`로 확인했다. Production operator의 instance
+detail UI는 unrelated distribution/certificate/domain reads를 요구해 aggregate
+403을 반환하므로 broad read 권한은 추가하지 않았다.
 
 ## 차단 요소
 
@@ -248,6 +260,8 @@ host SSH preflight는 실행하지 않았다. AWS/IAM/network/host 변경은 없
 - 같은 host의 실제 web·bot local role-query 구현과 production credential read deny
 - 선택 host에서 실제 product bot+web+Caddy의 idle/peak memory와 event-loop pause
 - 실제 Gateway 단절·Resume, Go Live reconciliation과 배포 중 단일 bot 실행 검증
+- Production web/bot main assembly, immutable release installer와 fixture가 아닌
+  production systemd ExecStart/rollback contract
 - 저가 VM의 1GB급 bot+web 자원 여유와 VM·backup·domain·GPT 원화 총액
 - KBO 기능 재개 시 30분 지연 측정 시작점
 - Riot 5분 감지 실패 시 완화할 목표 또는 수동 경로의 장기 정책
