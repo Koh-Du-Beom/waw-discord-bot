@@ -26,6 +26,10 @@
 
 ### Changed
 
+- Production backup publication now selects and validates one latest migration
+  version before serializing JSON; the malformed multi-row marker discovered
+  during G5 preflight was replaced by a valid schema-version-2 encrypted
+  publication.
 - `PLAN-0002` Tasks 1~3을 실제 production publication·restore rehearsal 증거로 완료
 - `PLAN-0003` Tasks 1~4를 local contract, disposable Spike, production-free assets와 backup-only production monitoring rollout 증거로 완료
 - 현재 계약 구현과 실제 미구현 adapter/route/runtime 경계를 명시하고 production operator, DB size·backup freshness 경보와 non-zero restore rehearsal gate를 계획에 추가

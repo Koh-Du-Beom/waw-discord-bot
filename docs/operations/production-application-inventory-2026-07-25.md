@@ -62,9 +62,17 @@ test passed. No IAM policy was created or attached.
 
 ## Remaining G5 gaps
 
-- Host-local backup, monitoring, journald, disk, memory, listener, unit,
-  credential-path and schema checks still require the separately approved
-  non-root SSH preflight.
+- The approved non-root SSH preflight confirmed Ubuntu 24.04.4, about 510 MB
+  available memory, 35 GB free disk, SSH-only public listeners, active/enabled
+  backup and monitor timers, successful latest services, active journald and
+  the expected protected paths. It also discovered and blocked on a malformed
+  backup marker; the separately approved bounded fix and valid
+  schema-version-2 republication are recorded in the backup runbook.
+- The operator can list the exact instance and request browser SSH, but the
+  instance-detail route also requests `GetDistributions`, `GetCertificates`
+  and `GetDomains` and therefore returns an aggregate access-denied page.
+  Those unrelated broad reads were not added. Exact alarm status was instead
+  read through the already approved root read-only CloudShell path.
 - Exact release hash, credential kinds, maintenance window and rollback owner
   remain unapproved.
 

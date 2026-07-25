@@ -31,8 +31,10 @@ OBJECT_KEY="backups/${STARTED_AT//:/-}-$ARCHIVE_ID.dump.age"
 ROW_COUNT_BEFORE="$(psql -At -v ON_ERROR_STOP=1 -c 'select (select count(*) from public.app_session) + (select count(*) from public.operation_ledger) + (select count(*) from public.audit_event);')"
 pg_dump --host="$PGHOST" --port="$PGPORT" --dbname="$PGDATABASE" --username="$PGUSER" \
   --format=custom --schema=public --no-owner --no-acl --file="$RUN_DIR/database.dump"
-SCHEMA_VERSION="$(psql -At -v ON_ERROR_STOP=1 -c 'select version from public.app_schema_version;')"
+SCHEMA_VERSION="$(psql -At -v ON_ERROR_STOP=1 -c 'select max(version) from public.app_schema_version;')"
 ROW_COUNT="$(psql -At -v ON_ERROR_STOP=1 -c 'select (select count(*) from public.app_session) + (select count(*) from public.operation_ledger) + (select count(*) from public.audit_event);')"
+[[ "$SCHEMA_VERSION" =~ ^[1-9][0-9]*$ ]] || { echo "invalid_schema_version" >&2; exit 1; }
+[[ "$ROW_COUNT_BEFORE" =~ ^[0-9]+$ && "$ROW_COUNT" =~ ^[0-9]+$ ]] || { echo "invalid_row_count" >&2; exit 1; }
 [[ "$ROW_COUNT_BEFORE" == "$ROW_COUNT" ]] || { echo "source_changed_during_dump" >&2; exit 1; }
 age -r "$AGE_RECIPIENT" -o "$RUN_DIR/database.dump.age" "$RUN_DIR/database.dump"
 rm -f -- "$RUN_DIR/database.dump"

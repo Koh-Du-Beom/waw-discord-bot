@@ -59,3 +59,26 @@ The owner-approved 2026-07-22 execution created a backup-only database role, a P
 For recovery, create a temporary reader whose policy names exactly one archive object. Prove exact Get succeeds and put/delete/other-object Get/IAM changes fail, then delete its access key, inline policy and user in the same run. Download and verify ciphertext bytes/hash before attempting `age` decryption.
 
 The first production rehearsal proved a wrong identity is rejected and the valid offline identity restores to disposable PostgreSQL 17 with schema version `1`, row count `0`, invalid constraint count `0` in `30` seconds. Publish a non-sensitive verified marker only after all checks pass. The production bucket, Put-only writer credential and billed host intentionally remain for the recurring schedule; restore readers, staged archives, decrypted dumps, containers and deploy credentials must not remain.
+
+## 2026-07-25 schema-version marker incident
+
+The G5 read-only host preflight found that the latest publication marker was
+not valid JSON. The backup query returned migration ledger rows `1` and `2`;
+direct interpolation serialized them as `1\n2`, while the backup service itself
+still exited successfully. Application rollout stopped before any release,
+credential, Caddy, DNS or firewall change.
+
+The bounded fix selects `max(version)` and rejects non-positive or multiline
+schema versions and non-numeric row counts before encryption/publication.
+`scripts/test-backup-postgres-to-s3.sh` reproduces the multi-row failure with
+fake provider boundaries and verifies the resulting marker as JSON.
+
+After owner approval, the exact script hash was installed atomically with the
+previous script preserved as
+`/usr/local/lib/waw/backup-postgres-to-s3.sh.pre-schema-version-fix-20260725`.
+A manual backup completed at `2026-07-25T07:23:14Z` with valid JSON,
+`schemaVersion=2`, `status=published` and row count `0`. Backup and monitor
+timers remained enabled and active, both latest services reported
+`success`/`0`, journald remained active, and the Lightsail status-check alarm
+was read back as `OK`. No restore, vacuum, DNS, firewall, certificate,
+application release or Supabase schema change ran.
