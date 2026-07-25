@@ -96,6 +96,13 @@ separately approved Supabase migration gate before starting the new web
 release. The `0004` migration creates the singleton low-risk setting and grants
 only `waw_web` read/update access; `waw_bot` remains denied.
 
+For the Supabase session pooler, preserve encrypted libpq-compatible TLS
+semantics in the file credential with both `sslmode=require` and
+`uselibpqcompat=true`. Without the compatibility flag, the Node PostgreSQL
+driver treats `require` as certificate-chain verification and rejects the
+pooler's certificate chain. Never print the rendered connection string while
+validating these parameters.
+
 Use `deploy/manage-production-release.sh stage` with the approved source archive
 SHA-256. `activate` changes only the immutable symlink; service restart and
 loopback `/health` verification remain explicit bounded runbook steps.
