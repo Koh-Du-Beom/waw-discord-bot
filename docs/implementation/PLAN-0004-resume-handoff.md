@@ -1,7 +1,7 @@
 # PLAN-0004 resume handoff
 
 - Date: 2026-07-24
-- Checkpoint: Tasks 1~5 local/disposable, G1 and production assembly complete; G2/G3, production migrations `0003`~`0004` and G5~G7 pending
+- Checkpoint: Tasks 1~5 local/disposable, G1, production assembly and production migrations `0003`~`0004` complete; G2/G3 and G5~G7 pending
 - Canonical plan: [`PLAN-0004`](./PLAN-0004-application-production-rollout.md)
 - Persistence runbook: [`application-persistence-runbook`](../operations/application-persistence-runbook.md)
 - Authentication runbook: [`authentication-runbook`](../operations/authentication-runbook.md)
@@ -18,6 +18,11 @@
 - Fresh repository checks at the checkpoint: tests `90/90`, typecheck passed and `git diff --check` passed.
 - Exact-object download, ciphertext hash/byte verification, wrong-identity rejection and PostgreSQL 17 empty-target restore passed. Temporary AWS/local restore resources were removed.
 - Post-migration read-back confirmed RLS on five workload tables, six policies, expected role/grant/deny boundaries, zero rows and zero invalid constraints.
+- On 2026-07-25, the separately approved forward-only `0003` and `0004`
+  transaction completed in the production Supabase SQL editor. Read-back confirmed
+  application versions and checksum-ledger versions `[1,2,3,4]`, one seeded
+  dashboard setting row, RLS enabled, `waw_web` select/update allowed and
+  `waw_bot` select denied.
 - Backup/monitor services remain successful, timers enabled/active, journald active and the Lightsail alarm `OK`.
 
 ## Unresolved operational defect
@@ -26,7 +31,7 @@
 
 ## Safety boundary
 
-- Production migration is complete; do not rerun it or start Task 2 implicitly.
+- Production migrations `0001`~`0004` are complete; do not rerun them.
 - Do not restore into the original Supabase project.
 - Use a temporary exact-object S3 reader and delete its user, policy, access key, downloaded archive, manifest, container/target and any identity copy in the same run.
 - Keep existing backup, monitoring, journald and the Lightsail alarm active.
@@ -41,7 +46,9 @@
 
 Continue one bounded task per session:
 
-1. Local production assembly is complete. Keep G2 actual OAuth and G3 bot-side member lookup closed; do not apply production migrations `0003`~`0004` without a separate gate.
+1. Local production assembly and production migrations `0003`~`0004` are
+   complete. Keep G2 actual OAuth and G3 bot-side member lookup closed until the
+   existing Discord application is visible in the authenticated owner account.
 2. Task 3: minimal Fastify API plus React dashboard vertical slice; synthetic providers only.
 3. Task 4: Discord Gateway runtime, singleton and health; G3 for actual bot credential/intents.
 4. Task 5: production-like disposable Ubuntu/systemd integration; G4 before creating AWS resources.
