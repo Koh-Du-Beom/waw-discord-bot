@@ -1,6 +1,6 @@
 # ADR-0015: 웹-봇 현재 역할 조회용 로컬 IPC
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-26
 - Owners: 프로젝트 소유자
 - Related requirements: `OWN-028`, `OWN-031`~`OWN-034`, `SEC-001`~`SEC-010`, `OPS-001`~`OPS-002`
@@ -148,5 +148,5 @@ service stop 뒤 제거하며 bot token을 web에 주는 fallback은 허용하�
 
 ## Approval
 
-- Owner decision: Pending
-- Approved date:
+- Owner decision: Approved — 권한 제한 Unix socket request/reply 경계
+- Approved date: 2026-07-26

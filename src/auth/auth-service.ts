@@ -34,6 +34,10 @@ import {
   type CurrentMemberReader,
   type CurrentMemberResult,
 } from "./oauth-callback.ts";
+import type {
+  CurrentAuthorizationReader,
+  CurrentAuthorizationResult,
+} from "./member-role-ipc.ts";
 import type { AuthConfiguration } from "./oauth-configuration.ts";
 
 const oauthStateLifetimeMilliseconds = 10 * 60 * 1000;
@@ -79,7 +83,8 @@ export type AuthService = {
 export type AuthServiceDependencies = {
   configuration: AuthConfiguration;
   provider?: DiscordOAuthIdentityProvider;
-  memberReader?: CurrentMemberReader;
+  memberReader?: CurrentMemberReader | undefined;
+  authorizationReader?: CurrentAuthorizationReader;
   persistence: AuthServicePersistence;
   csrfKey: string;
   now?: () => Date;
@@ -172,7 +177,12 @@ export function createAuthService(
             administratorRoleIds:
               dependencies.configuration.administratorRoleIds,
             provider: dependencies.provider,
-            memberReader: dependencies.memberReader,
+            ...(dependencies.memberReader === undefined
+              ? {}
+              : { memberReader: dependencies.memberReader }),
+            ...(dependencies.authorizationReader === undefined
+              ? {}
+              : { authorizationReader: dependencies.authorizationReader }),
             persistence: dependencies.persistence,
             credentialSink: boundary.credentialSink,
             ...(dependencies.generateSessionId === undefined
@@ -225,33 +235,16 @@ export function createAuthService(
       }
 
       const checkedAt = clock();
-      let member: CurrentMemberResult;
-      try {
-        member = await dependencies.memberReader.readCurrentMember({
-          actorId: session.actorId,
-          guildId: dependencies.configuration.allowedGuildId,
-        });
-      } catch {
-        member = { kind: "unavailable", reason: "server-error" };
-      }
-
       let currentRole: "authorized" | "unauthorized" | "unavailable";
       let authorizationTier: AuthorizationTier | undefined;
       let cachedRoleVerifiedAt: Date | undefined;
-      if (
-        member.kind === "member" &&
-        member.guildId === dependencies.configuration.allowedGuildId
-      ) {
-        authorizationTier = resolveAuthorizationTier({
-          actorId: session.actorId,
-          guildOwnerId: member.guildOwnerId,
-          roleIds: member.roleIds,
-          operatorRoleIds: dependencies.configuration.operatorRoleIds,
-          administratorRoleIds:
-            dependencies.configuration.administratorRoleIds,
-        });
-        currentRole =
-          authorizationTier === undefined ? "unauthorized" : "authorized";
+      const currentAuthorization = await readCurrentAuthorization(
+        dependencies,
+        session.actorId,
+      );
+      if (currentAuthorization.kind === "authorized") {
+        authorizationTier = currentAuthorization.authorizationTier;
+        currentRole = "authorized";
         if (authorizationTier !== undefined) {
           try {
             await dependencies.persistence.upsertRoleCache({
@@ -263,7 +256,7 @@ export function createAuthService(
             return unavailableResponse("persistence-unavailable");
           }
         }
-      } else if (member.kind === "unavailable") {
+      } else if (currentAuthorization.kind === "unavailable") {
         currentRole = "unavailable";
         if (input.kind === "read") {
           let cached: RoleCache | undefined;
@@ -415,13 +408,55 @@ function isReady(
 ): dependencies is AuthServiceDependencies & {
   configuration: Extract<AuthConfiguration, { enabled: true }>;
   provider: DiscordOAuthIdentityProvider;
-  memberReader: CurrentMemberReader;
 } {
   return (
     dependencies.configuration.enabled &&
     dependencies.provider !== undefined &&
-    dependencies.memberReader !== undefined
+    (dependencies.memberReader !== undefined ||
+      dependencies.authorizationReader !== undefined)
   );
+}
+
+async function readCurrentAuthorization(
+  dependencies: AuthServiceDependencies & {
+    configuration: Extract<AuthConfiguration, { enabled: true }>;
+  },
+  actorId: string,
+): Promise<CurrentAuthorizationResult> {
+  try {
+    if (dependencies.authorizationReader !== undefined) {
+      return await dependencies.authorizationReader.readCurrentAuthorization({
+        actorId,
+        guildId: dependencies.configuration.allowedGuildId,
+      });
+    }
+    if (dependencies.memberReader === undefined) return { kind: "unavailable" };
+    const member: CurrentMemberResult =
+      await dependencies.memberReader.readCurrentMember({
+        actorId,
+        guildId: dependencies.configuration.allowedGuildId,
+      });
+    if (member.kind === "unavailable") return { kind: "unavailable" };
+    if (
+      member.kind === "unauthorized" ||
+      member.guildId !== dependencies.configuration.allowedGuildId
+    ) {
+      return { kind: "unauthorized" };
+    }
+    const authorizationTier = resolveAuthorizationTier({
+      actorId,
+      guildOwnerId: member.guildOwnerId,
+      roleIds: member.roleIds,
+      operatorRoleIds: dependencies.configuration.operatorRoleIds,
+      administratorRoleIds:
+        dependencies.configuration.administratorRoleIds,
+    });
+    return authorizationTier === undefined
+      ? { kind: "unauthorized" }
+      : { kind: "authorized", authorizationTier };
+  } catch {
+    return { kind: "unavailable" };
+  }
 }
 
 function isValidOpaqueSecret(value: string): boolean {

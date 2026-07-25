@@ -1,6 +1,9 @@
 import { randomBytes } from "node:crypto";
 
 import type { AuthorizationTier } from "../contracts/local-command.ts";
+import type {
+  CurrentAuthorizationReader,
+} from "./member-role-ipc.ts";
 import {
   hashOpaqueSessionId,
   type OpaqueSession,
@@ -85,7 +88,8 @@ export type OAuthCallbackInput = {
   operatorRoleIds: readonly string[];
   administratorRoleIds: readonly string[];
   provider: OAuthIdentityProvider;
-  memberReader: CurrentMemberReader;
+  memberReader?: CurrentMemberReader;
+  authorizationReader?: CurrentAuthorizationReader;
   persistence: CallbackPersistence;
   credentialSink: SessionCredentialSink;
   generateSessionId?: () => string;
@@ -111,30 +115,41 @@ export async function completeOAuthCallback(
     return { kind: "denied", reason: "identity-invalid" };
   }
 
-  let member: CurrentMemberResult;
+  let authorizationTier: AuthorizationTier | undefined;
   try {
-    member = await input.memberReader.readCurrentMember({
-      actorId: identity.id,
-      guildId: input.allowedGuildId,
-    });
+    if (input.authorizationReader !== undefined) {
+      const authorization =
+        await input.authorizationReader.readCurrentAuthorization({
+          actorId: identity.id,
+          guildId: input.allowedGuildId,
+        });
+      if (authorization.kind === "unavailable") {
+        return { kind: "denied", reason: "provider-unavailable" };
+      }
+      if (authorization.kind === "unauthorized") {
+        return { kind: "denied", reason: "unauthorized" };
+      }
+      authorizationTier = authorization.authorizationTier;
+    } else if (input.memberReader !== undefined) {
+      const member = await input.memberReader.readCurrentMember({
+        actorId: identity.id,
+        guildId: input.allowedGuildId,
+      });
+      authorizationTier = authorizationTierFromMember(
+        member,
+        identity.id,
+        input,
+      );
+      if (member.kind === "unavailable") {
+        return { kind: "denied", reason: "provider-unavailable" };
+      }
+    } else {
+      return { kind: "denied", reason: "provider-unavailable" };
+    }
   } catch {
     return { kind: "denied", reason: "provider-unavailable" };
   }
 
-  if (member.kind === "unavailable") {
-    return { kind: "denied", reason: "provider-unavailable" };
-  }
-  if (member.kind === "unauthorized" || member.guildId !== input.allowedGuildId) {
-    return { kind: "denied", reason: "unauthorized" };
-  }
-
-  const authorizationTier = resolveAuthorizationTier({
-    actorId: identity.id,
-    guildOwnerId: member.guildOwnerId,
-    roleIds: member.roleIds,
-    operatorRoleIds: input.operatorRoleIds,
-    administratorRoleIds: input.administratorRoleIds,
-  });
   if (authorizationTier === undefined) {
     return { kind: "denied", reason: "unauthorized" };
   }
@@ -180,6 +195,26 @@ export async function completeOAuthCallback(
   // unreachable session remains a separate expiry/cleanup policy concern.
   stagedCredential.release();
   return { kind: "succeeded", authorizationTier };
+}
+
+function authorizationTierFromMember(
+  member: CurrentMemberResult,
+  actorId: string,
+  input: Pick<
+    OAuthCallbackInput,
+    "allowedGuildId" | "operatorRoleIds" | "administratorRoleIds"
+  >,
+): AuthorizationTier | undefined {
+  if (member.kind !== "member" || member.guildId !== input.allowedGuildId) {
+    return undefined;
+  }
+  return resolveAuthorizationTier({
+    actorId,
+    guildOwnerId: member.guildOwnerId,
+    roleIds: member.roleIds,
+    operatorRoleIds: input.operatorRoleIds,
+    administratorRoleIds: input.administratorRoleIds,
+  });
 }
 
 export function resolveAuthorizationTier(input: {

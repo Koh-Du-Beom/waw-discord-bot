@@ -258,6 +258,36 @@ test("login persists only a high-entropy state hash before exact identify redire
   ]);
 });
 
+test("accepts the process-isolated current authorization reader without a member payload", async () => {
+  const { service, persistence } = build(new FakePersistence(), "operator", {
+    memberReader: undefined,
+    authorizationReader: {
+      async readCurrentAuthorization() {
+        return {
+          kind: "authorized" as const,
+          authorizationTier: "administrator" as const,
+        };
+      },
+    },
+  });
+  const login = await service.login();
+  assert.equal(login.statusCode, 302);
+  const stateCookie = (login.headers["set-cookie"] as readonly string[])[0]?.split(";")[0];
+  assert.ok(stateCookie);
+
+  const callback = await service.callback({
+    method: "GET",
+    url: `https://waw.dubeom.com/auth/discord/callback?code=${code}&state=${rawState}`,
+    headers: { cookie: stateCookie },
+  });
+  assert.equal(callback.statusCode, 303);
+  assert.equal(
+    persistence.sessions.get(hashOpaqueSessionId(rawSession))
+      ?.authorizationTier,
+    "administrator",
+  );
+});
+
 test("callback composes DTO, atomic callback, session rotation, and Set-Cookie publication", async () => {
   const persistence = new FakePersistence();
   persistence.sessions.set(hashOpaqueSessionId(previousSession), {
