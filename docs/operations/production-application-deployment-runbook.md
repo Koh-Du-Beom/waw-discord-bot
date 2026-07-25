@@ -117,3 +117,30 @@ healthy.
 
 Root is break-glass only. Record reason, start/end and action names without
 account IDs, tokens, session identifiers or secret material, then log out.
+
+## Public ingress activation
+
+This section implements PLAN-0004 Task 7 and requires the separate G6 approval.
+Before activation, record the existing DNS answer and Lightsail IPv4/IPv6
+firewall rules. Do not expose the Fastify loopback port.
+
+1. Install the official stable Caddy package and preserve the staged Caddyfile.
+2. Validate `deploy/caddy/Caddyfile.production`, then install it as root-owned
+   `/etc/caddy/Caddyfile`.
+3. Publish only `waw.dubeom.com A 54.180.239.42`; do not publish the instance
+   IPv6 address unless an explicit AAAA decision is made.
+4. Permit TCP 80 and 443 for IPv4 and IPv6 in Lightsail. Keep port 18080
+   private.
+5. Start Caddy and verify certificate issuance, HTTP-to-HTTPS redirect,
+   canonical HTTPS health, wrong-host denial and loopback-only Fastify.
+6. Register exactly
+   `https://waw.dubeom.com/auth/discord/callback` in the Discord application,
+   then verify allowed-role login, denied-role login and logout.
+7. Only after the public certificate is valid, deploy monitoring with
+   `waw-web.service`, `waw-bot.service`, `caddy.service`, loopback health and
+   `waw.dubeom.com` certificate checks enabled.
+
+Rollback in reverse order: disable OAuth login, restore the previous Discord
+redirect and DNS record, restore the validated staged Caddyfile, and close
+80/443. Keep web/bot on loopback and do not delete Caddy certificate state with
+an application release.

@@ -12,6 +12,7 @@ export WAW_INSTALL_ROOT="$ROOT"
 web="$ROOT/etc/systemd/system/waw-web.service"
 bot="$ROOT/etc/systemd/system/waw-bot.service"
 caddy="$ROOT/etc/caddy/Caddyfile"
+production_caddy="$SCRIPT_DIR/caddy/Caddyfile.production"
 grep -q 'dist/server/web/main.js$' "$web"
 grep -q 'dist/server/bot/main.js$' "$bot"
 grep -q '^LoadCredential=csrf-key:' "$web"
@@ -20,6 +21,10 @@ grep -q '^Group=waw-member-role$' "$bot"
 grep -q '^RuntimeDirectory=waw-bot waw-member-role$' "$bot"
 grep -q 'http://127.0.0.1:18081' "$caddy"
 grep -q 'reverse_proxy 127.0.0.1:18080' "$caddy"
+grep -qx 'waw.dubeom.com {' "$production_caddy"
+grep -q 'reverse_proxy 127.0.0.1:18080' "$production_caddy"
+grep -q 'output discard' "$production_caddy"
+! grep -q 'auto_https off' "$production_caddy"
 
 for protected in \
   etc/systemd/system/waw-backup.service \

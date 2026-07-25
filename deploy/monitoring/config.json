@@ -1,10 +1,14 @@
 {
   "serviceVersion": "0.1.0",
   "expectedUnits": [
-    "waw-backup.timer"
+    "waw-backup.timer",
+    "waw-monitor.timer",
+    "waw-web.service",
+    "waw-bot.service",
+    "caddy.service"
   ],
-  "healthUrl": null,
+  "healthUrl": "http://127.0.0.1:18080/health",
   "backupMarker": "/var/lib/waw-backup/last-published.json",
-  "certificateHost": null,
+  "certificateHost": "waw.dubeom.com",
   "journalPath": "/var/log/journal"
 }

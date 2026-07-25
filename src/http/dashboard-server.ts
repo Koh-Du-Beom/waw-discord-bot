@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { readFile } from "node:fs/promises";
 
 import fastifyStatic from "@fastify/static";
 import Fastify, {
@@ -495,7 +496,7 @@ export function buildDashboardServer(
       index: false,
     });
   }
-  app.setNotFoundHandler((request, reply) => {
+  app.setNotFoundHandler(async (request, reply) => {
     if (
       request.url.startsWith("/api/") ||
       request.url.startsWith("/auth/") ||
@@ -506,7 +507,8 @@ export function buildDashboardServer(
       return;
     }
     reply.header("cache-control", "no-store");
-    reply.sendFile("index.html", { maxAge: 0, immutable: false });
+    reply.type("text/html; charset=utf-8");
+    reply.send(await readFile(resolve(options.spaRoot, "index.html")));
   });
   return app;
 }
