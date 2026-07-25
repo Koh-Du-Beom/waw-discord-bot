@@ -214,6 +214,12 @@ IAM simulation 결과와 G5 승인 record를 완성하는 것이다. Actual OAut
 member lookup G3, production migration `0003`, application production 배포,
 DNS/TLS G6, monitoring G7과 최초 production vacuum은 각각 별도 gate를 유지한다.
 
+2026-07-25 owner-approved AWS console read-only inventory에서 production host가
+Running, 서울 1GB/2vCPU/40GB dual-stack이고 public firewall은 IPv4/IPv6 SSH
+22만 열려 있으며 status-check alarm은 enabled/OK임을 확인했다. Console UI에
+instance UUID/ARN이 노출되지 않아 exact-ARN policy rendering과 host SSH
+preflight는 아직 실행하지 않았다. AWS/IAM/network/host 변경은 없었다.
+
 ## 차단 요소
 
 - Homebrew AWS CLI API 경로는 기존 Python 3.14·system `libexpat` 충돌로 사용할 수 없어 공식 AWS CLI container 경로를 사용함; 임시 profile 인증과 서울 VM 실행은 완료
