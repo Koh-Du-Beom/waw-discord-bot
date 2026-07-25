@@ -29,6 +29,7 @@ const allowedActions = new Set(
   ),
 );
 const expectedActions = new Set([
+  "lightsail:GetRegions",
   "lightsail:GetInstance",
   "lightsail:GetInstanceAccessDetails",
   "lightsail:GetInstanceMetricData",

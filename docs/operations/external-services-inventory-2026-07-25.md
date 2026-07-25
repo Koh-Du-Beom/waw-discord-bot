@@ -51,5 +51,8 @@
 - AWS account root의 read-only inventory로 exact instance ARN과 `running` 상태를 확인했다.
 - `waw-production-operator` IAM user를 생성했다.
 - `wawProductionOperatorExactInstancePolicy` 인라인 정책을 연결했다.
-- 정책은 서울 Lightsail inventory read와 exact instance의 temporary access detail만 허용하고, MFA를 요구하며 서울 외 Lightsail 요청을 명시적으로 거부한다.
+- 첫 operator console 검증에서 Lightsail UI가 bootstrap에 요구하는
+  `lightsail:GetRegions` 누락을 확인했다. Owner 승인 뒤 서울·MFA 조건의
+  fixed read allowlist에 이 action만 추가하며 exact instance의 temporary
+  access detail 제한과 서울 외 Lightsail explicit deny를 유지한다.
 - access key 목록은 비어 있다. console password와 MFA는 아직 설정하지 않았다.

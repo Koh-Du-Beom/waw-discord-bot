@@ -37,6 +37,11 @@ try {
     "arn:aws:lightsail:ap-northeast-2:123456789012:Instance/01234567-89ab-cdef-0123-456789abcdef",
   );
   assert.ok(
+    allows
+      .find(({ Sid }) => Sid === "ReadProductionInstanceInventoryInSeoul")
+      .Action.includes("lightsail:GetRegions"),
+  );
+  assert.ok(
     !JSON.stringify(policy).match(
       /iam:|s3:|Create|Delete|Snapshot|Domain|PublicPorts|StartInstance|StopInstance|RebootInstance/,
     ),

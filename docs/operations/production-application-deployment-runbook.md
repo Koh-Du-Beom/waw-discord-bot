@@ -30,8 +30,9 @@ node scripts/render-production-operator-policy.mjs \
   01234567-89ab-cdef-0123-456789abcdef
 ```
 
-The template allows only instance inventory and temporary SSH access. It grants
-no IAM, S3, DNS, snapshot, instance lifecycle or firewall mutation. Some
+The template allows only the Lightsail console's regional bootstrap read,
+instance inventory and temporary SSH access. It grants no IAM, S3, DNS,
+snapshot, instance lifecycle or firewall mutation. Some
 Lightsail read APIs do not support resource-level permissions, so those actions
 use `Resource: "*"` but remain bounded by Seoul region, MFA and a fixed action
 allowlist. Temporary SSH access is restricted to the exact instance ARN.
