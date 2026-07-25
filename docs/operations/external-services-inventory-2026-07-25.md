@@ -53,6 +53,15 @@
 - `wawProductionOperatorExactInstancePolicy` 인라인 정책을 연결했다.
 - 첫 operator console 검증에서 Lightsail UI가 bootstrap에 요구하는
   `lightsail:GetRegions` 누락을 확인했다. Owner 승인 뒤 서울·MFA 조건의
-  fixed read allowlist에 이 action만 추가하며 exact instance의 temporary
-  access detail 제한과 서울 외 Lightsail explicit deny를 유지한다.
+  fixed read allowlist에 이 action을 추가했다. 후속 console read-back에서
+  UI가 instance 상세 URL도 목록으로 redirect하고 `lightsail:GetInstances`를
+  요구함을 확인해 같은 조건으로 이 read action도 추가한다. Fresh MFA session의
+  network read-back에서 목록 전에 서울 `lightsail:GetOperations`도 호출함을
+  확인해 해당 read action을 추가한다. 다음 UI error read-back에서 화면 렌더링에
+  필요한 `GetBundles`, `GetBlueprints`, `GetStaticIps`도 확인해 같은 조건의
+  fixed read allowlist에 추가한다. Instance detail error read-back에서 공통
+  inventory에 필요한 `GetDisks`, `GetAlarms`, `GetKeyPairs`,
+  `GetInstanceSnapshots`, `GetLoadBalancers`도 확인해 같은 조건으로 추가한다.
+  Exact instance의 temporary access detail 제한과 서울 외 Lightsail explicit
+  deny는 유지한다.
 - access key 목록은 비어 있다. console password와 MFA는 아직 설정하지 않았다.

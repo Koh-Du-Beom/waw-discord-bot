@@ -5,12 +5,22 @@
       "Sid": "ReadProductionInstanceInventoryInSeoul",
       "Effect": "Allow",
       "Action": [
+        "lightsail:GetBlueprints",
+        "lightsail:GetBundles",
+        "lightsail:GetDisks",
         "lightsail:GetRegions",
+        "lightsail:GetAlarms",
         "lightsail:GetInstance",
+        "lightsail:GetInstances",
         "lightsail:GetInstanceMetricData",
         "lightsail:GetInstancePortStates",
+        "lightsail:GetInstanceSnapshots",
         "lightsail:GetInstanceState",
-        "lightsail:GetOperationsForResource"
+        "lightsail:GetKeyPairs",
+        "lightsail:GetLoadBalancers",
+        "lightsail:GetOperations",
+        "lightsail:GetOperationsForResource",
+        "lightsail:GetStaticIps"
       ],
       "Resource": "*",
       "Condition": {

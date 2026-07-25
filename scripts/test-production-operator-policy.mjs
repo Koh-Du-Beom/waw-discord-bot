@@ -42,8 +42,34 @@ try {
       .Action.includes("lightsail:GetRegions"),
   );
   assert.ok(
+    allows
+      .find(({ Sid }) => Sid === "ReadProductionInstanceInventoryInSeoul")
+      .Action.includes("lightsail:GetInstances"),
+  );
+  assert.ok(
+    allows
+      .find(({ Sid }) => Sid === "ReadProductionInstanceInventoryInSeoul")
+      .Action.includes("lightsail:GetOperations"),
+  );
+  for (const action of [
+    "lightsail:GetBlueprints",
+    "lightsail:GetBundles",
+    "lightsail:GetDisks",
+    "lightsail:GetAlarms",
+    "lightsail:GetInstanceSnapshots",
+    "lightsail:GetKeyPairs",
+    "lightsail:GetLoadBalancers",
+    "lightsail:GetStaticIps",
+  ]) {
+    assert.ok(
+      allows
+        .find(({ Sid }) => Sid === "ReadProductionInstanceInventoryInSeoul")
+        .Action.includes(action),
+    );
+  }
+  assert.ok(
     !JSON.stringify(policy).match(
-      /iam:|s3:|Create|Delete|Snapshot|Domain|PublicPorts|StartInstance|StopInstance|RebootInstance/,
+      /iam:|s3:|Create|Delete|CreateInstanceSnapshot|DeleteInstanceSnapshot|Domain|PublicPorts|StartInstance|StopInstance|RebootInstance/,
     ),
   );
 

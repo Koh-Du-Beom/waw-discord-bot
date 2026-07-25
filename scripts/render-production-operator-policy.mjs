@@ -29,13 +29,23 @@ const allowedActions = new Set(
   ),
 );
 const expectedActions = new Set([
+  "lightsail:GetBlueprints",
+  "lightsail:GetBundles",
+  "lightsail:GetDisks",
   "lightsail:GetRegions",
+  "lightsail:GetAlarms",
   "lightsail:GetInstance",
+  "lightsail:GetInstances",
   "lightsail:GetInstanceAccessDetails",
   "lightsail:GetInstanceMetricData",
   "lightsail:GetInstancePortStates",
+  "lightsail:GetInstanceSnapshots",
   "lightsail:GetInstanceState",
+  "lightsail:GetKeyPairs",
+  "lightsail:GetLoadBalancers",
+  "lightsail:GetOperations",
   "lightsail:GetOperationsForResource",
+  "lightsail:GetStaticIps",
 ]);
 
 if (
