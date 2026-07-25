@@ -6,7 +6,8 @@ import { join } from "node:path";
 import { spawn } from "node:child_process";
 import test from "node:test";
 
-import { journalSuppressionCount } from "./run-monitor.ts";
+import type { AlertNotification } from "./monitoring.ts";
+import { formatDiscordNotification, journalSuppressionCount } from "./run-monitor.ts";
 
 test("treats journalctl no-match as clear and other failures as invalid", () => {
   assert.equal(journalSuppressionCount(() => ""), 0);
@@ -27,6 +28,92 @@ test("treats journalctl no-match as clear and other failures as invalid", () => 
     }),
     -1,
   );
+});
+
+test("formats warning, recovery, known alert branches, and safe fallback in Korean", () => {
+  const cases: Array<{
+    name: string;
+    notification: AlertNotification;
+    title: string;
+    description: string;
+    severity: string;
+    footer: string;
+  }> = [
+    {
+      name: "backup warning",
+      notification: alert({
+        severity: "warning",
+        alert_key: "backup.age",
+        reason_code: "backup_age_warning",
+      }),
+      title: "🟡 백업 지연",
+      description: "마지막 백업 후 20시간 이상 지났습니다.",
+      severity: "주의",
+      footer: "backup.age · 0.1.0",
+    },
+    {
+      name: "certificate critical",
+      notification: alert({
+        severity: "critical",
+        alert_key: "certificate.expiry",
+        reason_code: "certificate_expiry_critical",
+      }),
+      title: "🔴 인증서 만료 임박",
+      description: "인증서 만료까지 14일 미만 남았습니다.",
+      severity: "긴급",
+      footer: "certificate.expiry · 0.1.0",
+    },
+    {
+      name: "journal capacity warning",
+      notification: alert({
+        severity: "warning",
+        alert_key: "journal.capacity",
+        reason_code: "journal_capacity_warning",
+      }),
+      title: "🟡 로그 저장 공간 용량 부족",
+      description: "로그 사용량이 높거나 서버의 남은 공간이 부족합니다.",
+      severity: "주의",
+      footer: "journal.capacity · 0.1.0",
+    },
+    {
+      name: "journal recovery",
+      notification: alert({
+        severity: "ok",
+        alert_key: "journal.dropped",
+        state: "resolved",
+        reason_code: "journal_suppression_clear",
+      }),
+      title: "🟢 시스템 로그 정상 복구",
+      description: "시스템 로그 문제가 해소되어 정상 상태로 돌아왔습니다.",
+      severity: "정상",
+      footer: "journal.dropped · 0.1.0",
+    },
+    {
+      name: "unknown safe code",
+      notification: alert({
+        severity: "warning",
+        alert_key: "future.alert",
+        reason_code: "future_reason",
+      }),
+      title: "🟡 운영 모니터링 이상 감지",
+      description: "알 수 없는 원인이 감지됐습니다. (future_reason)",
+      severity: "주의",
+      footer: "future.alert · 0.1.0",
+    },
+  ];
+
+  for (const item of cases) {
+    const payload = formatDiscordNotification(item.notification);
+    const embed = payload.embeds[0];
+    assert.ok(embed, item.name);
+    assert.equal(embed.title, item.title, item.name);
+    assert.equal(embed.description, item.description, item.name);
+    assert.equal(embed.fields.find((field) => field.name === "심각도")?.value, item.severity, item.name);
+    assert.equal(embed.footer.text, item.footer, item.name);
+    assert.deepEqual(payload.allowed_mentions, { parse: [] }, item.name);
+    assert.equal(JSON.stringify(payload).includes("@"), false, item.name);
+    assert.ok(Buffer.byteLength(JSON.stringify(payload)) <= 1_800, item.name);
+  }
 });
 
 test("reads a file credential, retries 429 once, and preserves state on delivery failure", async () => {
@@ -119,6 +206,20 @@ test("reads a file credential, retries 429 once, and preserves state on delivery
     await rm(root, { recursive: true, force: true });
   }
 });
+
+function alert(overrides: Partial<AlertNotification>): AlertNotification {
+  return {
+    severity: "critical",
+    alert_key: "service.waw-web.service",
+    state: "firing",
+    first_observed_at: "2026-07-23T00:00:00.000Z",
+    last_observed_at: "2026-07-23T00:00:00.000Z",
+    reason_code: "service_inactive",
+    service_version: "0.1.0",
+    allowed_mentions: { parse: [] },
+    ...overrides,
+  };
+}
 
 function runMonitor(
   credentialDirectory: string,
