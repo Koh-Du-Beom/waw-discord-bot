@@ -32,7 +32,7 @@ file or external resource was changed.
 | Production policy/grant inventory | INFO | Seven policies and 26 explicit `waw_web`/`waw_bot` table grants were returned |
 | Production workload roles | PASS | `waw_web` and `waw_bot` are non-login, non-inheriting and have no create/replication/bypass-RLS capabilities; `waw_web_runtime` is login/inheriting without elevated database capabilities |
 | Migration checksum portability | PASS | The runner records canonical LF hashes and accepts only LF/CRLF renderings of otherwise identical SQL. Exact production 0001-0004 mixed-ledger regression passed. |
-| Exact rollout input preflight | PASS | Temporary source archive SHA-256 `7ae3ee57ad1025cf25a0d8d4c0e10a0b5ba07d765a96b0f83b40b1e38629c236` passed isolated release staging, typecheck, build, checksum unit tests, and production-ledger resume on disposable PostgreSQL. The archive is evidence only and was not deployed. |
+| Exact rollout input preflight | PASS | Clean commit `aaf50697510bb90c04b7678c8e6b1ca0b0bd469b` was exported as source archive SHA-256 `7a72e9fe5bc2c9b3ed87ca86e60efae7b1033ac47b62c3f33c39b63b65c7d27b`. It passed isolated release staging, clean install, typecheck, build and production application asset verification. The archive is evidence only and was not deployed. |
 
 The local working tree contains the approved in-progress PLAN-0005/0006 work
 and is not an immutable production release artifact. The reviewed commit must

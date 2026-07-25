@@ -12,6 +12,12 @@ summary·Riot link·game observation port, domain, PostgreSQL과 fake Discord
 검증했다. 외부 summary provider, Riot API/RSO, Discord command 등록과
 production Task 9는 별도 승인 gate를 유지한다.
 
+Clean commit `aaf50697510bb90c04b7678c8e6b1ca0b0bd469b`의 immutable source
+archive SHA-256은
+`7a72e9fe5bc2c9b3ed87ca86e60efae7b1033ac47b62c3f33c39b63b65c7d27b`이며,
+격리 release stage·clean install·typecheck·build·production asset 검증을
+통과했다. 이 archive는 preflight 증거일 뿐 production에 배포하지 않았다.
+
 Production `/health`는
 2026-07-25 재확인 시 HTTP 200 `healthy`로 회복됐으며 이전 transient
 `degraded`의 정확한 component는 미확정. 외부 provider/RSO/API key, Discord
