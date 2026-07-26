@@ -74,8 +74,14 @@ and audit rows.
 2. Install the reviewed units with feature flags still `0`; validate them before
    daemon reload.
 3. Activate the immutable release and restart only the bot.
-4. Confirm singleton ownership and existing Gateway/member-role health.
-5. Set only the bot administrator IPC flag to `1`, restart the bot, then verify:
+4. Observe only fixed Gateway state fields and fixed reason-code counts for at
+   least 45 seconds. Require lifecycle `ready`, Gateway `connected` and member
+   reconciliation `current`. The wait covers two 15-second reconciliation
+   attempts and the 2-second retry delay. Roll back on
+   `gateway_member_reconciliation_retry_exhausted`, or when the required state
+   is not reached within the bounded observation window.
+5. Confirm singleton ownership and existing Gateway/member-role health.
+6. Set only the bot administrator IPC flag to `1`, restart the bot, then verify:
    - directory `waw-bot:waw-admin-command` mode `0750`;
    - socket `/run/waw-admin-command/admin-command.sock`;
    - socket owner/group `waw-bot:waw-admin-command`, mode `0660`;

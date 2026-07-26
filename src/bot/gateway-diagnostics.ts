@@ -4,6 +4,8 @@ export type BotFailureReason =
   | "gateway_event_rejected"
   | "gateway_guild_fetch_failed"
   | "gateway_member_reconciliation_failed"
+  | "gateway_member_reconciliation_timed_out"
+  | "gateway_member_reconciliation_retry_exhausted"
   | "command_dispatch_failed"
   | "observation_failed";
 

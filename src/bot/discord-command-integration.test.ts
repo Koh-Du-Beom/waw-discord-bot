@@ -88,6 +88,8 @@ test("dispatches all seven Korean commands through the bot listener and audits e
     heartbeatStaleAfterMs: 100,
     reconnectDelaysMs: [0],
     shutdownTimeoutMs: 100,
+    reconciliationTimeoutMs: 100,
+    reconciliationRetryDelaysMs: [],
     timeout: () => new Promise(() => {}),
     reportFailure: () => {},
     commands: {
@@ -151,6 +153,8 @@ test("reports a fixed dispatch failure and sends no reply when command audit per
     heartbeatStaleAfterMs: 100,
     reconnectDelaysMs: [0],
     shutdownTimeoutMs: 100,
+    reconciliationTimeoutMs: 100,
+    reconciliationRetryDelaysMs: [],
     timeout: () => new Promise(() => {}),
     reportFailure: (reason) => failures.push(reason),
     commands: {

@@ -6,6 +6,9 @@
 
 ### Added
 
+- Discord Gateway 초기 멤버 reconciliation의 15초 deadline과 1회 bounded
+  retry, 그리고 식별자를 포함하지 않는 고정 timeout·retry-exhausted reason
+  code 진단
 - Riot Account API PUUID existence validation with a bot-only systemd
   credential, fail-closed provider handling, and identifier-free tests.
 - Identifier-free administrator IPC server stage diagnostics for production

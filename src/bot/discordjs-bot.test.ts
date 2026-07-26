@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { Events } from "discord.js";
 
-import { startDiscordJsBot } from "./discordjs-bot.ts";
+import {
+  reconcileMembersWithPolicy,
+  startDiscordJsBot,
+} from "./discordjs-bot.ts";
 import type { DiscordJsClientFacade, DiscordJsGatewayDiagnosticListeners } from "../gateway/discordjs-adapter.ts";
 import type { SingletonLease } from "../gateway/singleton-lease.ts";
 
@@ -54,6 +57,8 @@ test("assembles fake discord.js lifecycle without a token or network", async () 
     heartbeatStaleAfterMs: 100,
     reconnectDelaysMs: [0],
     shutdownTimeoutMs: 100,
+    reconciliationTimeoutMs: 100,
+    reconciliationRetryDelaysMs: [],
     timeout: () => new Promise(() => {}),
     reportFailure: () => {},
   });
@@ -104,6 +109,8 @@ test("attaches and stops the gated observation lifecycle with a fake client", as
     heartbeatStaleAfterMs: 100,
     reconnectDelaysMs: [0],
     shutdownTimeoutMs: 100,
+    reconciliationTimeoutMs: 100,
+    reconciliationRetryDelaysMs: [],
     timeout: () => new Promise(() => {}),
     reportFailure: () => calls.push("failure"),
     observations: {
@@ -178,10 +185,62 @@ test("duplicate assembly refuses start before any fake Client login boundary", a
     heartbeatStaleAfterMs: 100,
     reconnectDelaysMs: [0],
     shutdownTimeoutMs: 100,
+    reconciliationTimeoutMs: 100,
+    reconciliationRetryDelaysMs: [],
     timeout: async () => {},
     reportFailure: () => {},
   });
 
   assert.equal(assembly.process.exitCode, 73);
   assert.equal(startCalls, 0);
+});
+
+test("reconciliation retries once after a bounded timeout", async () => {
+  let attempts = 0;
+  const failures: string[] = [];
+  const sleeps: number[] = [];
+  const members = await reconcileMembersWithPolicy({
+    reconcile: () => {
+      attempts += 1;
+      return attempts === 1
+        ? new Promise(() => {})
+        : Promise.resolve([
+            { actorId: "operator-1", authorizationTier: "operator" as const },
+          ]);
+    },
+    timeout: async () => {},
+    sleep: async (milliseconds) => {
+      sleeps.push(milliseconds);
+    },
+    timeoutMs: 15_000,
+    retryDelaysMs: [2_000],
+    reportFailure: (reason) => failures.push(reason),
+  });
+
+  assert.equal(attempts, 2);
+  assert.deepEqual(sleeps, [2_000]);
+  assert.deepEqual(failures, ["gateway_member_reconciliation_timed_out"]);
+  assert.equal(members.length, 1);
+});
+
+test("reconciliation exhaustion emits only fixed reason codes", async () => {
+  const failures: string[] = [];
+  await assert.rejects(
+    reconcileMembersWithPolicy({
+      reconcile: () => new Promise(() => {}),
+      timeout: async () => {},
+      sleep: async () => {},
+      timeoutMs: 15_000,
+      retryDelaysMs: [2_000],
+      reportFailure: (reason) => failures.push(reason),
+    }),
+    /retry exhausted/u,
+  );
+
+  assert.deepEqual(failures, [
+    "gateway_member_reconciliation_timed_out",
+    "gateway_member_reconciliation_timed_out",
+    "gateway_member_reconciliation_retry_exhausted",
+  ]);
+  assert.equal(JSON.stringify(failures).includes("operator-1"), false);
 });

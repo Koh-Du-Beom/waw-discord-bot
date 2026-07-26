@@ -1,8 +1,27 @@
 # 프로젝트 상태
 
-마지막 갱신일: 2026-07-26
+마지막 갱신일: 2026-07-27
 
 ## 현재 단계
+
+2026-07-27 `dashboard-design-refresh`를 main에 병합하고 문서 번호 충돌을
+ADR-0019/PLAN-0008로 정리했다. 승인된 dashboard 후속 계획은 Riot
+ADR-0018/PLAN-0007 production Gate C/D와 Gateway 장애 해소 뒤에 시작하도록
+선행 조건을 명시했다.
+
+Production 후보 `d6b2e7a`의 식별자 없는 고정 상태·단계 카운트만 관찰한 결과,
+Discord login과 lifecycle ready까지는 성공했지만 초기 guild/member
+reconciliation이 pending 상태로 무기한 머물렀다. 후보는 이전 immutable
+release로 rollback했으며 rollback 조건 외 production mutation은 수행하지
+않았다. 근본 원인은 외부 reconciliation 경계에 deadline과 bounded retry가
+없던 것이다. PLAN-0004의 승인된 provider timeout·정규화 실패 계약에 따라
+각 시도 15초 deadline, 2초 뒤 1회 retry, 식별자 없는
+`gateway_member_reconciliation_timed_out` 및
+`gateway_member_reconciliation_retry_exhausted` 진단을 구현했다. 로컬 전체
+검증은 `218 tests / 211 pass / 7 PostgreSQL tool skips / 0 fail`,
+typecheck·server/web build·diff check 통과다. 새 immutable release 후보를
+만들어 Gate C에서 최소 45초 동안 connected/current 또는 고정 실패 code를
+확인한 다음, 통과한 경우에만 같은 Orca Dashboard 세션에서 Gate D를 재개한다.
 
 2026-07-26 dashboard design refresh의 승인 전 1단계를 시작했다. 기존 React
 화면, 정보 구조, 접근성, 반응형과 인증·권한·API 계약을 감사하고 관찰 가능한

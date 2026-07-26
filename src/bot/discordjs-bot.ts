@@ -1,5 +1,6 @@
 import type { BotProcess } from "./bot-entrypoint.ts";
 import { startBotProcess } from "./bot-entrypoint.ts";
+import type { BotFailureReason } from "./gateway-diagnostics.ts";
 import {
   DiscordJsGatewayAdapter,
   type DiscordJsClientFacade,
@@ -42,14 +43,9 @@ export async function startDiscordJsBot(input: {
   reconnectDelaysMs: readonly number[];
   shutdownTimeoutMs: number;
   timeout: (milliseconds: number) => Promise<void>;
-  reportFailure: (
-    reason:
-      | "gateway_event_rejected"
-      | "gateway_guild_fetch_failed"
-      | "gateway_member_reconciliation_failed"
-      | "command_dispatch_failed"
-      | "observation_failed",
-  ) => void;
+  reconciliationTimeoutMs: number;
+  reconciliationRetryDelaysMs: readonly number[];
+  reportFailure: (reason: BotFailureReason) => void;
   commands?: {
     source: DiscordInteractionSource;
     handle: (interaction: DiscordChatInputInteraction) => Promise<void>;
@@ -67,7 +63,15 @@ export async function startDiscordJsBot(input: {
     client: input.client,
     startClient: input.startClient,
     diagnostics: input.diagnostics,
-    reconcileMembers: input.reconcileMembers,
+    reconcileMembers: () =>
+      reconcileMembersWithPolicy({
+        reconcile: input.reconcileMembers,
+        timeout: input.timeout,
+        sleep: input.sleep,
+        timeoutMs: input.reconciliationTimeoutMs,
+        retryDelaysMs: input.reconciliationRetryDelaysMs,
+        reportFailure: input.reportFailure,
+      }),
     emit: async (event) => gateway.accept(event),
     reportFailure: () => input.reportFailure("gateway_event_rejected"),
   });
@@ -133,6 +137,38 @@ export async function startDiscordJsBot(input: {
       },
     },
   };
+}
+
+export async function reconcileMembersWithPolicy(input: {
+  reconcile: () => Promise<readonly ReconciledMember[]>;
+  timeout: (milliseconds: number) => Promise<void>;
+  sleep: (milliseconds: number) => Promise<void>;
+  timeoutMs: number;
+  retryDelaysMs: readonly number[];
+  reportFailure: (reason: BotFailureReason) => void;
+}): Promise<readonly ReconciledMember[]> {
+  for (let attempt = 0; attempt <= input.retryDelaysMs.length; attempt += 1) {
+    const outcome = await Promise.race([
+      input.reconcile().then(
+        (members) => ({ kind: "success" as const, members }),
+        () => ({ kind: "failed" as const }),
+      ),
+      input.timeout(input.timeoutMs).then(() => ({ kind: "timed_out" as const })),
+    ]);
+    if (outcome.kind === "success") {
+      return outcome.members;
+    }
+    if (outcome.kind === "timed_out") {
+      input.reportFailure("gateway_member_reconciliation_timed_out");
+    }
+    const retryDelay = input.retryDelaysMs[attempt];
+    if (retryDelay !== undefined) {
+      await input.sleep(retryDelay);
+      continue;
+    }
+  }
+  input.reportFailure("gateway_member_reconciliation_retry_exhausted");
+  throw new Error("gateway member reconciliation retry exhausted");
 }
 
 function defaultInterval(action: () => void, milliseconds: number): () => void {

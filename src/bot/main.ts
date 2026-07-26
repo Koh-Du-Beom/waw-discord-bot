@@ -183,6 +183,8 @@ const assembly = await startDiscordJsBot({
   heartbeatStaleAfterMs: 45_000,
   reconnectDelaysMs: [1_000, 2_000, 5_000, 10_000],
   shutdownTimeoutMs: 10_000,
+  reconciliationTimeoutMs: 15_000,
+  reconciliationRetryDelaysMs: [2_000],
   timeout: (milliseconds) =>
     new Promise((resolve) => setTimeout(resolve, milliseconds)),
   reportFailure,
