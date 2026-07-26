@@ -1,0 +1,84 @@
+# PLAN-0008 Gate B recovery handoff — 2026-07-27
+
+- Status: Fresh encrypted backup published; empty-target restore deferred to
+  another computer holding the offline recovery identity
+- Reviewed candidate:
+  `d2d3ed442e7cd80a00d1646fd866139174bf4043`
+- Reviewed source ZIP SHA-256:
+  `3fcab2794d11a7de6c061be3e61d8f43d699a33a9c8783f1e499784ee541d987`
+- Migration `0007` SHA-256:
+  `32588ca4d830b7c2cd9f4c6d16c1046c16ac574375fd483dc899a6ae91eba4db`
+
+## Gate A result
+
+The exact candidate and archive matched the owner approval. The worktree was
+clean. Local typecheck, build, production asset checks, isolated archive
+typecheck/build, and the complete test suite passed. The suite reported 231
+tests, 223 passes, eight explicit PostgreSQL-tooling skips, and zero failures.
+
+Production metadata remained compatible with the reviewed rollout:
+
+- the migration ledger contained versions `0001` through `0006`;
+- migration `0007` objects were absent;
+- no invalid constraint was reported;
+- the canonical dashboard and health endpoint were healthy;
+- the application, proxy, backup timer, and monitor timer were active;
+- no failed systemd unit was listed.
+
+Gate A passed. No migration, application release, feature gate, DNS, firewall,
+or certificate change was made.
+
+## Fresh encrypted backup
+
+The owner-approved one-shot `waw-backup.service` completed successfully.
+
+- Created: `2026-07-26T23:30:53Z`
+- Completed: `2026-07-26T23:31:05Z`
+- Status: `published`
+- Schema version: `6`
+- Expected row count: `97`
+- Expected invariant: `constraints_valid`
+- Encrypted bytes: `48466`
+- Archive SHA-256:
+  `06a0f7be6f56a3994d27e82c866fd9afd985de737f2137c5300486a16a865688`
+- Archive ID: `d3ad78540e16e208d888e9edbdcc254b`
+- Exact object:
+  `backups/2026-07-26T23-30-53Z-d3ad78540e16e208d888e9edbdcc254b.dump.age`
+- Service result: `success`, exit status `0`
+
+Publication is not restore verification. The archive must remain `unverified`
+until the procedure below passes.
+
+## Next-session restore boundary
+
+Run the restore only on the separate computer that holds the offline encrypted
+`age` identity. Do not place the identity, its passphrase, AWS credentials,
+database URLs, raw dump data, or provider payloads in chat, Git, shell history,
+screenshots, or logs.
+
+The next session must:
+
+1. Revalidate the exact candidate, source archive SHA-256, backup marker, and
+   exact S3 object metadata.
+2. Create a temporary reader restricted to `GetObject` for the exact object
+   above. It must not receive Put, Delete, other-object Get, IAM mutation, or
+   bucket-policy authority.
+3. Download only the encrypted archive and manifest into a fresh temporary
+   directory.
+4. Verify byte count `48466` and the exact archive SHA-256 before decryption.
+5. Prove a wrong identity is rejected.
+6. Decrypt with the offline identity without exposing it or its passphrase.
+7. Restore with `pg_restore --exit-on-error` into a disposable, empty
+   PostgreSQL 17 target. Never restore into the production Supabase project.
+8. Verify schema version `6`, total expected row count `97`, zero invalid
+   constraints, foreign-key validity, and `constraints_valid`.
+9. Record only non-sensitive timestamps, elapsed seconds, hashes, counts, and
+   fixed outcomes.
+10. Remove the temporary reader access key, policy, and user; encrypted local
+    copy, manifest, decrypted dump, identity copy, target database/container,
+    and any ephemeral SSH material. Confirm all temporary resources are absent.
+
+Migration `0007`, candidate deployment, and quota feature activation remain
+outside this handoff. After restore verification, report the Gate B exact
+change set and request a separate owner approval for additive migration `0007`
+and default-off deployment.
