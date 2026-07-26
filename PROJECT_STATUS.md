@@ -4,6 +4,13 @@
 
 ## 현재 단계
 
+`/도움말`을 네 번째 최상위 Discord 명령으로 추가했다. 응답은 ephemeral이며
+`/요약`, `/라이엇계정`, `/몰랭검거`의 목적과 입력 예시, 관리자 전용
+정정·취소, 관리자 승인 Riot 연결이 공식 소유권 인증은 아니라는 경계를
+안내한다. 명령은 기존 command audit 경로를 사용하며 등록 payload·interaction
+handler·bot listener 계약 테스트와 typecheck가 통과했다. Production 배포와
+길드 command 등록 readback은 immutable release 검증 뒤 수행한다.
+
 2026-07-27 `dashboard-design-refresh`를 main에 병합하고 문서 번호 충돌을
 ADR-0019/PLAN-0008로 정리했다. 승인된 dashboard 후속 계획은 Riot
 ADR-0018/PLAN-0007 production Gate C/D와 Gateway 장애 해소 뒤에 시작하도록

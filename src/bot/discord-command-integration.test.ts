@@ -37,7 +37,7 @@ const lease = (): SingletonLease => ({
   release: async () => true,
 });
 
-test("dispatches all seven Korean commands through the bot listener and audits each attempt", async () => {
+test("dispatches all eight Korean commands through the bot listener and audits each attempt", async () => {
   const client = new FakeDiscordClient();
   const audits: CommandAuditEvent[] = [];
   const featureCommands: KoreanCommandName[] = [];
@@ -102,6 +102,7 @@ test("dispatches all seven Korean commands through the bot listener and audits e
   });
 
   const fixtures = [
+    fixture("도움말", null, {}),
     fixture("요약", null, { 시작: "2026-07-25T00:00:00Z", 종료: "2026-07-25T01:00:00Z" }),
     fixture("라이엇계정", "연결", { 라이엇아이디: "name#tag", 플랫폼: "KR" }),
     fixture("라이엇계정", "목록", {}, "4001"),
@@ -116,7 +117,7 @@ test("dispatches all seven Korean commands through the bot listener and audits e
   }
   await assembly.commands?.whenIdle();
 
-  assert.equal(replies.length, 7);
+  assert.equal(replies.length, 8);
   assert.deepEqual(featureCommands, [
     "라이엇계정 연결",
     "라이엇계정 목록",
@@ -125,7 +126,7 @@ test("dispatches all seven Korean commands through the bot listener and audits e
     "몰랭검거 정정",
     "몰랭검거 취소",
   ]);
-  assert.equal(audits.length, 7);
+  assert.equal(audits.length, 8);
   assert.equal(JSON.stringify(audits).includes("통합 테스트 원문 canary"), false);
   await assembly.process.shutdown();
   assert.equal(client.listeners.get(Events.InteractionCreate)?.size, 0);

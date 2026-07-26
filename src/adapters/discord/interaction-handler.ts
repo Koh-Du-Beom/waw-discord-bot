@@ -39,6 +39,8 @@ function normalizeInteraction(
   const guildId = interaction.guildId ?? "direct-message";
   const channelId = interaction.channelId ?? "unavailable";
   switch (interaction.commandName) {
+    case "도움말":
+      return request(interaction, correlationId, guildId, channelId, "도움말", {});
     case "요약":
       return request(interaction, correlationId, guildId, channelId, "요약", {
         시작: interaction.options.getString("시작", true),

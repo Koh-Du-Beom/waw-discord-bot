@@ -6,6 +6,8 @@
 
 ### Added
 
+- 호출자에게만 한국어로 전체 명령의 목적·입력 예시·관리자 전용 범위와
+  Riot 관리자 승인 연결의 한계를 안내하는 `/도움말` Discord 명령
 - PLAN-0008 Task 1 command-log/quota public DTO, same-origin endpoint paths,
   bounded opaque pagination input, reservation port contract, and deterministic
   `Asia/Seoul` quota-date tests

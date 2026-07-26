@@ -9,6 +9,7 @@ import {
 import { KOREAN_COMMAND_RESPONSES } from "./slash-commands.ts";
 
 export type KoreanCommandName =
+  | "도움말"
   | "요약"
   | "라이엇계정 연결"
   | "라이엇계정 목록"
@@ -68,7 +69,9 @@ export class KoreanCommandHandler {
     let reasonCode = "command_failed";
     try {
       const response =
-        request.commandName === "요약"
+        request.commandName === "도움말"
+          ? KOREAN_COMMAND_RESPONSES.help
+          : request.commandName === "요약"
           ? await this.summary(request)
           : await this.input.features.execute(request);
       outcome = "success";

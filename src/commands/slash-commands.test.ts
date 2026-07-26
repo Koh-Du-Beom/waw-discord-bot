@@ -5,6 +5,7 @@ import { WAW_SLASH_COMMANDS } from "./slash-commands.ts";
 
 test("defines the approved command tree with Korean descriptions", () => {
   assert.deepEqual(WAW_SLASH_COMMANDS.map((command) => command.name), [
+    "도움말",
     "요약",
     "라이엇계정",
     "몰랭검거",
