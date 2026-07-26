@@ -1,4 +1,4 @@
-# ADR-0018: Dashboard command log and summary daily quota
+# ADR-0019: Dashboard command log and summary daily quota
 
 - Status: Accepted
 - Date: 2026-07-26

@@ -2,7 +2,7 @@
 
 - Status: Approved
 - Related requirements: FUN-004, FUN-005, PRI-001 through PRI-003
-- Related ADRs: ADR-0007, ADR-0010, ADR-0014, ADR-0016, ADR-0018
+- Related ADRs: ADR-0007, ADR-0010, ADR-0014, ADR-0016, ADR-0019
 - Owner: Product owner
 
 ## 목표
@@ -39,7 +39,11 @@ PostgreSQL에서 원자적으로 강제하며, dashboard는 민감 식별자 없
 
 ## 선행 조건
 
-- ADR-0018 Accepted
+- ADR-0019 Accepted
+- ADR-0018/PLAN-0007의 Riot PUUID validator 릴리스가 production Gate C와
+  Gate D를 통과하고 production이 `healthy`인 상태
+- `d6b2e7a` Gateway 실패의 고정 reason code를 확인하고 수정 릴리스 후보와
+  rollback 증거를 기록한 상태
 - 등록 사용자별 기본 10회 상속과 개인 override/사용 중지 owner 승인
 - 실제 구현 전 현재 migration ledger와 workload role 권한을 disposable
   PostgreSQL에서 재확인할 것
@@ -193,7 +197,7 @@ PostgreSQL에서 원자적으로 강제하며, dashboard는 민감 식별자 없
 
 ## 배포 및 마이그레이션
 
-1. ADR-0018과 이 계획의 owner 승인을 기록한다.
+1. ADR-0019와 이 계획의 owner 승인을 기록한다.
 2. Local unit/UI tests와 disposable PostgreSQL migration/concurrency를 완료한다.
 3. Source를 고정하고 clean install/typecheck/build/test evidence를 만든다.
 4. 별도 production Gate A에서 metadata-only preflight를 수행한다.
@@ -207,7 +211,7 @@ PostgreSQL에서 원자적으로 강제하며, dashboard는 민감 식별자 없
 
 ## 문서 갱신
 
-- ADR-0018 승인 기록
+- ADR-0019 승인 기록
 - `PROJECT_STATUS.md`, `CHANGELOG.md`
 - application persistence, authentication, deployment/security runbook
 - dashboard UI 감사와 browser evidence

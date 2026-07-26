@@ -24,18 +24,20 @@ Owner 피드백으로 선택 방향을 Pretendard 기반 현대적 대시보드,
 실제 구현 전 read model, 한국 날짜 경계, 원자적 사용량 증가, 관리자 mutation,
 감사·보존·pagination을 별도 bounded plan으로 승인해야 한다.
 
-후속 architecture를 `ADR-0018-command-log-and-summary-daily-quota.md`
+후속 architecture를 `ADR-0019-command-log-and-summary-daily-quota.md`
 로, bounded sequence를
-`PLAN-0007-dashboard-command-log-and-summary-quota.md`로 작성했다.
-2026-07-26 owner가 등록 사용자별 quota 모델을 승인해 ADR-0018은 Accepted,
-PLAN-0007은 Approved로 전환했다. 각 사용자는 기본 10회를 상속하며 관리자가
+`PLAN-0008-dashboard-command-log-and-summary-daily-quota.md`로 작성했다.
+2026-07-26 owner가 등록 사용자별 quota 모델을 승인해 ADR-0019는 Accepted,
+PLAN-0008은 Approved로 전환했다. 각 사용자는 기본 10회를 상속하며 관리자가
 1–100 개인 override 또는 사용 중지를 설정한다. `(guild, registered user,
 Asia/Seoul date)`별 provider invocation 직전 원자 reservation, 실패·timeout
 포함 시도 차감, version 1 수동 reset 제외, redacted cursor command log와
 browser DTO의 Discord ID 비노출을 유지한다. 정적 prototype의 `요약 한도
 관리`도 등록 사용자 table과 설정 dialog로 갱신했다. Production code와
-migration은 아직 구현하지 않았고 PLAN-0007 Tasks 1–7은 후속 bounded 작업,
-Task 8 production은 별도 approval gate다. 처리 시간 열 추가 계약과
+migration은 아직 구현하지 않았고 PLAN-0008 Tasks 1–7은 후속 bounded 작업,
+Task 8 production은 별도 approval gate다. ADR-0018/PLAN-0007의 Riot
+PUUID validator Gateway 수정과 production Gate C/D 완료가 PLAN-0008의
+선행 조건이다. 처리 시간 열 추가 계약과
 command/quota retention은 미해결이다.
 
 PLAN-0005는 2026-07-26 기준 Local/Disposable Complete다. Tasks 1~8의
