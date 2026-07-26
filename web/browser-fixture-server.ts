@@ -20,6 +20,20 @@ export function buildBrowserFixtureServer() {
   app.get("/api/overview", async () => healthyOverviewFixture);
   app.get("/api/settings/summary", async () => settings);
   app.get("/api/audit", async () => audit);
+  app.get("/api/command-log", async () => ({
+    entries: [{
+      occurredAt: "2026-07-27T00:00:00.000Z",
+      commandLabel: "/요약",
+      actorLabel: "서버 멤버",
+      outcome: "success",
+      reasonLabel: "완료",
+    }],
+  }));
+  app.get("/api/summary/quotas", async () => ({
+    defaultLimit: 10,
+    version: 0,
+    users: [],
+  }));
   app.put<{ Body: { summaryEnabled: boolean; expectedVersion: number } }>(
     "/api/settings/summary",
     async (request, reply) => {

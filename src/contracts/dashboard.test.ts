@@ -27,6 +27,8 @@ test("dashboard API paths remain same-origin and canonical", () => {
     riotReject: "/api/riot/requests/reject",
     commandLog: "/api/command-log",
     summaryQuotas: "/api/summary/quotas",
+    summaryQuotaDefault: "/api/summary/quotas/default",
+    summaryQuotaUser: "/api/summary/quotas/user",
   });
 
   for (const path of Object.values(DASHBOARD_API_PATHS)) {

@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+- PLAN-0008 Tasks 2–7: additive daily-summary quota schema, atomic PostgreSQL
+  reservations, redacted command-log and quota APIs, administrator quota
+  mutations, and the responsive Pretendard Direction A dashboard
+- Riot approval success is retained even if its follow-up list refresh fails,
+  and recent-auth denial now gives explicit Korean reauthentication guidance
+
 ### Added
 
 - Dashboard 승인에서 PUUID 입력을 제거하고 bot-only Riot Account API가 pending

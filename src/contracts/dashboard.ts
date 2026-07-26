@@ -148,6 +148,24 @@ export type SummaryQuotaPageDto = {
   nextCursor?: string;
 };
 
+export type SummaryQuotaSettingsDto = {
+  defaultLimit: number;
+  version: number;
+  users: SummaryQuotaStatusDto[];
+};
+
+export type UpdateSummaryQuotaDefaultRequestDto = {
+  dailyLimit: number;
+  expectedVersion: number;
+};
+
+export type UpdateSummaryQuotaUserRequestDto = {
+  userKey: string;
+  enabled: boolean;
+  dailyLimit: number | null;
+  expectedVersion: number;
+};
+
 export const DASHBOARD_API_PATHS = {
   login: "/auth/login",
   callback: "/auth/discord/callback",
@@ -161,4 +179,6 @@ export const DASHBOARD_API_PATHS = {
   riotReject: "/api/riot/requests/reject",
   commandLog: "/api/command-log",
   summaryQuotas: "/api/summary/quotas",
+  summaryQuotaDefault: "/api/summary/quotas/default",
+  summaryQuotaUser: "/api/summary/quotas/user",
 } as const;

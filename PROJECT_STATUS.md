@@ -4,6 +4,15 @@
 
 ## 현재 단계
 
+PLAN-0008 Tasks 2–7을 local/disposable 범위에서 구현했다. Migration 0007은
+기본 10회, 등록 사용자 override/disable, 한국 날짜 counter와 operation별
+reservation을 additive하게 추가한다. PostgreSQL 17 disposable 검증에서
+20-way 동시 요청 중 정확히 10건만 예약됐고 duplicate, RLS 및 workload 최소
+권한을 확인했다. Redacted command-log/quota API와 administrator optimistic
+mutation, Pretendard Direction A React UI, 모바일 labelled row, Riot 승인
+후속 refresh 및 recent-auth 안내를 구현했다. Production Task 8은 미수행이며
+Gate A metadata preflight와 Gate B fresh encrypted backup/restore 승인이 남았다.
+
 Discord 연결 UX를 `/라이엇계정 연결 계정:<이름#태그>` 한 입력으로 단순화했다.
 Discord slash command의 이름 없는 위치 인자 제약 때문에 `연결` subcommand와
 `계정` option label은 유지하되, Riot 로그인 사용자명은 받지 않는다.

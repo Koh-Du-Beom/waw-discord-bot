@@ -5,11 +5,15 @@ import {
   type ApiErrorCode,
   type AuditEventsDto,
   type DashboardOverviewDto,
+  type CommandLogPageDto,
   type LowRiskSettingsDto,
   type PendingRiotLinkRequestsDto,
   type ApproveRiotLinkRequestDto,
   type RiotLinkDecisionResponseDto,
   type SessionDto,
+  type SummaryQuotaSettingsDto,
+  type UpdateSummaryQuotaDefaultRequestDto,
+  type UpdateSummaryQuotaUserRequestDto,
   type UpdateLowRiskSettingsRequestDto,
 } from "../src/contracts/dashboard.ts";
 
@@ -20,6 +24,10 @@ export type DashboardApi = {
   getSettings(): Promise<LowRiskSettingsDto>;
   updateSettings(request: UpdateLowRiskSettingsRequestDto): Promise<LowRiskSettingsDto>;
   getAudit(): Promise<AuditEventsDto>;
+  getCommandLog(): Promise<CommandLogPageDto>;
+  getSummaryQuotas(): Promise<SummaryQuotaSettingsDto>;
+  updateSummaryQuotaDefault(request: UpdateSummaryQuotaDefaultRequestDto): Promise<SummaryQuotaSettingsDto>;
+  updateSummaryQuotaUser(request: UpdateSummaryQuotaUserRequestDto): Promise<SummaryQuotaSettingsDto>;
   getRiotRequests(): Promise<PendingRiotLinkRequestsDto>;
   approveRiotRequest(request: ApproveRiotLinkRequestDto): Promise<RiotLinkDecisionResponseDto>;
 };
@@ -36,6 +44,8 @@ type ViewState =
       settings: LowRiskSettingsDto;
       audit: AuditEventsDto;
       riotRequests: PendingRiotLinkRequestsDto;
+      commandLog: CommandLogPageDto;
+      quotas: SummaryQuotaSettingsDto;
     };
 
 export function App({ api }: { api: DashboardApi }) {
@@ -114,6 +124,7 @@ function Dashboard({
   const [result, setResult] = useState<{ kind: "success" | "error"; message: string }>();
   const resultRef = useRef<HTMLParagraphElement>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [quotas, setQuotas] = useState(value.quotas);
 
   useEffect(() => {
     if (result) resultRef.current?.focus();
@@ -166,14 +177,17 @@ function Dashboard({
         expectedVersion: request.version,
         confirmation: true,
       });
-      setRiotRequests(await api.getRiotRequests());
       setResult({ kind: "success", message: "Riot 계정 연결 요청을 승인했습니다." });
+      setRiotRequests(await api.getRiotRequests().catch(() => ({ requests: [] })));
     } catch (error) {
+      const code = errorCode(error);
       setResult({
         kind: "error",
-        message: errorCode(error) === "conflict"
+        message: code === "conflict"
           ? "요청 상태가 변경되었습니다. 목록을 새로 불러왔습니다."
-          : "Riot 계정 연결 요청을 승인하지 못했습니다.",
+          : code === "forbidden"
+            ? "보안을 위해 Discord 재인증이 필요합니다. 로그아웃 후 다시 로그인하세요."
+            : "Riot 계정 연결 요청을 승인하지 못했습니다.",
       });
       setRiotRequests(await api.getRiotRequests().catch(() => riotRequests));
     }
@@ -198,6 +212,11 @@ function Dashboard({
       </header>
 
       <main>
+        <nav className="section-nav" aria-label="Dashboard 주요 영역">
+          <a href="#attention">확인 필요</a>
+          <a href="#commands">명령 기록</a>
+          <a href="#quotas">요약 한도</a>
+        </nav>
         <section aria-labelledby="health-title">
           <div className="section-heading">
             <div>
@@ -222,7 +241,7 @@ function Dashboard({
           </div>
         </section>
 
-        <div className="content-grid">
+        <div className="content-grid" id="attention">
           {value.session.actor.tier === "administrator" && (
             <section className="panel riot-panel" aria-labelledby="riot-title">
               <p className="eyebrow">관리자 승인</p>
@@ -298,6 +317,48 @@ function Dashboard({
             )}
           </section>
         </div>
+
+        <section className="panel wide-panel" id="commands" aria-labelledby="commands-title">
+          <p className="eyebrow">/몰랭검거 · 명령 활동</p>
+          <h2 id="commands-title">최근 명령 기록</h2>
+          {value.commandLog.entries.length === 0 ? <p className="empty">표시할 명령 기록이 없습니다.</p> : (
+            <div className="table-scroll"><table><thead><tr><th>실행 시각</th><th>명령</th><th>사용자</th><th>결과</th></tr></thead>
+              <tbody>{value.commandLog.entries.map((entry, index) => <tr key={`${entry.occurredAt}-${index}`}>
+                <td data-label="실행 시각">{formatDate(entry.occurredAt)}</td>
+                <td data-label="명령"><code>{entry.commandLabel}</code></td>
+                <td data-label="사용자">{entry.actorLabel}</td>
+                <td data-label="결과"><span className={`outcome ${entry.outcome}`}>{outcomeLabel(entry.outcome)} · {entry.reasonLabel}</span></td>
+              </tr>)}</tbody></table></div>
+          )}
+        </section>
+
+        <section className="panel wide-panel" id="quotas" aria-labelledby="quotas-title">
+          <p className="eyebrow">한국시간 자정 초기화</p>
+          <h2 id="quotas-title">요약 한도 관리</h2>
+          <p className="notice">서버 기본 일일 한도는 {quotas.defaultLimit}회입니다.</p>
+          {value.session.actor.tier === "administrator" && <form className="inline-form" onSubmit={(event) => {
+            event.preventDefault();
+            const field = new FormData(event.currentTarget).get("dailyLimit");
+            void api.updateSummaryQuotaDefault({ dailyLimit: Number(field), expectedVersion: quotas.version })
+              .then(setQuotas)
+              .then(() => setResult({ kind: "success", message: "기본 한도를 저장했습니다." }))
+              .catch((error) => setResult({ kind: "error", message: errorCode(error) === "conflict" ? "한도가 먼저 변경되었습니다. 다시 시도하세요." : "한도를 저장하지 못했습니다." }));
+          }}>
+            <label>기본 일일 한도 <input name="dailyLimit" type="number" min="1" max="100" defaultValue={quotas.defaultLimit} /></label>
+            <button type="submit">기본 한도 저장</button>
+          </form>}
+          <ul className="quota-list">{quotas.users.map((user) => <li key={user.userKey}>
+            <strong>{user.displayLabel}</strong>
+            <span>{user.enabled ? `${user.used} / ${user.effectiveLimit}회 · ${user.remaining}회 남음` : "사용 중지"}</span>
+            {value.session.actor.tier === "administrator" && <button className="secondary" type="button" onClick={() => {
+              void api.updateSummaryQuotaUser({
+                userKey: user.userKey, enabled: !user.enabled,
+                dailyLimit: user.limitSource === "override" ? user.effectiveLimit : null,
+                expectedVersion: user.version,
+              }).then(setQuotas).catch(() => setResult({ kind: "error", message: "사용자 한도를 변경하지 못했습니다." }));
+            }}>{user.enabled ? "사용 중지" : "사용 허용"}</button>}
+          </li>)}</ul>
+        </section>
       </main>
     </div>
   );
@@ -348,15 +409,17 @@ async function loadDashboard(api: DashboardApi): Promise<ViewState> {
   try {
     const session = await api.getSession();
     if (!session) return { kind: "login" };
-    const [overview, settings, audit, riotRequests] = await Promise.all([
+    const [overview, settings, audit, riotRequests, commandLog, quotas] = await Promise.all([
       api.getOverview(),
       api.getSettings(),
       api.getAudit(),
       session.actor.tier === "administrator"
         ? api.getRiotRequests()
         : Promise.resolve({ requests: [] }),
+      api.getCommandLog(),
+      api.getSummaryQuotas(),
     ]);
-    return { kind: "ready", session, overview, settings, audit, riotRequests };
+    return { kind: "ready", session, overview, settings, audit, riotRequests, commandLog, quotas };
   } catch (error) {
     return errorCode(error) === "forbidden" ? { kind: "denied" } : { kind: "unavailable" };
   }

@@ -165,3 +165,10 @@
 - 기능 플래그 또는 단계적 활성화
 - 롤백 판단 조건
 - 데이터 변환의 역방향 또는 복구 전략
+# PLAN-0008 quota rollout gate
+
+Migration 0007 and summary quota enforcement remain production-disabled until
+Gate A metadata-only preflight and Gate B fresh encrypted backup/restore
+evidence approve the exact immutable release. Rollback disables the quota and
+dashboard feature gates, reactivates the previous release, and preserves the
+additive quota tables and reservation audit rows.

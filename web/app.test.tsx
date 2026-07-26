@@ -221,6 +221,18 @@ function apiFixture(
     async getAudit() {
       return overrides.audit ?? emptyAuditFixture;
     },
+    async getCommandLog() {
+      return { entries: [] };
+    },
+    async getSummaryQuotas() {
+      return { defaultLimit: 10, version: 0, users: [] };
+    },
+    async updateSummaryQuotaDefault() {
+      return { defaultLimit: 10, version: 1, users: [] };
+    },
+    async updateSummaryQuotaUser() {
+      return { defaultLimit: 10, version: 1, users: [] };
+    },
     async logout() {},
     async getRiotRequests() {
       return overrides.riotRequests ?? { requests: [] };

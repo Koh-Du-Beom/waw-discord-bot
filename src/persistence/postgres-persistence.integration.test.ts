@@ -32,12 +32,14 @@ const migrationThreePath = path.join(projectRoot, "migrations/0003_session_recen
 const migrationFourPath = path.join(projectRoot, "migrations/0004_dashboard_settings.sql");
 const migrationFivePath = path.join(projectRoot, "migrations/0005_summary_riot_game.sql");
 const migrationSixPath = path.join(projectRoot, "migrations/0006_admin_command_result.sql");
+const migrationSevenPath = path.join(projectRoot, "migrations/0007_summary_daily_quota.sql");
 const migrationOneSql = await readFile(migrationOnePath, "utf8");
 const migrationTwoSql = await readFile(migrationTwoPath, "utf8");
 const migrationThreeSql = await readFile(migrationThreePath, "utf8");
 const migrationFourSql = await readFile(migrationFourPath, "utf8");
 const migrationFiveSql = await readFile(migrationFivePath, "utf8");
 const migrationSixSql = await readFile(migrationSixPath, "utf8");
+const migrationSevenSql = await readFile(migrationSevenPath, "utf8");
 
 let clusterDirectory = "";
 let socketDirectory = "";
@@ -124,6 +126,11 @@ test("applies migration transactionally, records version, and rejects reapplicat
     name: "admin_command_result",
     sql: migrationSixSql,
   });
+  await applyMigration(adminPool, {
+    version: 7,
+    name: "summary_daily_quota",
+    sql: migrationSevenSql,
+  });
 
   const version = await adminPool.query<{ version: number }>(
     "select version from app_schema_version order by version",
@@ -135,6 +142,7 @@ test("applies migration transactionally, records version, and rejects reapplicat
     { version: 4 },
     { version: 5 },
     { version: 6 },
+    { version: 7 },
   ]);
 
   await assert.rejects(
@@ -462,6 +470,7 @@ test("resumes from the exact mixed-line-ending production ledger", async () => {
       { version: 4, name: "dashboard_settings", sql: migrationFourSql },
       { version: 5, name: "summary_riot_game", sql: migrationFiveSql },
       { version: 6, name: "admin_command_result", sql: migrationSixSql },
+      { version: 7, name: "summary_daily_quota", sql: migrationSevenSql },
     ]),
     [],
   );

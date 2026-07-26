@@ -27,6 +27,7 @@ import {
   readSystemdCredential,
 } from "../persistence/database-credential.ts";
 import { PostgresCommandAuditSink } from "../persistence/command-audit-store.ts";
+import { PostgresSummaryQuotaStore } from "../persistence/postgres-summary-quota-store.ts";
 import { PostgresFeatureStore } from "../persistence/feature-store.ts";
 import { PostgresRiotCommandStore } from "../persistence/postgres-riot-command-store.ts";
 import { RiotCommandExecutor } from "../riot/riot-command-executor.ts";
@@ -119,6 +120,7 @@ const commandHandler = new KoreanCommandHandler({
     ),
   ),
   audit: new PostgresCommandAuditSink(pool),
+  quota: new PostgresSummaryQuotaStore(pool),
   now: () => new Date(),
 });
 const handleInteraction = createDiscordInteractionHandler({

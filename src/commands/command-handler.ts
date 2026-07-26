@@ -7,6 +7,7 @@ import {
   type ConversationSummarizer,
 } from "../summary/conversation-summary.ts";
 import { KOREAN_COMMAND_RESPONSES } from "./slash-commands.ts";
+import type { SummaryQuotaReservationPort } from "../summary/summary-quota-contract.ts";
 
 export type KoreanCommandName =
   | "도움말"
@@ -58,6 +59,7 @@ export class KoreanCommandHandler {
     private readonly input: {
       history: ConversationHistoryReader;
       summarizer?: ConversationSummarizer;
+      quota?: SummaryQuotaReservationPort;
       features: FeatureCommandExecutor;
       audit: CommandAuditSink;
       now: () => Date;
@@ -113,6 +115,20 @@ export class KoreanCommandHandler {
       end,
       signal: request.signal,
     });
+    if (this.input.quota) {
+      const decision = await this.input.quota.reserve({
+        operationId: request.eventId,
+        guildId: request.guildId,
+        discordUserId: request.actorId,
+        receivedAt: this.input.now(),
+      });
+      if (decision.kind === "disabled") {
+        throw new CommandFailure("summary_quota_disabled", "요약 기능 사용이 중지되어 있습니다.", "denied");
+      }
+      if (decision.kind === "exhausted") {
+        throw new CommandFailure("summary_quota_exhausted", "오늘 사용할 수 있는 요약 횟수를 모두 사용했습니다.", "denied");
+      }
+    }
     const sections = await this.input.summarizer.summarize({
       messages,
       manifest: createManifest(messages, 100),
