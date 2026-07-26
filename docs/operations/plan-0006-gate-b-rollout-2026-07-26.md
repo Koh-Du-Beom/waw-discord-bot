@@ -1,6 +1,6 @@
 # PLAN-0006 Task 8 Gate B rollout — 2026-07-26
 
-- Status: In progress
+- Status: Gate C blocked; production rolled back healthy
 - Canonical domain: `https://waw.dubeom.com`
 - Previous production release: `1943fd8`
 - Reviewed candidate: `aaf50697510bb90c04b7678c8e6b1ca0b0bd469b`
@@ -85,3 +85,70 @@ PostgreSQL-tooling skips, and `0` failures.
 
 This evidence prepares a replacement immutable release candidate only. The
 previously staged `aaf5069` remains blocked and must not be activated.
+
+## Corrective candidate Gate C attempt
+
+- Owner-approved candidate:
+  `d0d7a5dd1910fc6146d5ad05343918f7f8133e1b`
+- Source archive SHA-256:
+  `2cc2aa32452205eeb0d3bca4f1052232588b1e72c0708b312c4875d4d866c858`
+- Source archive byte count: `558047`
+
+The host independently verified the corrective archive and successfully staged
+release `d0d7a5d`, including clean install, typecheck, build, production prune,
+and release-marker verification. Gate C then created the reviewed
+`waw-admin-command` group, added only `waw-web` as an OS group member, installed
+the reviewed bot and web units with administrator IPC still disabled, validated
+the units, activated the immutable release, and attempted to restart only the
+bot.
+
+The bot failed before application startup with systemd result
+`243/CREDENTIALS`. Metadata-only inspection established that both required
+application database credential files were absent:
+`/etc/waw-credentials/bot-database-url` and
+`/etc/waw-credentials/web-database-url`. No credential value was rendered.
+The previous production bot unit required only the Discord bot token, so this
+was a missing production application-persistence prerequisite rather than the
+corrective socket ownership implementation failing.
+
+Immediate rollback restored the previous bot and web units and active release
+`1943fd8`. After restart and a bounded settling interval, `waw-bot`, `waw-web`,
+`waw-backup.timer`, and `waw-monitor.timer` were active, `/health` returned
+`healthy`, and systemd listed no failed unit. Administrator IPC was never
+enabled, the web service was never restarted on the corrective candidate, and
+Gate D was not entered. Additive schema state was preserved.
+
+The corrective release remains staged. A retry is blocked until the owner
+separately approves and materializes distinct least-privilege web and bot
+database login-role memberships and root-owned credential files. The bot
+credential must not be copied from the web runtime or backup/migration
+identities. Preserve the required TLS connection parameters and do not expose
+either connection string in terminal output, logs, documentation, or chat.
+
+## Credential materialization and second Gate C attempt
+
+The owner approved separate `waw_web_runtime` to `waw_web` and
+`waw_bot_runtime` to `waw_bot` login-role memberships and TLS-preserving
+credential materialization. Both login roles were read back as inheriting,
+non-superuser, non-createdb, non-createrole, non-replication, and
+non-bypass-RLS. Intended memberships were present and cross-memberships were
+absent. The host authenticated each runtime over TLS before atomically
+installing separate root-owned mode `0600` credential files. The bounded
+handoff rows were consumed and its unlogged, RLS-enabled handoff table was
+dropped immediately afterward.
+
+The second Gate C attempt activated `d0d7a5d` with administrator IPC still
+disabled, but the bot failed before `ExecStartPre` with systemd result
+`226/NAMESPACE`. The candidate unit requires
+`/run/waw-admin-command` as a mandatory `ReadWritePaths` entry while relying on
+`ExecStartPre` to create that same volatile path. Mount namespace setup occurs
+first, so a clean boot or clean runtime directory cannot start the service.
+Automatic rollback again restored release `1943fd8`; bot and web were active
+and systemd listed no failed units.
+
+Manually pre-creating the directory would make this maintenance attempt pass
+but would leave the next reboot unsafe. The release therefore remains blocked.
+The minimal corrective change makes only the volatile administrator path an
+optional `ReadWritePaths` entry, retaining `ExecStartPre` ownership and mode
+enforcement. A fresh immutable release and explicit approval are required
+before another Gate C attempt.
