@@ -208,3 +208,40 @@ resolved. A future Gate C must first observe `gateway.state` reach
 `ready`/`connected`/`current`. If it does not, the fixed reason code and
 allowlisted state event determine the next bounded correction without exposing
 Discord or credential data.
+
+## Diagnostic candidate production rollout
+
+The owner approved diagnostic candidate
+`b49fdf736538af62b59043ba1acb4645de62421d` with source archive SHA-256
+`18c90caeee4cfdbb60991dde3a2e40d441450efa717735370719ff1ff2b43f73`.
+The host independently verified the 560733-byte archive and staged release
+`b49fdf7`; clean install, typecheck, build, production prune, and immutable
+release-marker creation passed.
+
+Gate C passed. On both bot restarts, the allowlisted diagnostic event moved
+from lifecycle `connecting`, gateway state `unknown`, and reconciliation
+`unknown` to lifecycle `ready`, gateway state `connected`, and reconciliation
+`current`, with zero reconnect attempts. No fixed failure reason code was
+emitted. The administrator runtime directory was
+`waw-bot:waw-admin-command` mode `0750`, the socket was
+`waw-bot:waw-admin-command` mode `0660`, the web user had read/write access,
+and an unrelated user had neither. The member-role socket, bot, web, backup
+timer, and monitor timer were healthy and no systemd unit failed.
+
+Gate D then enabled administrator IPC for the web process and restarted only
+that process. The first immediate loopback probe occurred before the listener
+was ready and was retried successfully. Final checks returned HTTP 200 for the
+dashboard root and an immutable asset, loopback health was `healthy`, and no
+systemd unit failed. The canonical
+`https://waw.dubeom.com/health` endpoint returned `{"status":"healthy"}` with
+no certificate failure. An unauthenticated request to the Riot review-list
+endpoint returned HTTP 401 with the normalized `unauthenticated` code, proving
+the production boundary remained fail-closed.
+
+Release `b49fdf7` remains active with administrator IPC enabled for both bot and
+web. The transferred temporary archive was removed after the successful
+checks. Authenticated administrator list/approve/reject operations were not
+exercised because the available Orca browser profile did not contain an
+approved administrator session and no approved Riot PUUID test fixture was
+available; those functional checks remain an explicit post-rollout item rather
+than being inferred from transport health.
