@@ -102,3 +102,45 @@ test("replies to 도움말 with private Korean usage guidance and audits it", as
   assert.match(reply.content, /\/몰랭검거 현황/);
   assert.match(reply.content, /관리자 전용/);
 });
+
+test("normalizes the Riot link display ID from the registered 계정 option", async () => {
+  const requests: CommandRequest[] = [];
+  const requestedOptions: string[] = [];
+  const handler = new KoreanCommandHandler({
+    history: { async readPage() { return { messages: [], complete: true }; } },
+    features: {
+      async execute(request) {
+        requests.push(request);
+        return "연결 요청을 등록했습니다.";
+      },
+    },
+    audit: { async append() {} },
+    now: () => new Date("2026-07-27T00:00:00Z"),
+  });
+  const listen = createDiscordInteractionHandler({
+    handler,
+    createCorrelationId: () => "riot-correlation",
+  });
+
+  await listen({
+    id: "9201",
+    commandName: "라이엇계정",
+    user: { id: "9202" },
+    guildId: "9203",
+    channelId: "9204",
+    channel: { isThread: () => false },
+    options: {
+      getSubcommand: () => "연결",
+      getString(name) {
+        requestedOptions.push(name);
+        if (name !== "계정") throw new Error("unexpected option");
+        return "표시 이름#KR1";
+      },
+      getUser: () => null,
+    },
+    async reply() {},
+  });
+
+  assert.deepEqual(requestedOptions, ["계정"]);
+  assert.deepEqual(requests[0]?.options, { 계정: "표시 이름#KR1" });
+});

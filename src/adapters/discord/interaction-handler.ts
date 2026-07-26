@@ -56,8 +56,7 @@ function normalizeInteraction(
           channelId,
           "라이엇계정 연결",
           {
-            라이엇아이디: interaction.options.getString("라이엇아이디", true),
-            플랫폼: interaction.options.getString("플랫폼", true),
+            계정: interaction.options.getString("계정", true),
           },
         );
       }

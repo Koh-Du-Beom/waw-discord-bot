@@ -104,7 +104,7 @@ test("dispatches all eight Korean commands through the bot listener and audits e
   const fixtures = [
     fixture("도움말", null, {}),
     fixture("요약", null, { 시작: "2026-07-25T00:00:00Z", 종료: "2026-07-25T01:00:00Z" }),
-    fixture("라이엇계정", "연결", { 라이엇아이디: "name#tag", 플랫폼: "KR" }),
+    fixture("라이엇계정", "연결", { 계정: "name#KR1" }),
     fixture("라이엇계정", "목록", {}, "4001"),
     fixture("라이엇계정", "연결해제", { 계정: "link-1" }),
     fixture("몰랭검거", "현황", {}, "4001"),

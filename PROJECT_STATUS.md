@@ -7,6 +7,9 @@
 Discord 연결 UX를 `/라이엇계정 연결 계정:<이름#태그>` 한 입력으로 단순화했다.
 Discord slash command의 이름 없는 위치 인자 제약 때문에 `연결` subcommand와
 `계정` option label은 유지하되, Riot 로그인 사용자명은 받지 않는다.
+초기 배포에서 interaction 변환기가 제거된 option 이름을 계속 읽어 응답 전에
+실패한 결함을 수정하고, 등록 정의와 runtime option 이름의 통합 회귀 테스트를
+추가했다.
 
 ADR-0020/PLAN-0009 owner 승인에 따라 Dashboard PUUID 직접 입력을 제거했다.
 관리자 승인 IPC는 request/version만 전달하고, bot-only Riot credential을 가진
