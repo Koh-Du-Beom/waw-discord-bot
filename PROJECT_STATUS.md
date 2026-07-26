@@ -4,6 +4,40 @@
 
 ## 현재 단계
 
+2026-07-26 dashboard design refresh의 승인 전 1단계를 시작했다. 기존 React
+화면, 정보 구조, 접근성, 반응형과 인증·권한·API 계약을 감사하고 관찰 가능한
+성공 기준을 `docs/design/dashboard-refresh-audit.md`에 기록했다. Production
+코드는 변경하지 않았으며, 합성 데이터만 쓰는 세 정적 방향(작전 상황판, 수사
+기록부, 친구 서버 콘솔)을 `docs/design/dashboard-directions/`에 만들었다.
+권고안은 작전 상황판을 구조 기반으로 하고 증거 타임라인과 절제된 slash-command
+모티프를 결합하는 것이다. 방향 승인 전 production UI 구현은 시작하지 않는다.
+Orca 앱이 `stale_bootstrap`으로 내장 브라우저 runtime을 열지 못해 실제 browser
+및 accessibility 검증은 차단 상태이며, production 배포와 main 병합은 수행하지
+않았다.
+
+Owner 피드백으로 선택 방향을 Pretendard 기반 현대적 대시보드, 주 콘텐츠인
+명령어 사용 로그 테이블, 요약 명령어 일 10회 한도 관리 화면으로 좁혔다.
+정적 Direction A를 이 명세로 갱신했다. 조사 결과 bot `command_audit` 쓰기는
+존재하지만 현재 dashboard `/api/audit`는 설정 변경만 조회하며,
+`LowRiskSettingsDto`에도 enable/version 외 일일 한도·사용량·초기화 계약은 없다.
+따라서 프로토타입은 합성 데이터만 사용하고 production 계약을 추가하지 않았다.
+실제 구현 전 read model, 한국 날짜 경계, 원자적 사용량 증가, 관리자 mutation,
+감사·보존·pagination을 별도 bounded plan으로 승인해야 한다.
+
+후속 architecture를 `ADR-0018-command-log-and-summary-daily-quota.md`
+로, bounded sequence를
+`PLAN-0007-dashboard-command-log-and-summary-quota.md`로 작성했다.
+2026-07-26 owner가 등록 사용자별 quota 모델을 승인해 ADR-0018은 Accepted,
+PLAN-0007은 Approved로 전환했다. 각 사용자는 기본 10회를 상속하며 관리자가
+1–100 개인 override 또는 사용 중지를 설정한다. `(guild, registered user,
+Asia/Seoul date)`별 provider invocation 직전 원자 reservation, 실패·timeout
+포함 시도 차감, version 1 수동 reset 제외, redacted cursor command log와
+browser DTO의 Discord ID 비노출을 유지한다. 정적 prototype의 `요약 한도
+관리`도 등록 사용자 table과 설정 dialog로 갱신했다. Production code와
+migration은 아직 구현하지 않았고 PLAN-0007 Tasks 1–7은 후속 bounded 작업,
+Task 8 production은 별도 approval gate다. 처리 시간 열 추가 계약과
+command/quota retention은 미해결이다.
+
 PLAN-0005는 2026-07-26 기준 Local/Disposable Complete다. Tasks 1~8의
 summary·Riot link·game observation port, domain, PostgreSQL과 fake Discord
 통합이 완료됐다. Exact-source PostgreSQL 17 전체 실행은

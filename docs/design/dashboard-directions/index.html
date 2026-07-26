@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>몰랭검거 관리 대시보드</title>
+    <link rel="stylesheet" href="./prototype.css" />
+    <script src="./prototype.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <span>WAW</span>
+          <strong>/몰랭검거</strong>
+          <small>관리 대시보드</small>
+        </div>
+        <nav aria-label="주요 메뉴">
+          <button class="nav-item active" type="button" data-tab="dashboard" aria-current="page">
+            <span aria-hidden="true">⌂</span> 대시보드
+          </button>
+          <button class="nav-item" type="button" data-tab="commands">
+            <span aria-hidden="true">≡</span> 명령어 로그
+          </button>
+          <button class="nav-item" type="button" data-tab="summary">
+            <span aria-hidden="true">◫</span> 요약 한도 관리
+          </button>
+          <button class="nav-item" type="button" data-tab="status">
+            <span aria-hidden="true">◎</span> 몰랭검거 현황
+            <b>2</b>
+          </button>
+          <button class="nav-item" type="button" data-tab="operations">
+            <span aria-hidden="true">◇</span> 운영 상태
+          </button>
+        </nav>
+        <div class="account">
+          <span class="avatar" aria-hidden="true">운</span>
+          <div><strong>합성 운영자</strong><small>관리자</small></div>
+        </div>
+      </aside>
+
+      <div class="workspace">
+        <header class="topbar">
+          <button class="menu-button" type="button" aria-label="메뉴 열기" aria-expanded="false">☰</button>
+          <div>
+            <p>몰랭검거 관리 대시보드</p>
+            <h1 id="page-title">대시보드</h1>
+          </div>
+          <span class="system-status"><i></i> 시스템 정상</span>
+        </header>
+
+        <main id="main">
+          <section class="tab-panel active" id="dashboard" aria-labelledby="page-title">
+            <div class="stat-grid">
+              <article><span>오늘 전체 명령</span><strong>36회</strong><small>어제보다 4회 많음</small></article>
+              <article><span>요약 명령 사용량</span><strong>7 / 10회</strong><small>오늘 3회 남음</small></article>
+              <article><span>확인할 몰랭 기록</span><strong>2건</strong><small>위반 확정 전 검토 필요</small></article>
+              <article><span>최근 백업</span><strong>정상</strong><small>오늘 12:00 완료</small></article>
+            </div>
+            <div class="section-heading">
+              <div><h2>최근 명령어 로그</h2><p>Discord에서 실행된 최근 명령어입니다.</p></div>
+              <button class="text-button" type="button" data-go="commands">전체 로그 보기 →</button>
+            </div>
+            <div class="table-card">
+              <table>
+                <thead><tr><th scope="col">실행 시각</th><th scope="col">명령어</th><th scope="col">사용자</th><th scope="col">결과</th></tr></thead>
+                <tbody>
+                  <tr><td data-label="실행 시각"><time>오늘 19:42</time></td><td data-label="명령어"><code>/요약</code></td><td data-label="사용자">서버 멤버</td><td data-label="결과"><span class="badge success">✓ 성공</span></td></tr>
+                  <tr><td data-label="실행 시각"><time>오늘 19:31</time></td><td data-label="명령어"><code>/몰랭검거 현황</code></td><td data-label="사용자">서버 멤버</td><td data-label="결과"><span class="badge success">✓ 성공</span></td></tr>
+                  <tr><td data-label="실행 시각"><time>오늘 19:18</time></td><td data-label="명령어"><code>/요약</code></td><td data-label="사용자">서버 멤버</td><td data-label="결과"><span class="badge failure">× 실패</span></td></tr>
+                  <tr><td data-label="실행 시각"><time>오늘 18:55</time></td><td data-label="명령어"><code>/라이엇계정 연결</code></td><td data-label="사용자">서버 멤버</td><td data-label="결과"><span class="badge waiting">! 승인 대기</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="commands" aria-labelledby="commands-title" hidden>
+            <div class="section-heading">
+              <div><h2 id="commands-title">명령어 로그</h2><p>메시지 내용과 Discord 식별자는 표시하지 않습니다.</p></div>
+              <div class="filters"><button type="button">전체 명령어⌄</button><button type="button">최근 24시간⌄</button></div>
+            </div>
+            <div class="table-card">
+              <table>
+                <thead><tr><th scope="col">실행 시각</th><th scope="col">명령어</th><th scope="col">사용자</th><th scope="col">결과</th></tr></thead>
+                <tbody>
+                  <tr><td data-label="실행 시각"><time>오늘 19:42</time></td><td data-label="명령어"><code>/요약</code></td><td data-label="사용자">서버 멤버</td><td data-label="결과"><span class="badge success">✓ 성공</span></td></tr>
+                  <tr><td data-label="실행 시각"><time>오늘 19:31</time></td><td data-label="명령어"><code>/몰랭검거 현황</code></td><td data-label="사용자">서버 멤버</td><td data-label="결과"><span class="badge success">✓ 성공</span></td></tr>
+                  <tr><td data-label="실행 시각"><time>오늘 19:18</time></td><td data-label="명령어"><code>/요약</code></td><td data-label="사용자">서버 멤버</td><td data-label="결과"><span class="badge failure">× 실패</span></td></tr>
+                  <tr><td data-label="실행 시각"><time>오늘 18:55</time></td><td data-label="명령어"><code>/라이엇계정 연결</code></td><td data-label="사용자">서버 멤버</td><td data-label="결과"><span class="badge waiting">! 승인 대기</span></td></tr>
+                  <tr><td data-label="실행 시각"><time>오늘 18:42</time></td><td data-label="명령어"><code>/몰랭검거 정정</code></td><td data-label="사용자">관리자</td><td data-label="결과"><span class="badge corrected">↺ 정정됨</span></td></tr>
+                  <tr><td data-label="실행 시각"><time>오늘 18:10</time></td><td data-label="명령어"><code>/요약</code></td><td data-label="사용자">서버 멤버</td><td data-label="결과"><span class="badge success">✓ 성공</span></td></tr>
+                </tbody>
+              </table>
+              <div class="pagination"><span>최근 로그 6건</span><button type="button">다음 로그 보기 →</button></div>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="summary" aria-labelledby="summary-title" hidden>
+            <div class="section-heading">
+              <div><h2 id="summary-title">요약 한도 관리</h2><p>등록 사용자별 일일 사용량과 한도를 관리합니다.</p></div>
+              <button class="primary" type="button">사용자 등록</button>
+            </div>
+            <div class="default-limit">
+              <div><span>기본 일일 한도</span><strong>10회</strong><small>개인 설정이 없는 사용자에게 적용</small></div>
+              <button type="button">기본 한도 변경</button>
+            </div>
+            <div class="user-toolbar">
+              <label><span class="visually-hidden">사용자 검색</span><input type="search" placeholder="사용자 검색" /></label>
+              <span>등록 사용자 4명 · 매일 한국시간 00:00 초기화</span>
+            </div>
+            <div class="table-card quota-table">
+              <table>
+                <thead><tr><th scope="col">등록 사용자</th><th scope="col">오늘 사용량</th><th scope="col">적용 한도</th><th scope="col">남은 횟수</th><th scope="col">상태</th><th scope="col"><span class="visually-hidden">관리</span></th></tr></thead>
+                <tbody>
+                  <tr><td data-label="등록 사용자"><strong>밤참요정</strong><small>기본 한도 적용</small></td><td data-label="오늘 사용량">7회</td><td data-label="적용 한도">10회</td><td data-label="남은 횟수">3회</td><td data-label="상태"><span class="badge success">✓ 사용 가능</span></td><td data-label="관리"><button type="button" data-user="밤참요정">설정</button></td></tr>
+                  <tr><td data-label="등록 사용자"><strong>마감요정</strong><small>개인 한도 적용</small></td><td data-label="오늘 사용량">5회</td><td data-label="적용 한도">5회</td><td data-label="남은 횟수">0회</td><td data-label="상태"><span class="badge waiting">! 한도 도달</span></td><td data-label="관리"><button type="button" data-user="마감요정">설정</button></td></tr>
+                  <tr><td data-label="등록 사용자"><strong>새벽감자</strong><small>요약 사용 중지</small></td><td data-label="오늘 사용량">0회</td><td data-label="적용 한도">—</td><td data-label="남은 횟수">—</td><td data-label="상태"><span class="badge failure">× 사용 중지</span></td><td data-label="관리"><button type="button" data-user="새벽감자">설정</button></td></tr>
+                  <tr><td data-label="등록 사용자"><strong>주말수호자</strong><small>개인 한도 적용</small></td><td data-label="오늘 사용량">9회</td><td data-label="적용 한도">20회</td><td data-label="남은 횟수">11회</td><td data-label="상태"><span class="badge success">✓ 사용 가능</span></td><td data-label="관리"><button type="button" data-user="주말수호자">설정</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <dialog id="user-dialog">
+              <form method="dialog">
+                <div class="dialog-heading"><div><span>사용자별 요약 설정</span><h3 id="dialog-user">사용자</h3></div><button type="submit" aria-label="닫기">×</button></div>
+                <label for="user-limit-mode">한도 설정</label>
+                <select id="user-limit-mode"><option>기본 한도 사용 (10회)</option><option>개인 한도 설정</option><option>요약 사용 중지</option></select>
+                <label for="user-limit">개인 일일 한도</label>
+                <div class="input-row"><input id="user-limit" type="number" value="10" min="1" max="100" /><span>회</span></div>
+                <div class="notice">오늘 사용량은 변경되지 않습니다. 새 한도는 저장 즉시 적용됩니다.</div>
+                <button class="primary" type="submit" value="save">저장</button>
+              </form>
+            </dialog>
+          </section>
+
+          <section class="tab-panel" id="status" aria-labelledby="status-title" hidden>
+            <div class="section-heading">
+              <div><h2 id="status-title">몰랭검거 현황</h2><p>자동 감지 결과는 위반 확정이 아닌 검토 참고 정보입니다.</p></div>
+              <button type="button">전체 상태⌄</button>
+            </div>
+            <div class="info-notice"><strong>안내</strong> 관리자가 확인하기 전에는 누구도 위반으로 표시하지 않습니다.</div>
+            <div class="record-list">
+              <article><div><span class="badge waiting">! 확인 필요</span><h3>게임 상태와 Go Live 상태가 다릅니다</h3><p>Riot: 게임 중 · Go Live: 알 수 없음</p></div><time>4분 전</time><button type="button">상세 보기</button></article>
+              <article><div><span class="badge failure">△ 불일치</span><h3>게임 시작 시각이 일치하지 않습니다</h3><p>두 관측 사이에 8분 차이가 있습니다.</p></div><time>12분 전</time><button type="button">상세 보기</button></article>
+              <article><div><span class="badge corrected">↺ 정정됨</span><h3>관리자가 기록을 정정했습니다</h3><p>정정 전 기록과 변경 이력이 보존됩니다.</p></div><time>1시간 전</time><button type="button">상세 보기</button></article>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="operations" aria-labelledby="operations-title" hidden>
+            <div class="section-heading">
+              <div><h2 id="operations-title">운영 상태</h2><p>서비스 구성요소와 최근 백업 상태입니다.</p></div>
+            </div>
+            <div class="operations-grid">
+              <article><span>Discord Gateway</span><strong class="healthy">● 연결됨</strong><small>방금 확인</small></article>
+              <article><span>데이터베이스</span><strong class="healthy">● 연결됨</strong><small>방금 확인</small></article>
+              <article><span>최근 백업</span><strong class="healthy">● 완료</strong><small>오늘 12:00</small></article>
+              <article><span>전체 상태</span><strong class="healthy">● 정상</strong><small>문제 없음</small></article>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>
