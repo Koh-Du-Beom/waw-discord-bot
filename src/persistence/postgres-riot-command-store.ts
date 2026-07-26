@@ -532,7 +532,7 @@ async function claimOperation(
     `insert into operation_ledger (
       operation_id, actor_id, accepted_at, outcome, reason_code
     ) values ($1,$2,$3,'accepted','accepted')
-    on conflict (operation_id) do nothing`,
+    on conflict do nothing`,
     [operationId, actorId, acceptedAt],
   );
   return result.rowCount === 1;

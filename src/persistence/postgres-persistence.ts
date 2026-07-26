@@ -479,7 +479,7 @@ export class PostgresPersistence {
         `insert into operation_ledger (
           operation_id, actor_id, accepted_at, outcome, reason_code
         ) values ($1, $2, $3, $4, $5)
-        on conflict (operation_id) do nothing
+        on conflict do nothing
         returning operation_id`,
         [
           input.operationId,

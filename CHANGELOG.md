@@ -9,6 +9,9 @@
 - Discord Gateway 초기 멤버 reconciliation의 15초 deadline과 1회 bounded
   retry, 그리고 식별자를 포함하지 않는 고정 timeout·retry-exhausted reason
   code 진단
+- `waw_bot`의 insert-only operation ledger 권한을 보존하면서 PostgreSQL
+  `ON CONFLICT DO NOTHING` 중복 claim이 동작하도록 불필요한 conflict
+  target을 제거
 - Riot Account API PUUID existence validation with a bot-only systemd
   credential, fail-closed provider handling, and identifier-free tests.
 - Identifier-free administrator IPC server stage diagnostics for production

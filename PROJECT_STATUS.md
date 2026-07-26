@@ -23,6 +23,16 @@ typecheck·server/web build·diff check 통과다. 새 immutable release 후보�
 만들어 Gate C에서 최소 45초 동안 connected/current 또는 고정 실패 code를
 확인한 다음, 통과한 경우에만 같은 Orca Dashboard 세션에서 Gate D를 재개한다.
 
+첫 후보 `d4f166b`의 Gate C는 systemd bot unit에 세 번째 bot-only Riot
+credential 전달 선언이 설치되지 않은 운영 결함을 수정한 뒤 통과했다. Gate D
+list는 socket request accepted 뒤 DB execute 단계에서 실패했다. Production
+schema version 6, admin result table과 최소 권한은 정상이었고 `waw_bot`의
+operation ledger SELECT 거부도 정책대로였다. 원인은 insert-only ledger
+claim이 `ON CONFLICT (operation_id) DO NOTHING`으로 arbiter를 명시해
+PostgreSQL SELECT 권한을 추가 요구한 것이다. 권한을 넓히는 대신 conflict
+target을 생략하는 최소 코드 수정으로 중복 claim 의미와 insert-only 경계를
+보존하고 새 후보로 Gate C/D를 재시도한다.
+
 2026-07-26 dashboard design refresh의 승인 전 1단계를 시작했다. 기존 React
 화면, 정보 구조, 접근성, 반응형과 인증·권한·API 계약을 감사하고 관찰 가능한
 성공 기준을 `docs/design/dashboard-refresh-audit.md`에 기록했다. Production
