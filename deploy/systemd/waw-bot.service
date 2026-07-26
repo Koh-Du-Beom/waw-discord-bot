@@ -12,6 +12,7 @@ Group=waw-member-role
 SupplementaryGroups=waw-admin-command
 LoadCredential=discord-bot-token:/etc/waw-credentials/bot-discord-token
 LoadCredential=database-url:/etc/waw-credentials/bot-database-url
+LoadCredential=riot-api-key:/etc/waw-credentials/bot-riot-api-key
 EnvironmentFile=-/etc/waw/bot.env
 Environment=WAW_MEMBER_ROLE_SOCKET=/run/waw-member-role/member-role.sock
 Environment=WAW_BOT_HEALTH_PATH=/run/waw-member-role/health.json

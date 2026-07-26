@@ -6,6 +6,8 @@
 
 ### Added
 
+- Riot Account API PUUID existence validation with a bot-only systemd
+  credential, fail-closed provider handling, and identifier-free tests.
 - Identifier-free administrator IPC server stage diagnostics for production
   503 isolation, with explicit tests excluding request, actor, and guild IDs.
 - Repeatable exact-source PostgreSQL 17 full-test harness and fail-closed

@@ -116,3 +116,7 @@ On any failure:
 Record only timestamps, release IDs, fixed reason codes and pass/fail evidence.
 Do not record credentials, account identifiers, request payloads or message
 content.
+
+ADR-0018 permits Account API existence-only validation after the bot-only
+`riot-api-key` credential is installed. A successful validation does not prove
+ownership and every resulting link remains `admin_approved_unverified`.

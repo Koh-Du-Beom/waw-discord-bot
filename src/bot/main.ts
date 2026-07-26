@@ -30,6 +30,7 @@ import { PostgresCommandAuditSink } from "../persistence/command-audit-store.ts"
 import { PostgresFeatureStore } from "../persistence/feature-store.ts";
 import { PostgresRiotCommandStore } from "../persistence/postgres-riot-command-store.ts";
 import { RiotCommandExecutor } from "../riot/riot-command-executor.ts";
+import { RiotPuuidValidator } from "../riot/riot-puuid-validator.ts";
 import { DUPLICATE_BOT_EXIT_CODE } from "./bot-entrypoint.ts";
 import {
   parseBotAuthorizationConfiguration,
@@ -51,13 +52,14 @@ import {
 } from "../ipc/admin-command-feature.ts";
 
 const credentialsDirectory = process.env.CREDENTIALS_DIRECTORY;
-const [token, databaseUrl] = await Promise.all([
+const [token, databaseUrl, riotApiKey] = await Promise.all([
   readSystemdCredential(
     credentialsDirectory,
     "discord-bot-token",
     "discord_bot_token",
   ),
   readDatabaseUrlCredential(credentialsDirectory),
+  readSystemdCredential(credentialsDirectory, "riot-api-key", "riot_api_key"),
 ]);
 const authorizationConfiguration =
   parseBotAuthorizationConfiguration(process.env);
@@ -202,11 +204,7 @@ if (assembly.process.exitCode === DUPLICATE_BOT_EXIT_CODE) {
   await ipc.listen();
   const adminApplication = new AdminCommandApplication({
     authorization: { readCurrentAuthorization },
-    validator: {
-      async validate() {
-        throw new Error("riot PUUID validator is not configured");
-      },
-    },
+    validator: new RiotPuuidValidator(riotApiKey),
     store: riotStore,
     now: () => new Date(),
   });
