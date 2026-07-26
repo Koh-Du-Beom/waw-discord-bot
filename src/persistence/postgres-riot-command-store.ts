@@ -547,7 +547,7 @@ async function appendAudit(
       event_id, operation_id, occurred_at, event_type, actor_id, outcome,
       reason_code, correlation_id, guild_id, channel_id, command_name
     ) values ($1,$1,$2,'discord.command',$3,$4,$5,$6,$7,$8,$9)
-    on conflict (event_id) do nothing`,
+    on conflict do nothing`,
     [
       event.eventId,
       event.occurredAt,
