@@ -178,10 +178,16 @@ export class AdminCommandApplication {
     }
     let validation: Awaited<ReturnType<PuuidValidationPort["validate"]>>;
     try {
-      validation = await this.input.validator.validate({
-        puuid: request.payload.puuid,
-        platformId: pending.platformId,
-      });
+      validation = this.input.validator.resolve
+        ? await this.input.validator.resolve({
+            gameName: pending.gameName,
+            tagLine: pending.tagLine,
+            platformId: pending.platformId,
+          })
+        : await this.input.validator.validate({
+            puuid: pending.gameName,
+            platformId: pending.platformId,
+          });
     } catch {
       await this.input.store.recordAdminAudit(
         audit(request, occurredAt, "failure", "validator_unavailable"),
@@ -200,7 +206,7 @@ export class AdminCommandApplication {
       operationId: request.operationId,
       requestId: request.payload.requestId,
       expectedVersion: request.payload.expectedVersion,
-      linkId: request.payload.linkId,
+      linkId: `link:${request.operationId}`,
       puuid: validation.normalizedPuuid,
       administratorId: request.actorId,
       decidedAt: occurredAt,

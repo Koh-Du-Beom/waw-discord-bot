@@ -28,8 +28,6 @@ export type AdminCommandRequest =
       payload: {
         requestId: string;
         expectedVersion: number;
-        linkId: string;
-        puuid: string;
       };
     })
   | (RequestBase & {
@@ -313,16 +311,9 @@ function parsePayload(
       };
     case "riot_link_request_approve":
       if (
-        !hasExactKeys(value, [
-          "expectedVersion",
-          "linkId",
-          "puuid",
-          "requestId",
-        ]) ||
+        !hasExactKeys(value, ["expectedVersion", "requestId"]) ||
         !isPattern(value.requestId, entityIdPattern) ||
-        !isVersion(value.expectedVersion) ||
-        !isPattern(value.linkId, entityIdPattern) ||
-        !isPattern(value.puuid, puuidPattern)
+        !isVersion(value.expectedVersion)
       ) {
         return undefined;
       }
@@ -331,8 +322,6 @@ function parsePayload(
         payload: {
           requestId: value.requestId,
           expectedVersion: value.expectedVersion,
-          linkId: value.linkId,
-          puuid: value.puuid,
         },
       };
     case "riot_link_request_reject":

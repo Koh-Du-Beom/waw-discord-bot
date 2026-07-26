@@ -102,8 +102,6 @@ test("checks current administrator role before reading targets or invoking valid
     request("riot_link_request_approve", {
       requestId: pending.requestId,
       expectedVersion: 0,
-      linkId: "riot-link-000001",
-      puuid: "A".repeat(64),
     }),
   );
 
@@ -149,8 +147,6 @@ test("returns the durable result for a duplicate before target lookup", async ()
     request("riot_link_request_approve", {
       requestId: pending.requestId,
       expectedVersion: 0,
-      linkId: "riot-link-000001",
-      puuid: "A".repeat(64),
     }),
   );
   assert.equal(response.outcome, "success");
@@ -168,8 +164,6 @@ test("records validator unavailability without attempting approval", async () =>
     request("riot_link_request_approve", {
       requestId: pending.requestId,
       expectedVersion: 0,
-      linkId: "riot-link-000001",
-      puuid: "A".repeat(64),
     }),
   );
   assert.equal(response.outcome, "unavailable");

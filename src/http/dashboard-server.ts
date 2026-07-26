@@ -309,12 +309,8 @@ const riotDecisionBaseProperties = {
 const approveRiotLinkSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["requestId", "expectedVersion", "linkId", "puuid", "confirmation"],
-  properties: {
-    ...riotDecisionBaseProperties,
-    linkId: { type: "string", minLength: 1, maxLength: 160 },
-    puuid: { type: "string", minLength: 16, maxLength: 160 },
-  },
+  required: ["requestId", "expectedVersion", "confirmation"],
+  properties: riotDecisionBaseProperties,
 } as const;
 
 const rejectRiotLinkSchema = {

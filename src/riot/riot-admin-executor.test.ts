@@ -33,7 +33,7 @@ test("denies non-admin access with audit before reading or validating PUUID", as
   assert.equal(validations, 0);
 });
 
-test("validates injected PUUID against the request platform and forwards only normalized value", async () => {
+test("resolves the pending Riot ID and forwards only the normalized PUUID", async () => {
   let approvedPuuid = "";
   const audits: string[] = [];
   const executor = new RiotAdminExecutor(
@@ -47,9 +47,12 @@ test("validates injected PUUID against the request platform and forwards only no
       },
     }),
     {
-      async validate(input) {
-        assert.deepEqual(input, { puuid: " RAW-PUUID ", platformId: "KR" });
+      async resolve(input) {
+        assert.deepEqual(input, { gameName: "계정", tagLine: "KR1", platformId: "KR" });
         return { kind: "valid", normalizedPuuid: "normalized-puuid" };
+      },
+      async validate(input) {
+        throw new Error(`legacy validator called: ${input.platformId}`);
       },
     },
     () => new Date("2026-07-25T00:00:00Z"),
@@ -59,8 +62,6 @@ test("validates injected PUUID against the request platform and forwards only no
       ...context("administrator", "approve-operation"),
       requestId: "request",
       expectedVersion: 0,
-      linkId: "link",
-      puuid: " RAW-PUUID ",
     }),
     /승인했습니다/,
   );
@@ -97,8 +98,6 @@ test("rejects invalid PUUID without mutation and reports stale and duplicate dec
       ...context("administrator", "invalid-operation"),
       requestId: "request",
       expectedVersion: 0,
-      linkId: "link",
-      puuid: "wrong-platform",
     }),
     /검증에 실패/,
   );
@@ -115,8 +114,6 @@ test("rejects invalid PUUID without mutation and reports stale and duplicate dec
       ...context("administrator", "stale-operation"),
       requestId: "request",
       expectedVersion: 7,
-      linkId: "link",
-      puuid: "puuid",
     }),
     /새로 조회/,
   );

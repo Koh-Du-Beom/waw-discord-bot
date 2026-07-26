@@ -109,8 +109,6 @@ export function createAdminCommandDashboardPorts(input: {
       const response = await dispatch(context, "riot_link_request_approve", {
         requestId: context.request.requestId,
         expectedVersion: context.request.expectedVersion,
-        linkId: context.request.linkId,
-        puuid: context.request.puuid,
       });
       return decision(response, "승인했습니다.");
     },

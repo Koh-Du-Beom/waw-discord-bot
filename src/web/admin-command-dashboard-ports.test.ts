@@ -87,8 +87,6 @@ test("does not invoke transport when the permanent pre-dispatch audit fails", as
     request: {
       requestId: "riot-request-0001",
       expectedVersion: 0,
-      linkId: "riot-link-000001",
-      puuid: "secret-puuid".repeat(4),
       confirmation: true,
     },
   }));
@@ -153,8 +151,6 @@ test("reconciles duplicate operation through operation_status without repeating 
     request: {
       requestId: "riot-request-0001",
       expectedVersion: 0,
-      linkId: "riot-link-000001",
-      puuid: "A".repeat(64),
       confirmation: true,
     },
   });

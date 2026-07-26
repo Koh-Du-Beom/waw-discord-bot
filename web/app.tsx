@@ -138,22 +138,15 @@ function Dashboard({
     request: PendingRiotLinkRequestsDto["requests"][number],
   ) {
     event.preventDefault();
-    const element = event.currentTarget;
-    const field = element.elements.namedItem("puuid");
-    const puuid = field && "value" in field ? String(field.value).trim() : "";
-    if (!puuid) return;
     setResult(undefined);
     try {
       await api.approveRiotRequest({
         requestId: request.requestId,
         expectedVersion: request.version,
         confirmation: true,
-        linkId: `link:${globalThis.crypto.randomUUID()}`,
-        puuid,
       });
       setRiotRequests(await api.getRiotRequests());
       setResult({ kind: "success", message: "Riot 계정 연결 요청을 승인했습니다." });
-      element.reset();
     } catch (error) {
       setResult({
         kind: "error",
@@ -220,10 +213,6 @@ function Dashboard({
                         <span>{request.platformId} · {formatDate(request.requestedAt)}</span>
                       </div>
                       <form onSubmit={(event) => void approveRiotRequest(event, request)}>
-                        <label>
-                          검증할 PUUID
-                          <input name="puuid" type="password" autoComplete="off" required />
-                        </label>
                         <button type="submit" disabled={request.platformId !== "KR"}>검증 후 승인</button>
                       </form>
                     </li>

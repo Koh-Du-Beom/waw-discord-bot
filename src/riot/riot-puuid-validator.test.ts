@@ -6,6 +6,17 @@ import { RiotPuuidValidator } from "./riot-puuid-validator.ts";
 const puuid = "A".repeat(64);
 const secret = "RGAPI-SYNTHETIC-SECRET-CANARY";
 
+test("resolves an exact KR Riot ID to PUUID", async () => {
+  const validator = new RiotPuuidValidator(secret, async (input) => {
+    assert.match(String(input), /\/by-riot-id\//);
+    return Response.json({ puuid, gameName: "합성계정", tagLine: "KR1" });
+  });
+  assert.deepEqual(
+    await validator.resolve({ gameName: "합성계정", tagLine: "kr1", platformId: "KR" }),
+    { kind: "valid", normalizedPuuid: puuid },
+  );
+});
+
 test("accepts only an exact Account API PUUID match", async () => {
   const requests: Array<{ url: string; token: string | null }> = [];
   const validator = new RiotPuuidValidator(secret, async (input, init) => {

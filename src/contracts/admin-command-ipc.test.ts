@@ -44,8 +44,6 @@ test("parses and serializes all four exact command payloads", () => {
       payload: {
         requestId: "request:pending1",
         expectedVersion: 3,
-        linkId: "link:approved001",
-        puuid,
       },
     },
     {
@@ -99,8 +97,6 @@ test("rejects unknown, missing and command-specific payload fields", () => {
     payload: {
       requestId: "request:pending1",
       expectedVersion: 0,
-      linkId: "link:approved001",
-      puuid,
     },
   };
   assert.equal(parseAdminCommandRequest(JSON.stringify({
@@ -196,8 +192,6 @@ test("never reflects PUUID, Riot ID or provider input in parser failures", () =>
     payload: {
       requestId: "request:pending1",
       expectedVersion: 0,
-      linkId: "link:approved001",
-      puuid: canaries[0],
       riotId: canaries[1],
       providerBody: canaries[2],
     },
@@ -220,10 +214,9 @@ test("never reflects PUUID, Riot ID or provider input in parser failures", () =>
       payload: {
         requestId: "request:pending1",
         expectedVersion: 0,
-        linkId: "link:approved001",
-        puuid: canaries[0],
+        forbiddenIdentifier: canaries[0],
       },
-    } satisfies AdminCommandRequest);
+    } as unknown as AdminCommandRequest);
   } catch (error) {
     failure = error;
   }

@@ -170,15 +170,13 @@ test("administrator can review a KR request and approve with a hidden PUUID", as
       }],
     },
     approveRiotRequest: async (request) => {
-      approved = request.confirmation && request.puuid === "synthetic-puuid";
+      approved = request.confirmation;
       return { message: "승인했습니다." };
     },
   })} />);
 
   await screen.findByRole("heading", { name: "Riot 계정 연결 요청" });
-  const puuid = screen.getByLabelText("검증할 PUUID");
-  assert.equal(puuid.getAttribute("type"), "password");
-  fireEvent.change(puuid, { target: { value: "synthetic-puuid" } });
+  assert.equal(screen.queryByLabelText("검증할 PUUID"), null);
   fireEvent.click(screen.getByRole("button", { name: "검증 후 승인" }));
   await screen.findByText("Riot 계정 연결 요청을 승인했습니다.");
   assert.equal(approved, true);

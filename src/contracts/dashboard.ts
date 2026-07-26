@@ -101,8 +101,6 @@ export type DecideRiotLinkRequestDto = {
 };
 
 export type ApproveRiotLinkRequestDto = DecideRiotLinkRequestDto & {
-  linkId: string;
-  puuid: string;
 };
 
 export type RiotLinkDecisionResponseDto = {

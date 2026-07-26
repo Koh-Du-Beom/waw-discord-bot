@@ -233,8 +233,6 @@ test("Riot administrator routes require current admin, CSRF, recent auth, confir
     payload: {
       requestId: "request-1",
       expectedVersion: 3,
-      linkId: "link-1",
-      puuid: "synthetic-puuid-00000001",
       confirmation: true,
     },
   });
@@ -273,8 +271,6 @@ test("Riot administrator routes require current admin, CSRF, recent auth, confir
     payload: {
       requestId: "request-1",
       expectedVersion: 3,
-      linkId: "link-1",
-      puuid: "synthetic-puuid-00000001",
     },
   });
   assert.equal(missingConfirmation.statusCode, 400);

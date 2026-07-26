@@ -4,6 +4,13 @@
 
 ## 현재 단계
 
+ADR-0020/PLAN-0009 owner 승인에 따라 Dashboard PUUID 직접 입력을 제거했다.
+관리자 승인 IPC는 request/version만 전달하고, bot-only Riot credential을 가진
+adapter가 pending KR game name/tag line을 Account API로 조회한다. 일치하는
+bounded 응답의 PUUID만 기존 원자 mutation에 전달하며 browser DTO·IPC 요청·
+로그·감사에는 PUUID를 싣지 않는다. 연결 표시는 계속
+`admin_approved_unverified`로 소유권 인증과 구분한다.
+
 `/라이엇계정 연결 닉네임:<게임 이름> 아이디:<# 뒤 태그>`로 사용자 입력을
 단순화하고 platform을 서버에서 `KR`로 고정했다. Dashboard `/api/session`이
 계약에는 선언됐지만 누락했던 CSRF 토큰을 JS-readable double-submit cookie에서

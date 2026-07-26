@@ -12,6 +12,14 @@ export type PendingRiotLinkRequest = {
 };
 
 export type PuuidValidationPort = {
+  resolve?(input: {
+    gameName: string;
+    tagLine: string;
+    platformId: string;
+  }): Promise<
+    | { kind: "valid"; normalizedPuuid: string }
+    | { kind: "invalid"; reasonCode: "invalid_puuid" | "platform_mismatch" }
+  >;
   validate(input: {
     puuid: string;
     platformId: string;
@@ -71,8 +79,6 @@ export class RiotAdminExecutor {
   async approve(input: AdminContext & {
     requestId: string;
     expectedVersion: number;
-    linkId: string;
-    puuid: string;
   }): Promise<string> {
     await this.requireAdministrator(input, "라이엇계정 승인");
     const pending = await this.store.findPending(input.requestId);
@@ -82,10 +88,16 @@ export class RiotAdminExecutor {
       );
       return "승인 대기 요청을 찾을 수 없거나 이미 결정되었습니다.";
     }
-    const validation = await this.validator.validate({
-      puuid: input.puuid,
-      platformId: pending.platformId,
-    });
+    const validation = this.validator.resolve
+      ? await this.validator.resolve({
+          gameName: pending.gameName,
+          tagLine: pending.tagLine,
+          platformId: pending.platformId,
+        })
+      : await this.validator.validate({
+          puuid: pending.gameName,
+          platformId: pending.platformId,
+        });
     if (validation.kind === "invalid") {
       await this.store.recordAdminAudit(
         audit(input, this.now(), "라이엇계정 승인", "failure", validation.reasonCode),
@@ -97,7 +109,7 @@ export class RiotAdminExecutor {
       operationId: input.operationId,
       requestId: input.requestId,
       expectedVersion: input.expectedVersion,
-      linkId: input.linkId,
+      linkId: `link:${input.operationId}`,
       puuid: validation.normalizedPuuid,
       administratorId: input.actorId,
       decidedAt,
