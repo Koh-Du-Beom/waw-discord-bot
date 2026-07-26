@@ -245,3 +245,22 @@ exercised because the available Orca browser profile did not contain an
 approved administrator session and no approved Riot PUUID test fixture was
 available; those functional checks remain an explicit post-rollout item rather
 than being inferred from transport health.
+
+## Authenticated functional check and diagnostic follow-up
+
+An authenticated Orca dashboard session was subsequently verified as an
+administrator. The session endpoint succeeded, while three CSRF-authenticated
+`riot_link_request_list` calls deterministically returned normalized HTTP 503
+`unavailable`. No secret, Discord identifier, or Riot identifier was printed.
+The production audit store contained each web pre-dispatch
+`dispatch_authorized` event but no corresponding bot-side Riot audit event.
+Metadata-only checks confirmed migration 0006, the split runtime-role
+membership, and the required table privileges. A contemporaneous
+`pg_stat_activity` check showed no `waw-bot` or `waw-web` database session.
+
+The bounded follow-up candidate adds identifier-free administrator IPC server
+diagnostics. It records only the fixed stage (`request_accepted`,
+`execute_failed`, `response_ready`, or `request_rejected`), the allowlisted
+command name, and normalized outcome/reason codes. Tests explicitly prove that
+request, operation, actor, and guild identifiers are absent. This candidate is
+diagnostic hardening; it does not claim the authenticated 503 is resolved.

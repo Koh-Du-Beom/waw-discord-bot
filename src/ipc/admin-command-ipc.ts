@@ -24,6 +24,17 @@ export type AdminCommandTransport = {
   execute(request: AdminCommandRequest): Promise<AdminCommandResponse>;
 };
 
+export type AdminCommandIpcServerDiagnostic =
+  | { stage: "request_accepted"; command: AdminCommandRequest["command"] }
+  | {
+      stage: "response_ready";
+      command: AdminCommandRequest["command"];
+      outcome: AdminCommandResponse["outcome"];
+      reasonCode: AdminCommandResponse["reasonCode"];
+    }
+  | { stage: "execute_failed"; command: AdminCommandRequest["command"] }
+  | { stage: "request_rejected"; reasonCode: "frame_invalid" | "frame_too_large" };
+
 export function createAdminCommandIpcClient(options: {
   socketPath: string;
   deadlineMilliseconds?: number;
@@ -58,6 +69,7 @@ export function createAdminCommandIpcServer(options: {
   inheritSocketDirectoryGroup?: boolean;
   maximumConnections?: number;
   requestDeadlineMilliseconds?: number;
+  reportDiagnostic?: (diagnostic: AdminCommandIpcServerDiagnostic) => void;
 }): {
   listen(): Promise<void>;
   close(): Promise<void>;
@@ -88,7 +100,12 @@ export function createAdminCommandIpcServer(options: {
       activeConnections -= 1;
       sockets.delete(socket);
     });
-    handleConnection(socket, options.execute, requestDeadlineMilliseconds);
+    handleConnection(
+      socket,
+      options.execute,
+      requestDeadlineMilliseconds,
+      options.reportDiagnostic,
+    );
   });
   return {
     async listen() {
@@ -223,16 +240,28 @@ function handleConnection(
   socket: Socket,
   execute: (request: AdminCommandRequest) => Promise<AdminCommandResponse>,
   deadlineMilliseconds: number,
+  reportDiagnostic?: (diagnostic: AdminCommandIpcServerDiagnostic) => void,
 ): void {
   let buffer = Buffer.alloc(0);
   let rejected = false;
   let handled = false;
+  const report = (diagnostic: AdminCommandIpcServerDiagnostic): void => {
+    try {
+      reportDiagnostic?.(diagnostic);
+    } catch {
+      // Diagnostics must never alter command handling.
+    }
+  };
   const deadline = setTimeout(() => socket.destroy(), deadlineMilliseconds);
   socket.on("data", (chunk: Buffer) => {
     if (rejected) return;
     buffer = Buffer.concat([buffer, chunk]);
     if (buffer.byteLength > ADMIN_COMMAND_MAXIMUM_FRAME_BYTES + 1) {
       rejected = true;
+      report({
+        stage: "request_rejected",
+        reasonCode: "frame_too_large",
+      });
       socket.destroy();
       return;
     }
@@ -240,6 +269,10 @@ function handleConnection(
     if (newline < 0) return;
     if (handled || newline !== buffer.byteLength - 1 || buffer.subarray(0, newline).includes(0x0a)) {
       rejected = true;
+      report({
+        stage: "request_rejected",
+        reasonCode: "frame_invalid",
+      });
       socket.destroy();
       return;
     }
@@ -247,12 +280,26 @@ function handleConnection(
     const frame = buffer.subarray(0, newline);
     const request = frame === undefined ? undefined : parseAdminCommandRequest(frame);
     if (!request) {
+      report({
+        stage: "request_rejected",
+        reasonCode: "frame_invalid",
+      });
       socket.destroy();
       return;
     }
+    report({ stage: "request_accepted", command: request.command });
     void Promise.resolve(execute(request))
-      .catch(() => transportFailure(request, "unavailable"))
+      .catch(() => {
+        report({ stage: "execute_failed", command: request.command });
+        return transportFailure(request, "unavailable");
+      })
       .then((response) => {
+        report({
+          stage: "response_ready",
+          command: request.command,
+          outcome: response.outcome,
+          reasonCode: response.reasonCode,
+        });
         if (socket.destroyed) return;
         try {
           socket.end(`${serializeAdminCommandResponse(response)}\n`);

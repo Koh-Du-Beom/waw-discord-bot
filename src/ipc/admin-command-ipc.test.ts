@@ -13,6 +13,7 @@ import {
   createAdminCommandIpcServer,
   inheritSocketDirectoryGroup,
   prepareAdminCommandSocketPath,
+  type AdminCommandIpcServerDiagnostic,
 } from "./admin-command-ipc.ts";
 
 function socketPath(): string {
@@ -272,6 +273,39 @@ test("assigns the socket to its real parent directory group", async () => {
     }),
     /not a real directory/,
   );
+});
+
+test("reports identifier-free request execution stages", async () => {
+  const path = socketPath();
+  const diagnostics: AdminCommandIpcServerDiagnostic[] = [];
+  const input = request();
+  const server = createAdminCommandIpcServer({
+    socketPath: path,
+    reportDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+    execute: async (received) => success(received),
+  });
+  await server.listen();
+  try {
+    const response = await createAdminCommandIpcClient({
+      socketPath: path,
+    }).execute(input);
+    assert.equal(response.outcome, "success");
+    assert.deepEqual(diagnostics, [
+      { stage: "request_accepted", command: "riot_link_request_list" },
+      {
+        stage: "response_ready",
+        command: "riot_link_request_list",
+        outcome: "success",
+        reasonCode: "completed",
+      },
+    ]);
+    const serialized = JSON.stringify(diagnostics);
+    assert.equal(serialized.includes(input.requestId), false);
+    assert.equal(serialized.includes(input.actorId), false);
+    assert.equal(serialized.includes(input.guildId), false);
+  } finally {
+    await server.close();
+  }
 });
 
 async function rawSend(path: string, frame: Buffer): Promise<void> {

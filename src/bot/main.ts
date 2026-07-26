@@ -222,6 +222,14 @@ if (assembly.process.exitCode === DUPLICATE_BOT_EXIT_CODE) {
           "/run/waw-admin-command/admin-command.sock",
         socketMode: 0o660,
         inheritSocketDirectoryGroup: true,
+        reportDiagnostic: (diagnostic) => {
+          process.stderr.write(
+            `${JSON.stringify({
+              event_type: "admin_command.ipc",
+              ...diagnostic,
+            })}\n`,
+          );
+        },
         execute,
       }),
     execute: (request) => adminApplication.execute(request),

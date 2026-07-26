@@ -6,6 +6,8 @@
 
 ### Added
 
+- Identifier-free administrator IPC server stage diagnostics for production
+  503 isolation, with explicit tests excluding request, actor, and guild IDs.
 - Repeatable exact-source PostgreSQL 17 full-test harness and fail-closed
   `WAW_REQUIRE_POSTGRES_INTEGRATION` mode. Toolchain-less local runs now report
   their PostgreSQL scope as an explicit skip instead of false test failures.
