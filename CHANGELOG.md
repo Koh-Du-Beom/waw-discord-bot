@@ -9,6 +9,7 @@
 - Dashboard 승인에서 PUUID 입력을 제거하고 bot-only Riot Account API가 pending
   KR Riot ID를 PUUID로 자동 해석한 뒤 승인하는 흐름
 - 서버 세션을 폐기하고 재인증 화면으로 돌아가는 Dashboard 로그아웃 버튼
+- Riot 연결 입력을 화면에 표시되는 단일 `이름#태그` 값으로 통합
 - 관리자 Dashboard에 KR Riot 연결 승인 대기 목록과 PUUID existence 검증 후
   승인 UI를 추가하고, 세션 DTO의 누락된 CSRF 토큰 전달을 복구
 - `/라이엇계정 연결` 입력을 `닉네임`과 `아이디`로 단순화하고 platform을

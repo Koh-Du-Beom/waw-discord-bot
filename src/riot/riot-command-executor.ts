@@ -70,8 +70,7 @@ export class RiotCommandExecutor implements FeatureCommandExecutor {
   }
 
   private async requestLink(request: CommandRequest): Promise<string> {
-    const gameName = parseGameName(required(request, "닉네임"));
-    const tagLine = parseTagLine(required(request, "아이디"));
+    const { gameName, tagLine } = parseRiotId(required(request, "계정"));
     const occurredAt = this.now();
     const result = await this.store.requestLinkWithAudit({
       requestId: `request:${request.eventId}`,
@@ -134,25 +133,22 @@ function required(request: CommandRequest, name: string): string {
   return value;
 }
 
-function parseGameName(value: string): string {
-  if (value.length > 32 || value.includes("#")) {
+function parseRiotId(value: string): { gameName: string; tagLine: string } {
+  const separator = value.lastIndexOf("#");
+  const gameName = value.slice(0, separator).trim();
+  const tagLine = value.slice(separator + 1).trim().toUpperCase();
+  if (
+    separator <= 0 ||
+    gameName.length > 32 ||
+    /[\r\n\0/]/u.test(gameName) ||
+    !/^[A-Z0-9]{2,8}$/u.test(tagLine)
+  ) {
     throw new CommandFailure(
       "invalid_riot_id",
-      "닉네임에는 `#`을 제외한 게임 이름만 입력해 주세요.",
+      "화면에 표시되는 Riot ID를 `이름#태그` 형식으로 입력해 주세요. 예: 이름#KR1",
     );
   }
-  return value;
-}
-
-function parseTagLine(value: string): string {
-  const normalized = value.replace(/^#/, "").trim().toUpperCase();
-  if (!/^[A-Z0-9]{2,8}$/.test(normalized)) {
-    throw new CommandFailure(
-      "invalid_riot_id",
-      "아이디에는 `#` 뒤의 태그만 입력해 주세요. 예: KR1",
-    );
-  }
-  return normalized;
+  return { gameName, tagLine };
 }
 
 function audit(

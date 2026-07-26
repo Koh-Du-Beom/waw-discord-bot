@@ -13,7 +13,9 @@ Riot ID의 game name과 tag line이 저장된다.
 
 ## Decision
 
-- 사용자는 `/라이엇계정 연결 닉네임:<게임 이름> 아이디:<# 뒤 태그>`만 입력한다.
+- 사용자는 `/라이엇계정 연결 계정:<이름#태그>`에 화면에 표시되는 Riot ID만
+  입력한다. Discord slash command가 이름 없는 위치 인자를 지원하지 않으므로
+  `연결` subcommand와 `계정` option label은 유지한다.
 - bot process만 Personal API key를 사용해 ASIA Account API의 Riot ID lookup을
   호출한다.
 - HTTP 200의 bounded JSON에서 PUUID와 요청한 game name/tag line이 일치할
@@ -33,4 +35,5 @@ community 범위를 유지한다.
 ## Approval
 
 Owner approved the described automatic lookup and approval-button flow in the
-2026-07-27 conversation before implementation.
+2026-07-27 conversation before implementation. The owner subsequently approved
+the single display Riot ID input contract in the same conversation.

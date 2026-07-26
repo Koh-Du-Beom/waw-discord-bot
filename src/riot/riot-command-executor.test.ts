@@ -44,8 +44,7 @@ test("creates an approval request without PUUID and labels pending and active li
   );
   assert.match(
     await executor.execute(request("라이엇계정 연결", {
-      닉네임: "대기계정",
-      아이디: "#kr1",
+      계정: "대기계정#kr1",
     })),
     /관리자 승인/,
   );
@@ -55,6 +54,42 @@ test("creates an approval request without PUUID and labels pending and active li
   const list = await executor.execute(request("라이엇계정 목록", {}));
   assert.match(list, /승인 대기/);
   assert.match(list, /소유권 미검증/);
+});
+
+test("accepts a display Riot ID as one option and rejects a login username", async () => {
+  const requests: Parameters<RiotCommandStore["requestLinkWithAudit"]>[0][] = [];
+  const store: RiotCommandStore = {
+    async requestLinkWithAudit(input) {
+      requests.push(input);
+      return "created";
+    },
+    async list() {
+      return [];
+    },
+    async unlinkWithAudit() {
+      return "removed";
+    },
+  };
+  const executor = new RiotCommandExecutor(
+    store,
+    () => new Date("2026-07-27T00:00:00.000Z"),
+  );
+
+  await executor.execute(request("라이엇계정 연결", {
+    계정: "표시 이름#kr1",
+  }));
+  assert.equal(requests[0]?.gameName, "표시 이름");
+  assert.equal(requests[0]?.tagLine, "KR1");
+
+  await assert.rejects(
+    executor.execute(request("라이엇계정 연결", {
+      계정: "login-username",
+    })),
+    (error: unknown) =>
+      error instanceof Error &&
+      "reasonCode" in error &&
+      error.reasonCode === "invalid_riot_id",
+  );
 });
 
 test("unlinks only through the caller-scoped store operation", async () => {

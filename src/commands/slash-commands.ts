@@ -41,8 +41,7 @@ export const WAW_SLASH_COMMANDS: readonly RESTPostAPIApplicationCommandsJSONBody
         name: "연결",
         description: "Riot 계정 연결을 요청합니다.",
         options: [
-          stringOption("닉네임", "게임에서 사용하는 Riot 닉네임"),
-          stringOption("아이디", "# 뒤의 Riot 태그(예: KR1)"),
+          stringOption("계정", "화면에 표시되는 Riot ID(예: 이름#KR1)"),
         ],
       },
       {
@@ -115,7 +114,7 @@ export const KOREAN_COMMAND_RESPONSES = {
     "현재 채널이나 스레드에서 최대 24시간 범위를 요약합니다.",
     "",
     "**Riot 계정**",
-    "`/라이엇계정 연결 닉네임:<게임 이름> 아이디:<# 뒤 태그>` — KR 계정 연결 승인을 요청합니다.",
+    "`/라이엇계정 연결 계정:<이름#태그>` — 화면에 표시되는 KR Riot ID로 연결 승인을 요청합니다.",
     "`/라이엇계정 목록 [사용자]` — 연결된 계정을 확인합니다.",
     "`/라이엇계정 연결해제 계정:<연결 ID>` — 내 연결을 해제합니다.",
     "관리자 승인 연결은 Riot의 공식 소유권 인증이 아닙니다.",

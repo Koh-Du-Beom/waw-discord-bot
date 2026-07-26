@@ -4,6 +4,10 @@
 
 ## 현재 단계
 
+Discord 연결 UX를 `/라이엇계정 연결 계정:<이름#태그>` 한 입력으로 단순화했다.
+Discord slash command의 이름 없는 위치 인자 제약 때문에 `연결` subcommand와
+`계정` option label은 유지하되, Riot 로그인 사용자명은 받지 않는다.
+
 ADR-0020/PLAN-0009 owner 승인에 따라 Dashboard PUUID 직접 입력을 제거했다.
 관리자 승인 IPC는 request/version만 전달하고, bot-only Riot credential을 가진
 adapter가 pending KR game name/tag line을 Account API로 조회한다. 일치하는
@@ -13,8 +17,8 @@ bounded 응답의 PUUID만 기존 원자 mutation에 전달하며 browser DTO·I
 최근 OAuth가 필요한 high-risk mutation을 운영자가 다시 인증할 수 있도록
 Dashboard 상단에 서버 세션 폐기 기반 로그아웃 버튼도 추가했다.
 
-`/라이엇계정 연결 닉네임:<게임 이름> 아이디:<# 뒤 태그>`로 사용자 입력을
-단순화하고 platform을 서버에서 `KR`로 고정했다. Dashboard `/api/session`이
+`/라이엇계정 연결 계정:<이름#태그>`로 사용자 입력을 단순화하고 platform은
+서버에서 `KR`로 고정했다. Dashboard `/api/session`이
 계약에는 선언됐지만 누락했던 CSRF 토큰을 JS-readable double-submit cookie에서
 반환하도록 수정했으며, 관리자 전용 Riot 요청 목록과 PUUID existence 검증 후
 승인 UI를 추가했다. UI는 PUUID를 password input으로 다루고 KR이 아닌 기존
