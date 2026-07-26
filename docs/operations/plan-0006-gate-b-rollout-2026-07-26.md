@@ -152,3 +152,59 @@ The minimal corrective change makes only the volatile administrator path an
 optional `ReadWritePaths` entry, retaining `ExecStartPre` ownership and mode
 enforcement. A fresh immutable release and explicit approval are required
 before another Gate C attempt.
+
+## Replacement candidate staging and Gate C retry
+
+The owner approved replacement candidate
+`ebc1ec334cb425216e469dcdf03205b0fcc7e388` with source archive SHA-256
+`80cb9cb4ecfa0331c28f52e818b7278ab01798a309c02e1b58aaed95ec8439e7`.
+The host independently verified the 557728-byte archive and staged release
+`ebc1ec3`; clean install, typecheck, build, production prune, and immutable
+release-marker creation all passed.
+
+Gate C confirmed that the optional volatile `ReadWritePaths` correction allows
+the bot unit to start on a clean administrator runtime directory. With the bot
+administrator IPC flag enabled, the directory was
+`waw-bot:waw-admin-command` mode `0750`, the socket was
+`waw-bot:waw-admin-command` mode `0660`, the web user had read/write access,
+and an unrelated user had neither. The existing member-role socket remained
+present, the bot and web units remained active, and no systemd unit failed.
+
+Gate C did not pass because the replacement bot's Discord Gateway health did
+not reach `connected` within the bounded observation window; loopback health
+remained `degraded`. No fixed gateway failure reason code was emitted during
+the attempts. Gate D was not entered. Automatic rollback restored release
+`1943fd8` and the previous units. Final readback showed bot, web, backup timer,
+and monitor timer active, loopback health `healthy`, and zero failed units.
+The replacement release remains staged, but must not be activated again until
+the Gateway connection regression is diagnosed and a fresh candidate receives
+explicit approval.
+
+## Gateway diagnostic assessment and replacement preparation
+
+The previous candidate's process remained active and `client.login()` completed,
+but the shared health snapshot stayed `disconnected`. The existing runtime
+defines that outcome as either a non-ready lifecycle or incomplete/failed
+member reconciliation. Because Discord login resolves only after the public
+ready boundary and no normalized disconnect or gateway-event rejection was
+recorded, the remaining production evidence narrows the failure to the
+ready-to-member-reconciliation boundary. The old implementation silently
+converted reconciliation exceptions to failed health and emitted neither the
+failed stage nor the bounded runtime state, so the historical evidence cannot
+safely distinguish guild fetch from member fetch without another candidate.
+
+The next candidate adds only non-identifying diagnostics:
+
+- fixed `gateway_guild_fetch_failed` and
+  `gateway_member_reconciliation_failed` reason codes around the two
+  reconciliation fetch stages;
+- a deduplicated `gateway.state` event containing only lifecycle, shared
+  gateway state, reconciliation state, and reconnect-attempt count;
+- tests proving that sequence values, Discord identifiers, provider payloads,
+  credentials, and exception text are not serialized.
+
+This is diagnostic hardening, not evidence that the Gateway regression is
+resolved. A future Gate C must first observe `gateway.state` reach
+`ready`/`connected`/`current`. If it does not, the fixed reason code and
+allowlisted state event determine the next bounded correction without exposing
+Discord or credential data.

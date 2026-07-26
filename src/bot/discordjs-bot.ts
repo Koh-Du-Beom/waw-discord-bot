@@ -45,6 +45,8 @@ export async function startDiscordJsBot(input: {
   reportFailure: (
     reason:
       | "gateway_event_rejected"
+      | "gateway_guild_fetch_failed"
+      | "gateway_member_reconciliation_failed"
       | "command_dispatch_failed"
       | "observation_failed",
   ) => void;

@@ -36,6 +36,11 @@ import {
   resolveMemberAuthorization,
 } from "./discord-member-authorization.ts";
 import { startDiscordJsBot } from "./discordjs-bot.ts";
+import {
+  type BotFailureReason,
+  gatewayFailureDiagnostic,
+  gatewayStateDiagnostic,
+} from "./gateway-diagnostics.ts";
 import { observationFeatureEnabled } from "./observation-feature.ts";
 import { AdminCommandApplication } from "../ipc/admin-command-application.ts";
 import { createAdminCommandIpcServer } from "../ipc/admin-command-ipc.ts";
@@ -127,11 +132,26 @@ const diagnostics: DiscordJsGatewayDiagnosticSource = {
     return () => clearInterval(timer);
   },
 };
+const reportFailure = (reason: BotFailureReason): void => {
+  process.stderr.write(`${gatewayFailureDiagnostic(reason)}\n`);
+};
 const reconcileMembers = async () => {
-  const guild = await client.guilds.fetch(
-    authorizationConfiguration.allowedGuildId,
-  );
-  const members = await guild.members.fetch();
+  let guild;
+  try {
+    guild = await client.guilds.fetch(
+      authorizationConfiguration.allowedGuildId,
+    );
+  } catch {
+    reportFailure("gateway_guild_fetch_failed");
+    throw new Error("gateway guild fetch failed");
+  }
+  let members;
+  try {
+    members = await guild.members.fetch();
+  } catch {
+    reportFailure("gateway_member_reconciliation_failed");
+    throw new Error("gateway member reconciliation failed");
+  }
   return members
     .map((member) => {
       const authorizationTier = resolveMemberAuthorization({
@@ -163,14 +183,7 @@ const assembly = await startDiscordJsBot({
   shutdownTimeoutMs: 10_000,
   timeout: (milliseconds) =>
     new Promise((resolve) => setTimeout(resolve, milliseconds)),
-  reportFailure(reason) {
-    process.stderr.write(
-      `${JSON.stringify({
-        event_type: "gateway.failure",
-        reason_code: reason,
-      })}\n`,
-    );
-  },
+  reportFailure,
   commands: {
     source: client,
     handle: handleInteraction,
@@ -215,6 +228,7 @@ if (assembly.process.exitCode === DUPLICATE_BOT_EXIT_CODE) {
   });
   const healthPath =
     process.env.WAW_BOT_HEALTH_PATH ?? "/run/waw-bot/health.json";
+  let lastGatewayDiagnostic: string | undefined;
   await publishHealth(healthPath);
   const healthTimer = setInterval(() => void publishHealth(healthPath), 15_000);
 
@@ -236,6 +250,11 @@ if (assembly.process.exitCode === DUPLICATE_BOT_EXIT_CODE) {
   async function publishHealth(path: string): Promise<void> {
     const temporaryPath = `${path}.${process.pid}.tmp`;
     const snapshot = assembly.gateway.snapshot();
+    const gatewayDiagnostic = gatewayStateDiagnostic(snapshot);
+    if (gatewayDiagnostic !== lastGatewayDiagnostic) {
+      lastGatewayDiagnostic = gatewayDiagnostic;
+      process.stdout.write(`${gatewayDiagnostic}\n`);
+    }
     await writeFile(
       temporaryPath,
       JSON.stringify({
