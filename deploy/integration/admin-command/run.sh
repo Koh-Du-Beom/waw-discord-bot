@@ -38,11 +38,12 @@ docker exec "$app" install -d -o waw-bot -g waw-admin-command -m 0750 /run/waw-a
 
 start_server() {
   local delay="${1:-0}"
-  docker exec -d --user waw-bot \
+  docker exec -d \
     -e WAW_ADMIN_COMMAND_SOCKET="$socket" \
     -e WAW_POSTGRES_TEST_URL="$database_url" \
     -e WAW_ADMIN_RESPONSE_DELAY_MS="$delay" \
-    "$app" node --import tsx src/integration/admin-command-server-fixture.ts
+    "$app" setpriv --reuid=waw-bot --regid=waw-member-role --init-groups \
+    node --import tsx src/integration/admin-command-server-fixture.ts
   for _ in $(seq 1 50); do
     if docker exec "$app" test -S "$socket"; then return; fi
     sleep 0.1

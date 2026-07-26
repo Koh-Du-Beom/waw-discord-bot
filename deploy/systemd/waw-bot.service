@@ -9,6 +9,7 @@ StartLimitBurst=4
 Type=simple
 User=waw-bot
 Group=waw-member-role
+SupplementaryGroups=waw-admin-command
 LoadCredential=discord-bot-token:/etc/waw-credentials/bot-discord-token
 LoadCredential=database-url:/etc/waw-credentials/bot-database-url
 EnvironmentFile=-/etc/waw/bot.env

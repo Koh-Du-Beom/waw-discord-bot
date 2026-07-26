@@ -25,6 +25,7 @@ grep -q '^ExecStartPre=+/usr/bin/install -d -o waw-bot -g waw-admin-command -m 0
 ! grep -q 'discord-bot-token' "$web"
 ! grep -Eq 'oauth-client-secret|csrf-key' "$bot"
 grep -q '^Group=waw-member-role$' "$bot"
+grep -q '^SupplementaryGroups=waw-admin-command$' "$bot"
 grep -q '^RuntimeDirectory=waw-bot waw-member-role$' "$bot"
 grep -q 'http://127.0.0.1:18081' "$caddy"
 grep -q 'reverse_proxy 127.0.0.1:18080' "$caddy"

@@ -1,6 +1,6 @@
 # PLAN-0006 Task 8 Gate A read-only preflight — 2026-07-26
 
-- Status: Incomplete — Gate B blocked by one unverified Lightsail alarm
+- Status: Complete — Gate B awaits separate owner approval
 - Scope: Metadata-only AWS Lightsail, production host and Supabase preflight
 - Production changes: None
 - Canonical domain: `https://waw.dubeom.com`
@@ -27,6 +27,7 @@ file or external resource was changed.
 | Effective service identities | PASS | `waw-web` runs as `waw-web:waw-web` with `waw-member-role`; `waw-bot` runs as `waw-bot:waw-member-role` |
 | Admin IPC disabled state | PASS | No `WAW_ADMIN_COMMAND_IPC_ENABLED` value, `waw-admin-command` group, runtime directory, or socket exists |
 | Backup and monitor | PASS | Both timers are active/enabled; latest `waw-backup.service` and `waw-monitor.service` results are `success` with exit status `0` |
+| Lightsail status-check alarm | PASS | The authenticated Lightsail console showed the enabled `StatusCheckFailed` alarm in `OK`: notify when failures are greater than or equal to `1`, `2` times within `10` minutes (5-minute period, evaluation/datapoints `2/2`). Missing data is not evaluated. Notification destination details were intentionally omitted. |
 | Production migration ledger | ATTENTION | Versions 1–4 are present; versions 5–6 are not applied |
 | Production table RLS | PASS | RLS is enabled for every queried existing application table |
 | Production policy/grant inventory | INFO | Seven policies and 26 explicit `waw_web`/`waw_bot` table grants were returned |
@@ -39,23 +40,21 @@ and is not an immutable production release artifact. The reviewed commit must
 not be treated as the rollout release without a separately reviewed clean
 archive and hash.
 
-## Remaining blocker and resolved migration finding
+## Resolved findings
 
-| Required Gate A check | State | Reason |
+| Gate A check | State | Evidence |
 | --- | --- | --- |
-| Lightsail alarm | BLOCKED | Read-only retry still failed: both configured AWS CLI profiles returned an invalid-security-token result, while the authenticated Lightsail console reported an explicit identity-policy deny before alarm metadata could be read. |
+| Lightsail alarm | RESOLVED | The owner-provided authenticated Chrome session exposed the exact alarm read-only. It is enabled and in `OK` with the expected threshold and `2/2` evaluation window. No alarm action or setting was invoked. |
 | Migration checksum portability | RESOLVED | Production versions 1-2 match the canonical LF rendering and versions 3-4 match the exact CRLF rendering of unchanged current SQL. Both representations are now accepted; changed SQL still fails. |
 
-The approved browser SSH session was used only for the listed read-only
-commands. A local SSH connection was also attempted with strict batch options
-and failed public-key authentication. No host file, service, user, group,
-socket, flag or credential was changed.
+The approved browser SSH session and authenticated Chrome AWS session were used
+only for the listed read-only checks. Earlier local CLI and restricted console
+attempts failed without changing AWS. No host file, service, user, group,
+socket, flag, credential or alarm was changed.
 
 ## Stop decision
 
-Gate A is not complete, so Gate B approval is not requested yet. Before Gate B:
-
-1. restore permission to read the Lightsail alarm and verify its current state.
-
-Do not create a backup, run migrations, install a group/unit, restart a service
-or change a feature flag from this evidence.
+Gate A is complete and safe to proceed. This evidence does not authorize Gate B.
+Do not create a backup, run migrations, install a group/unit, activate a
+release, restart a service or change a feature flag until the owner separately
+approves the exact Gate B change set.

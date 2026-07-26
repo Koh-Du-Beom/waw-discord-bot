@@ -208,6 +208,7 @@ if (assembly.process.exitCode === DUPLICATE_BOT_EXIT_CODE) {
           process.env.WAW_ADMIN_COMMAND_SOCKET ??
           "/run/waw-admin-command/admin-command.sock",
         socketMode: 0o660,
+        inheritSocketDirectoryGroup: true,
         execute,
       }),
     execute: (request) => adminApplication.execute(request),

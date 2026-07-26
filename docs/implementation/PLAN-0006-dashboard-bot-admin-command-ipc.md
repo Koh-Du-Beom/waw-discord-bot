@@ -265,6 +265,20 @@ Draft 계획의 작성이나 이후 local 구현 승인에 포함되지 않는�
   mode, 32KiB, 15초 TTL, 3초 deadline, 8 connection, 503/409/504 일치를
   확인했다. Production Task 8용 preflight·migration·rollout·rollback
   checklist를 별도 runbook으로 작성했으며 외부 접근·변경은 수행하지 않았다.
+- 2026-07-26 Task 8 Gate A: owner 승인 범위에서 AWS Lightsail, production
+  host와 Supabase metadata-only preflight를 완료했다. Canonical endpoint,
+  release, services, identities, backup/monitor, migration ledger, RLS/grant,
+  workload role과 기본 비활성 feature gate가 안전함을 확인했다. 마지막
+  blocker였던 Lightsail `StatusCheckFailed` alarm은 인증된 console에서
+  enabled/`OK`, threshold `1`, 5분 period와 evaluation/datapoints `2/2`로
+  확인했다. Production 변경은 없으며 Gate B는 exact change set에 대한 별도
+  owner 승인을 기다린다.
+- 2026-07-26 Task 8 Gate B: owner가 backup, migrations `0005`~`0006`,
+  host group/unit, exact release와 staged administrator IPC activation을
+  승인했다. Fresh encrypted backup publication은 통과했다. Offline recovery
+  identity가 별도 Mac에만 있어 owner가 empty-target restore risk를 수용하고
+  rehearsal을 2026-07-27로 유예했으며, 이는 이번 실행에 한정된 예외다.
+  Game observation feature gate는 계속 비활성으로 유지한다.
 
 ## 승인
 

@@ -30,6 +30,7 @@ const responseDelay = Number(process.env.WAW_ADMIN_RESPONSE_DELAY_MS ?? "0");
 const server = createAdminCommandIpcServer({
   socketPath,
   socketMode: 0o660,
+  inheritSocketDirectoryGroup: true,
   async execute(request) {
     const response = await application.execute(request);
     if (responseDelay > 0) {

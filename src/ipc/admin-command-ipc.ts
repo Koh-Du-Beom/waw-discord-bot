@@ -1,10 +1,11 @@
-import { chmod, lstat, unlink } from "node:fs/promises";
+import { chmod, chown, lstat, unlink } from "node:fs/promises";
 import {
   createConnection,
   createServer,
   type Server,
   type Socket,
 } from "node:net";
+import { dirname } from "node:path";
 
 import {
   ADMIN_COMMAND_MAXIMUM_FRAME_BYTES,
@@ -54,6 +55,7 @@ export function createAdminCommandIpcServer(options: {
   socketPath: string;
   execute(request: AdminCommandRequest): Promise<AdminCommandResponse>;
   socketMode?: number;
+  inheritSocketDirectoryGroup?: boolean;
   maximumConnections?: number;
   requestDeadlineMilliseconds?: number;
 }): {
@@ -93,6 +95,9 @@ export function createAdminCommandIpcServer(options: {
       await prepareAdminCommandSocketPath(options.socketPath);
       await listen(server, options.socketPath);
       if (process.platform !== "win32") {
+        if (options.inheritSocketDirectoryGroup) {
+          await inheritSocketDirectoryGroup(options.socketPath);
+        }
         await chmod(options.socketPath, options.socketMode ?? 0o660);
       }
     },
@@ -101,6 +106,29 @@ export function createAdminCommandIpcServer(options: {
       await closeServer(server);
     },
   };
+}
+
+export async function inheritSocketDirectoryGroup(
+  socketPath: string,
+  dependencies: {
+    platform?: NodeJS.Platform;
+    inspect?: (path: string) => Promise<{
+      gid: number;
+      isDirectory(): boolean;
+      isSymbolicLink(): boolean;
+    }>;
+    assign?: (path: string, uid: number, gid: number) => Promise<void>;
+  } = {},
+): Promise<void> {
+  if ((dependencies.platform ?? process.platform) === "win32") return;
+  const inspect = dependencies.inspect ?? ((path) => lstat(path));
+  const assign =
+    dependencies.assign ?? ((path, uid, gid) => chown(path, uid, gid));
+  const directory = await inspect(dirname(socketPath));
+  if (!directory.isDirectory() || directory.isSymbolicLink()) {
+    throw new Error("admin command IPC directory is not a real directory");
+  }
+  await assign(socketPath, -1, directory.gid);
 }
 
 export async function prepareAdminCommandSocketPath(

@@ -11,6 +11,7 @@ import type {
 import {
   createAdminCommandIpcClient,
   createAdminCommandIpcServer,
+  inheritSocketDirectoryGroup,
   prepareAdminCommandSocketPath,
 } from "./admin-command-ipc.ts";
 
@@ -236,6 +237,41 @@ test("removes only an owned stale socket and refuses symlink, regular file or ot
       /not an owned socket/,
     );
   }
+});
+
+test("assigns the socket to its real parent directory group", async () => {
+  let assignment: { path: string; uid: number; gid: number } | undefined;
+  await inheritSocketDirectoryGroup("/run/waw-admin-command/admin-command.sock", {
+    platform: "linux",
+    inspect: async () =>
+      ({
+        gid: 4100,
+        isDirectory: () => true,
+        isSymbolicLink: () => false,
+      }) as Stats,
+    assign: async (path, uid, gid) => {
+      assignment = { path: path.toString(), uid, gid };
+    },
+  });
+  assert.deepEqual(assignment, {
+    path: "/run/waw-admin-command/admin-command.sock",
+    uid: -1,
+    gid: 4100,
+  });
+
+  await assert.rejects(
+    inheritSocketDirectoryGroup("/run/waw-admin-command/admin-command.sock", {
+      platform: "linux",
+      inspect: async () =>
+        ({
+          gid: 4100,
+          isDirectory: () => true,
+          isSymbolicLink: () => true,
+        }) as Stats,
+      assign: async () => undefined,
+    }),
+    /not a real directory/,
+  );
 });
 
 async function rawSend(path: string, frame: Buffer): Promise<void> {

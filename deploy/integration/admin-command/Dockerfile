@@ -8,7 +8,8 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends postgresql-client procps util-linux \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --gid 4100 waw-admin-command \
- && useradd --uid 4101 --gid waw-admin-command --no-create-home waw-bot \
+ && groupadd --gid 4104 waw-member-role \
+ && useradd --uid 4101 --gid waw-member-role --groups waw-admin-command --no-create-home waw-bot \
  && useradd --uid 4102 --gid waw-admin-command --no-create-home waw-web \
  && useradd --uid 4103 --no-create-home unrelated
 

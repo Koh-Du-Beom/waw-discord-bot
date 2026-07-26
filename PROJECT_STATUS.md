@@ -66,18 +66,32 @@ Local/Disposable Complete이며 production Task 8은 별도 owner approval,
 read-only AWS/Supabase preflight, 새 backup/restore와 provider 결정 전에는
 시작하지 않는다.
 PLAN-0006 Task 8 Gate A는 2026-07-26 owner 승인 뒤 metadata-only로
-시작했다. Canonical `/`와 `/health`는 각각 HTTPS 200이고 health body는
-`healthy`였다. AWS CLI read는 invalid security token, 필수 Orca CLI guide는
-timeout이었으며 승인된 host/Supabase read-only session이 없어 instance,
-release, unit, group/socket, backup/monitor와 schema/RLS/grant는 미검증으로
-남겼다. Production 변경은 0이며 Gate B는 승인 불가 상태다.
+완료했다. Canonical `/`와 `/health`는 각각 HTTPS 200이고 health body는
+`healthy`였다. Production release, unit, identity, group/socket 부재,
+backup/monitor, schema ledger 0001–0004, RLS/grant와 workload role을
+read-only로 확인했다. Owner가 제공한 인증된 Chrome AWS session에서는
+Lightsail `StatusCheckFailed` alarm이 enabled/`OK`, threshold `1`, 5분 period,
+evaluation/datapoints `2/2`, missing data 미평가임을 확인했다. 알림 대상
+상세는 기록하지 않았다. Production 변경은 0이며 Gate B는 별도 owner 승인을
+기다린다.
 
 Gate A 보완에서 migration checksum을 LF canonical form으로 전환하고, 내용이
 동일한 CRLF rendering만 legacy 대안으로 인정하도록 제한했다. Production
 0001-0004의 실제 mixed-line-ending ledger 회귀와 disposable PostgreSQL resume,
 고정 SHA-256 source archive의 격리 stage/typecheck/build가 GREEN이다. 따라서
 checksum portability blocker는 해소됐으며 production 변경은 없었다.
-Lightsail alarm metadata는 여전히 별도 read-only 확인 대상이다.
+고정 rollout candidate `aaf50697510bb90c04b7678c8e6b1ca0b0bd469b`와
+archive SHA-256도 격리 preflight를 통과했다.
+
+PLAN-0006 Task 8 Gate B는 owner가 exact change set을 승인해 시작했다.
+Fresh encrypted backup과 valid `published` marker는 확인했으나 offline
+recovery identity가 별도 Mac에 있어 empty-target restore는 실행하지 못했다.
+Owner는 이 recovery risk를 명시적으로 수용하고 rehearsal을 2026-07-27로
+유예했다. 이는 이번 실행에 한정된 prerequisite 예외이며 archive를
+`verified`로 만들거나 backup policy를 변경하지 않는다. Git archive branch는
+DB 복구 수단이 아니며 mutable하므로, 현재 full commit/archive hash와 release
+directory를 rollback evidence로 유지하고 추가 원격 landmark가 필요하면 성공
+후 별도 승인된 immutable release tag를 우선한다.
 
 2026-07-25 PLAN-0005 bounded slice에서 owner-approved 한국어 명령 명칭,
 `/몰랭검거` 체계, interaction normalization, PostgreSQL command audit,
