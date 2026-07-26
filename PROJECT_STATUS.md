@@ -4,6 +4,15 @@
 
 ## 현재 단계
 
+`/라이엇계정 연결 닉네임:<게임 이름> 아이디:<# 뒤 태그>`로 사용자 입력을
+단순화하고 platform을 서버에서 `KR`로 고정했다. Dashboard `/api/session`이
+계약에는 선언됐지만 누락했던 CSRF 토큰을 JS-readable double-submit cookie에서
+반환하도록 수정했으며, 관리자 전용 Riot 요청 목록과 PUUID existence 검증 후
+승인 UI를 추가했다. UI는 PUUID를 password input으로 다루고 KR이 아닌 기존
+요청의 승인을 비활성화한다. 로컬 회귀 검증 후 새 immutable 후보를 배포하고,
+기존 잘못된 요청은 감사 가능한 거절로 정리한 다음 올바른 KR 요청으로 Gate
+C/D를 재개한다.
+
 `/도움말`을 네 번째 최상위 Discord 명령으로 추가했다. 응답은 ephemeral이며
 `/요약`, `/라이엇계정`, `/몰랭검거`의 목적과 입력 예시, 관리자 전용
 정정·취소, 관리자 승인 Riot 연결이 공식 소유권 인증은 아니라는 경계를

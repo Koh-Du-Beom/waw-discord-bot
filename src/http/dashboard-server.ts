@@ -23,6 +23,7 @@ import {
   type UpdateLowRiskSettingsRequestDto,
 } from "../contracts/dashboard.ts";
 import type { AuthorizationTier } from "../contracts/local-command.ts";
+import { readCsrfCookieToken } from "./session-boundary.ts";
 
 const bodyLimitBytes = 8 * 1024;
 const securityHeaders = {
@@ -140,7 +141,7 @@ const errorSchema = {
 const sessionSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["authenticated", "actor"],
+  required: ["authenticated", "actor", "csrfToken"],
   properties: {
     authenticated: { type: "boolean", const: true },
     actor: {
@@ -152,6 +153,7 @@ const sessionSchema = {
         tier: { type: "string", enum: ["operator", "administrator"] },
       },
     },
+    csrfToken: { type: "string", minLength: 32 },
   },
 } as const;
 
@@ -499,12 +501,18 @@ export function buildDashboardServer(
         return;
       }
       try {
+        const csrfToken = readCsrfCookieToken(stringHeader(request.headers.cookie));
+        if (!csrfToken) {
+          sendError(reply, 403, "forbidden", request.id);
+          return;
+        }
         reply.send({
           authenticated: true,
           actor: {
             displayName: await options.ports.readDisplayName(),
             tier: authorization.tier,
           },
+          csrfToken,
         });
       } catch (error) {
         sendPortError(reply, error, request.id);

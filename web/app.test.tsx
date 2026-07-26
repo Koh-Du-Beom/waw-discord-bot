@@ -8,6 +8,7 @@ import type {
   AuditEventDto,
   DashboardOverviewDto,
   LowRiskSettingsDto,
+  PendingRiotLinkRequestsDto,
   SessionDto,
   UpdateLowRiskSettingsRequestDto,
 } from "../src/contracts/dashboard.ts";
@@ -150,6 +151,39 @@ test("announces mutation failure without claiming success", async () => {
   assert.equal(alert.textContent?.includes("다시 불러온 뒤 시도"), true);
 });
 
+test("administrator can review a KR request and approve with a hidden PUUID", async () => {
+  let approved = false;
+  render(<App api={apiFixture({
+    session: {
+      ...sessionFixture,
+      actor: { ...sessionFixture.actor, tier: "administrator" },
+    },
+    riotRequests: {
+      requests: [{
+        requestId: "request-synthetic",
+        discordUserId: "discord-synthetic",
+        platformId: "KR",
+        gameName: "테스트계정",
+        tagLine: "KR1",
+        requestedAt: "2026-07-27T00:00:00.000Z",
+        version: 1,
+      }],
+    },
+    approveRiotRequest: async (request) => {
+      approved = request.confirmation && request.puuid === "synthetic-puuid";
+      return { message: "승인했습니다." };
+    },
+  })} />);
+
+  await screen.findByRole("heading", { name: "Riot 계정 연결 요청" });
+  const puuid = screen.getByLabelText("검증할 PUUID");
+  assert.equal(puuid.getAttribute("type"), "password");
+  fireEvent.change(puuid, { target: { value: "synthetic-puuid" } });
+  fireEvent.click(screen.getByRole("button", { name: "검증 후 승인" }));
+  await screen.findByText("Riot 계정 연결 요청을 승인했습니다.");
+  assert.equal(approved, true);
+});
+
 function apiError(code: string): Error & { code: string } {
   return Object.assign(new Error(code), { code });
 }
@@ -163,6 +197,8 @@ function apiFixture(
     settings?: LowRiskSettingsDto;
     update?: DashboardApi["updateSettings"];
     audit?: { events: AuditEventDto[] };
+    riotRequests?: PendingRiotLinkRequestsDto;
+    approveRiotRequest?: DashboardApi["approveRiotRequest"];
   } = {},
 ): DashboardApi {
   return {
@@ -186,5 +222,11 @@ function apiFixture(
     async getAudit() {
       return overrides.audit ?? emptyAuditFixture;
     },
+    async getRiotRequests() {
+      return overrides.riotRequests ?? { requests: [] };
+    },
+    approveRiotRequest:
+      overrides.approveRiotRequest ??
+      (async () => ({ message: "승인했습니다." })),
   };
 }

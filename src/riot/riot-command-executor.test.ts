@@ -44,13 +44,14 @@ test("creates an approval request without PUUID and labels pending and active li
   );
   assert.match(
     await executor.execute(request("라이엇계정 연결", {
-      라이엇아이디: "대기계정#KR1",
-      플랫폼: "kr",
+      닉네임: "대기계정",
+      아이디: "#kr1",
     })),
     /관리자 승인/,
   );
   assert.equal("puuid" in requested[0]!, false);
   assert.equal(requested[0]?.platformId, "KR");
+  assert.equal(requested[0]?.tagLine, "KR1");
   const list = await executor.execute(request("라이엇계정 목록", {}));
   assert.match(list, /승인 대기/);
   assert.match(list, /소유권 미검증/);

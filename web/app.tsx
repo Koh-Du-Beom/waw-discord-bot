@@ -6,6 +6,9 @@ import {
   type AuditEventsDto,
   type DashboardOverviewDto,
   type LowRiskSettingsDto,
+  type PendingRiotLinkRequestsDto,
+  type ApproveRiotLinkRequestDto,
+  type RiotLinkDecisionResponseDto,
   type SessionDto,
   type UpdateLowRiskSettingsRequestDto,
 } from "../src/contracts/dashboard.ts";
@@ -16,6 +19,8 @@ export type DashboardApi = {
   getSettings(): Promise<LowRiskSettingsDto>;
   updateSettings(request: UpdateLowRiskSettingsRequestDto): Promise<LowRiskSettingsDto>;
   getAudit(): Promise<AuditEventsDto>;
+  getRiotRequests(): Promise<PendingRiotLinkRequestsDto>;
+  approveRiotRequest(request: ApproveRiotLinkRequestDto): Promise<RiotLinkDecisionResponseDto>;
 };
 
 type ViewState =
@@ -29,6 +34,7 @@ type ViewState =
       overview: DashboardOverviewDto;
       settings: LowRiskSettingsDto;
       audit: AuditEventsDto;
+      riotRequests: PendingRiotLinkRequestsDto;
     };
 
 export function App({ api }: { api: DashboardApi }) {
@@ -94,6 +100,7 @@ function Dashboard({
   const [settings, setSettings] = useState(value.settings);
   const [checked, setChecked] = useState(value.settings.summaryEnabled);
   const [audit, setAudit] = useState(value.audit);
+  const [riotRequests, setRiotRequests] = useState(value.riotRequests);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<{ kind: "success" | "error"; message: string }>();
   const resultRef = useRef<HTMLParagraphElement>(null);
@@ -123,6 +130,38 @@ function Dashboard({
       setResult({ kind: "error", message });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function approveRiotRequest(
+    event: React.FormEvent<HTMLFormElement>,
+    request: PendingRiotLinkRequestsDto["requests"][number],
+  ) {
+    event.preventDefault();
+    const element = event.currentTarget;
+    const field = element.elements.namedItem("puuid");
+    const puuid = field && "value" in field ? String(field.value).trim() : "";
+    if (!puuid) return;
+    setResult(undefined);
+    try {
+      await api.approveRiotRequest({
+        requestId: request.requestId,
+        expectedVersion: request.version,
+        confirmation: true,
+        linkId: `link:${globalThis.crypto.randomUUID()}`,
+        puuid,
+      });
+      setRiotRequests(await api.getRiotRequests());
+      setResult({ kind: "success", message: "Riot 계정 연결 요청을 승인했습니다." });
+      element.reset();
+    } catch (error) {
+      setResult({
+        kind: "error",
+        message: errorCode(error) === "conflict"
+          ? "요청 상태가 변경되었습니다. 목록을 새로 불러왔습니다."
+          : "Riot 계정 연결 요청을 승인하지 못했습니다.",
+      });
+      setRiotRequests(await api.getRiotRequests().catch(() => riotRequests));
     }
   }
 
@@ -165,6 +204,34 @@ function Dashboard({
         </section>
 
         <div className="content-grid">
+          {value.session.actor.tier === "administrator" && (
+            <section className="panel riot-panel" aria-labelledby="riot-title">
+              <p className="eyebrow">관리자 승인</p>
+              <h2 id="riot-title">Riot 계정 연결 요청</h2>
+              <p className="notice">KR 계정만 승인할 수 있으며, 승인은 계정 소유권 인증이 아닙니다.</p>
+              {riotRequests.requests.length === 0 ? (
+                <p className="empty">승인 대기 중인 요청이 없습니다.</p>
+              ) : (
+                <ul className="riot-list" aria-label="Riot 계정 연결 승인 대기 목록">
+                  {riotRequests.requests.map((request) => (
+                    <li key={request.requestId}>
+                      <div>
+                        <strong>{request.gameName}#{request.tagLine}</strong>
+                        <span>{request.platformId} · {formatDate(request.requestedAt)}</span>
+                      </div>
+                      <form onSubmit={(event) => void approveRiotRequest(event, request)}>
+                        <label>
+                          검증할 PUUID
+                          <input name="puuid" type="password" autoComplete="off" required />
+                        </label>
+                        <button type="submit" disabled={request.platformId !== "KR"}>검증 후 승인</button>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
           <section className="panel" aria-labelledby="settings-title">
             <p className="eyebrow">낮은 위험 설정</p>
             <h2 id="settings-title">서버 요약</h2>
@@ -266,12 +333,15 @@ async function loadDashboard(api: DashboardApi): Promise<ViewState> {
   try {
     const session = await api.getSession();
     if (!session) return { kind: "login" };
-    const [overview, settings, audit] = await Promise.all([
+    const [overview, settings, audit, riotRequests] = await Promise.all([
       api.getOverview(),
       api.getSettings(),
       api.getAudit(),
+      session.actor.tier === "administrator"
+        ? api.getRiotRequests()
+        : Promise.resolve({ requests: [] }),
     ]);
-    return { kind: "ready", session, overview, settings, audit };
+    return { kind: "ready", session, overview, settings, audit, riotRequests };
   } catch (error) {
     return errorCode(error) === "forbidden" ? { kind: "denied" } : { kind: "unavailable" };
   }

@@ -70,15 +70,16 @@ export class RiotCommandExecutor implements FeatureCommandExecutor {
   }
 
   private async requestLink(request: CommandRequest): Promise<string> {
-    const riotId = parseRiotId(required(request, "라이엇아이디"));
-    const platformId = parsePlatform(required(request, "플랫폼"));
+    const gameName = parseGameName(required(request, "닉네임"));
+    const tagLine = parseTagLine(required(request, "아이디"));
     const occurredAt = this.now();
     const result = await this.store.requestLinkWithAudit({
       requestId: `request:${request.eventId}`,
       operationId: request.eventId,
       discordUserId: request.actorId,
-      platformId,
-      ...riotId,
+      platformId: "KR",
+      gameName,
+      tagLine,
       requestedAt: occurredAt,
       audit: audit(request, occurredAt, "success", "riot_link_requested"),
     });
@@ -133,28 +134,23 @@ function required(request: CommandRequest, name: string): string {
   return value;
 }
 
-function parseRiotId(value: string): { gameName: string; tagLine: string } {
-  const separator = value.lastIndexOf("#");
-  const gameName = value.slice(0, separator).trim();
-  const tagLine = value.slice(separator + 1).trim();
-  if (
-    separator <= 0 ||
-    gameName.length > 32 ||
-    tagLine.length < 2 ||
-    tagLine.length > 8
-  ) {
+function parseGameName(value: string): string {
+  if (value.length > 32 || value.includes("#")) {
     throw new CommandFailure(
       "invalid_riot_id",
-      "라이엇 아이디를 `이름#태그` 형식으로 입력해 주세요.",
+      "닉네임에는 `#`을 제외한 게임 이름만 입력해 주세요.",
     );
   }
-  return { gameName, tagLine };
+  return value;
 }
 
-function parsePlatform(value: string): string {
-  const normalized = value.toUpperCase();
+function parseTagLine(value: string): string {
+  const normalized = value.replace(/^#/, "").trim().toUpperCase();
   if (!/^[A-Z0-9]{2,8}$/.test(normalized)) {
-    throw new CommandFailure("invalid_riot_platform", "라이엇 플랫폼 값을 확인해 주세요.");
+    throw new CommandFailure(
+      "invalid_riot_id",
+      "아이디에는 `#` 뒤의 태그만 입력해 주세요. 예: KR1",
+    );
   }
   return normalized;
 }

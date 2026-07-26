@@ -6,6 +6,10 @@
 
 ### Added
 
+- 관리자 Dashboard에 KR Riot 연결 승인 대기 목록과 PUUID existence 검증 후
+  승인 UI를 추가하고, 세션 DTO의 누락된 CSRF 토큰 전달을 복구
+- `/라이엇계정 연결` 입력을 `닉네임`과 `아이디`로 단순화하고 platform을
+  서버에서 `KR`로 고정
 - 호출자에게만 한국어로 전체 명령의 목적·입력 예시·관리자 전용 범위와
   Riot 관리자 승인 연결의 한계를 안내하는 `/도움말` Discord 명령
 - PLAN-0008 Task 1 command-log/quota public DTO, same-origin endpoint paths,

@@ -4,6 +4,9 @@ import {
   type AuditEventsDto,
   type DashboardOverviewDto,
   type LowRiskSettingsDto,
+  type PendingRiotLinkRequestsDto,
+  type ApproveRiotLinkRequestDto,
+  type RiotLinkDecisionResponseDto,
   type SessionDto,
   type UpdateLowRiskSettingsRequestDto,
   type UpdateLowRiskSettingsResponseDto,
@@ -60,7 +63,31 @@ export function createBrowserApi(fetcher: typeof fetch = fetch): DashboardApi {
         await fetcher(DASHBOARD_API_PATHS.audit, requestInit()),
       );
     },
+    async getRiotRequests() {
+      return mutate<PendingRiotLinkRequestsDto>(DASHBOARD_API_PATHS.riotRequests, {});
+    },
+    async approveRiotRequest(request: ApproveRiotLinkRequestDto) {
+      return mutate<RiotLinkDecisionResponseDto>(DASHBOARD_API_PATHS.riotApprove, request);
+    },
   };
+
+  async function mutate<T>(path: string, body: object): Promise<T> {
+    if (csrfToken === undefined) {
+      const failure: ApiFailure = new Error("세션을 다시 확인해야 합니다.");
+      failure.code = "unauthenticated";
+      throw failure;
+    }
+    return readJson<T>(await fetcher(path, {
+      ...requestInit(),
+      body: JSON.stringify(body),
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken,
+      },
+      method: "POST",
+    }));
+  }
 }
 
 export const browserApi = createBrowserApi();

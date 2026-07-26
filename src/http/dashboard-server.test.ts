@@ -18,7 +18,7 @@ import {
 } from "./dashboard-server.ts";
 
 const sessionCookie = "__Host-waw_session=session_session_session_session_12";
-const csrfToken = "csrf_csrf_csrf_csrf_csrf_csrf_csrf_123";
+const csrfToken = "ccccccccccccccccccccccccccccccccccccccccccc";
 const mutationHeaders = {
   cookie: `${sessionCookie}; __Host-waw_csrf=${csrfToken}`,
   origin: "https://waw.dubeom.com",
@@ -146,11 +146,12 @@ test("composes auth and protected read routes with allowlisted DTOs", async () =
   const session = await app.inject({
     method: "GET",
     url: "/api/session",
-    headers: { cookie: sessionCookie },
+    headers: { cookie: `${sessionCookie}; __Host-waw_csrf=${csrfToken}` },
   });
   assert.deepEqual(session.json(), {
     authenticated: true,
     actor: { displayName: "Fixture Operator", tier: "operator" },
+    csrfToken,
   });
 
   for (const url of ["/api/overview", "/api/settings/summary", "/api/audit"]) {
