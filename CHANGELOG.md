@@ -6,6 +6,9 @@
 
 ### Added
 
+- PLAN-0008 Task 1 command-log/quota public DTO, same-origin endpoint paths,
+  bounded opaque pagination input, reservation port contract, and deterministic
+  `Asia/Seoul` quota-date tests
 - Discord Gateway 초기 멤버 reconciliation의 15초 deadline과 1회 bounded
   retry, 그리고 식별자를 포함하지 않는 고정 timeout·retry-exhausted reason
   code 진단

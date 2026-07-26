@@ -33,6 +33,18 @@ PostgreSQL SELECT 권한을 추가 요구한 것이다. 권한을 넓히는 대�
 target을 생략하는 최소 코드 수정으로 중복 claim 의미와 insert-only 경계를
 보존하고 새 후보로 Gate C/D를 재시도한다.
 
+최종 production release `90611ee`는 Gate C의 45초 Gateway
+connected/current 관찰과 canonical health HTTP 200을 통과했다. 같은 Orca
+Dashboard 세션의 Gate D pending list도 HTTP 200으로 복구됐다. 현재 pending
+요청은 0건이므로 owner-approved 승인 mutation, stale 409와 duplicate
+reconciliation은 대상을 다시 만든 뒤 완료해야 한다.
+
+PLAN-0008 Task 1의 첫 bounded 계약을 시작했다. Command-log와 사용자 quota의
+식별자 비노출 DTO, same-origin endpoint path, 기본 50/허용 1–100 pagination,
+opaque cursor 형식, quota reservation port와 `Asia/Seoul` 날짜 경계를
+고정했다. 관련 계약 테스트 5개와 typecheck가 통과했으며 persistence/API
+구현과 migration은 아직 시작하지 않았다.
+
 2026-07-26 dashboard design refresh의 승인 전 1단계를 시작했다. 기존 React
 화면, 정보 구조, 접근성, 반응형과 인증·권한·API 계약을 감사하고 관찰 가능한
 성공 기준을 `docs/design/dashboard-refresh-audit.md`에 기록했다. Production

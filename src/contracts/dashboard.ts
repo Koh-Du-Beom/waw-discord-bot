@@ -109,6 +109,47 @@ export type RiotLinkDecisionResponseDto = {
   message: string;
 };
 
+export type CommandLogOutcomeDto = "success" | "denied" | "failed";
+
+export type CommandLogEntryDto = {
+  occurredAt: string;
+  commandLabel: string;
+  actorLabel: string;
+  outcome: CommandLogOutcomeDto;
+  reasonLabel: string;
+};
+
+export type CommandLogPageDto = {
+  entries: CommandLogEntryDto[];
+  nextCursor?: string;
+};
+
+export type ListCommandLogRequestDto = {
+  limit?: number;
+  cursor?: string;
+  command?: string;
+  outcome?: CommandLogOutcomeDto;
+  from?: string;
+  to?: string;
+};
+
+export type SummaryQuotaStatusDto = {
+  userKey: string;
+  displayLabel: string;
+  used: number;
+  effectiveLimit: number;
+  remaining: number;
+  limitSource: "default" | "override";
+  enabled: boolean;
+  nextResetAt: string;
+  version: number;
+};
+
+export type SummaryQuotaPageDto = {
+  users: SummaryQuotaStatusDto[];
+  nextCursor?: string;
+};
+
 export const DASHBOARD_API_PATHS = {
   login: "/auth/login",
   callback: "/auth/discord/callback",
@@ -120,4 +161,6 @@ export const DASHBOARD_API_PATHS = {
   riotRequests: "/api/riot/requests/list",
   riotApprove: "/api/riot/requests/approve",
   riotReject: "/api/riot/requests/reject",
+  commandLog: "/api/command-log",
+  summaryQuotas: "/api/summary/quotas",
 } as const;
