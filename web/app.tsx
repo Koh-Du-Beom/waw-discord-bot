@@ -15,6 +15,7 @@ import {
 
 export type DashboardApi = {
   getSession(): Promise<SessionDto | null>;
+  logout(): Promise<void>;
   getOverview(): Promise<DashboardOverviewDto>;
   getSettings(): Promise<LowRiskSettingsDto>;
   updateSettings(request: UpdateLowRiskSettingsRequestDto): Promise<LowRiskSettingsDto>;
@@ -87,14 +88,22 @@ export function App({ api }: { api: DashboardApi }) {
     );
   }
 
-  return <Dashboard api={api} value={state} />;
+  return (
+    <Dashboard
+      api={api}
+      value={state}
+      onLogout={() => setRetryKey((value) => value + 1)}
+    />
+  );
 }
 
 function Dashboard({
   api,
+  onLogout,
   value,
 }: {
   api: DashboardApi;
+  onLogout(): void;
   value: Extract<ViewState, { kind: "ready" }>;
 }) {
   const [settings, setSettings] = useState(value.settings);
@@ -104,6 +113,7 @@ function Dashboard({
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<{ kind: "success" | "error"; message: string }>();
   const resultRef = useRef<HTMLParagraphElement>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     if (result) resultRef.current?.focus();
@@ -130,6 +140,17 @@ function Dashboard({
       setResult({ kind: "error", message });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function logout() {
+    setLoggingOut(true);
+    try {
+      await api.logout();
+      onLogout();
+    } catch {
+      setResult({ kind: "error", message: "로그아웃하지 못했습니다. 다시 시도하세요." });
+      setLoggingOut(false);
     }
   }
 
@@ -165,10 +186,15 @@ function Dashboard({
           <p className="eyebrow">WAW 운영 dashboard</p>
           <h1>운영 현황</h1>
         </div>
-        <p className="operator">
-          <span>{value.session.actor.displayName}</span>
-          <span>{value.session.actor.tier === "administrator" ? "관리자" : "운영자"}</span>
-        </p>
+        <div className="operator-actions">
+          <p className="operator">
+            <span>{value.session.actor.displayName}</span>
+            <span>{value.session.actor.tier === "administrator" ? "관리자" : "운영자"}</span>
+          </p>
+          <button type="button" className="secondary" disabled={loggingOut} onClick={() => void logout()}>
+            {loggingOut ? "로그아웃 중…" : "로그아웃"}
+          </button>
+        </div>
       </header>
 
       <main>

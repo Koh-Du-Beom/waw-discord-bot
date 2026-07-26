@@ -10,6 +10,8 @@ adapter가 pending KR game name/tag line을 Account API로 조회한다. 일치�
 bounded 응답의 PUUID만 기존 원자 mutation에 전달하며 browser DTO·IPC 요청·
 로그·감사에는 PUUID를 싣지 않는다. 연결 표시는 계속
 `admin_approved_unverified`로 소유권 인증과 구분한다.
+최근 OAuth가 필요한 high-risk mutation을 운영자가 다시 인증할 수 있도록
+Dashboard 상단에 서버 세션 폐기 기반 로그아웃 버튼도 추가했다.
 
 `/라이엇계정 연결 닉네임:<게임 이름> 아이디:<# 뒤 태그>`로 사용자 입력을
 단순화하고 platform을 서버에서 `KR`로 고정했다. Dashboard `/api/session`이

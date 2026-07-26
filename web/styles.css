@@ -273,6 +273,18 @@ h2 {
   color: #52665f;
 }
 
+.operator-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.secondary {
+  border-color: #c9c2b4;
+  color: #213b33;
+  background: #fff;
+}
+
 .riot-panel {
   grid-column: 1 / -1;
 }

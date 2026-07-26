@@ -60,6 +60,7 @@ test("exposes named landmarks and controls without relying on color alone", asyn
   assert.ok(screen.getByRole("status", { name: "전체 상태" }).textContent);
   assert.ok(screen.getByRole("checkbox", { name: "서버 요약 기능 사용" }));
   assert.ok(screen.getByRole("button", { name: "설정 저장" }));
+  assert.ok(screen.getByRole("button", { name: "로그아웃" }));
   assert.match(screen.getByText("게시 완료").textContent ?? "", /게시 완료/);
   assert.match(screen.getByText("표시할 설정 변경 기록이 없습니다.").textContent ?? "", /없습니다/);
 });
@@ -220,6 +221,7 @@ function apiFixture(
     async getAudit() {
       return overrides.audit ?? emptyAuditFixture;
     },
+    async logout() {},
     async getRiotRequests() {
       return overrides.riotRequests ?? { requests: [] };
     },

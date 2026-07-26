@@ -28,6 +28,25 @@ export function createBrowserApi(fetcher: typeof fetch = fetch): DashboardApi {
       csrfToken = session.csrfToken;
       return session;
     },
+    async logout() {
+      if (csrfToken === undefined) {
+        const failure: ApiFailure = new Error("세션을 다시 확인해야 합니다.");
+        failure.code = "unauthenticated";
+        throw failure;
+      }
+      const response = await fetcher(DASHBOARD_API_PATHS.logout, {
+        ...requestInit(),
+        body: "{}",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
+        method: "POST",
+      });
+      if (!response.ok) await readJson<never>(response);
+      csrfToken = undefined;
+    },
     async getOverview() {
       return readJson<DashboardOverviewDto>(
         await fetcher(DASHBOARD_API_PATHS.overview, requestInit()),
