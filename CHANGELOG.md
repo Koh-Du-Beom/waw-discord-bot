@@ -1,5 +1,10 @@
 # 변경 이력
 
+- PLAN-0008 production rollout을 위해 summary quota enforcement와 dashboard
+  quota API/UI를 별도 exact-`1` feature gate로 분리하고 systemd 기본값을
+  모두 `0`으로 고정. 비활성 상태에서는 quota API route를 등록하지 않고
+  browser가 quota를 조회하거나 표시하지 않음
+
 사용자에게 의미 있는 변경사항을 기록합니다.
 
 ## Unreleased

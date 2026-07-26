@@ -95,6 +95,7 @@ test("quota dates use the Asia/Seoul calendar boundary", () => {
 test("session and mutation contracts carry CSRF and audited version results", () => {
   const session: SessionDto = {
     authenticated: true,
+    features: { summaryQuotaDashboard: false },
     actor: { displayName: "synthetic operator", tier: "operator" },
     csrfToken: "csrf-synthetic",
   };

@@ -172,3 +172,9 @@ Gate A metadata-only preflight and Gate B fresh encrypted backup/restore
 evidence approve the exact immutable release. Rollback disables the quota and
 dashboard feature gates, reactivates the previous release, and preserves the
 additive quota tables and reservation audit rows.
+
+The immutable release must deploy with `WAW_SUMMARY_QUOTA_ENABLED=0` for the
+bot and `WAW_DASHBOARD_QUOTA_ENABLED=0` for the web service. Only the exact
+value `1` enables either boundary. The bot enforcement gate and dashboard
+quota API/UI gate are approved and activated separately after migration 0007
+schema and workload-role verification.

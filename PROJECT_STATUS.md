@@ -4,6 +4,16 @@
 
 ## 현재 단계
 
+PLAN-0008 production 후보의 선행 검토에서 migration 0007 전 quota store와
+dashboard quota API/UI가 무조건 조립되는 결함을 발견했다. Bot enforcement는
+`WAW_SUMMARY_QUOTA_ENABLED=1`, dashboard quota API/UI는
+`WAW_DASHBOARD_QUOTA_ENABLED=1`일 때만 각각 독립적으로 활성화하며 systemd
+asset은 두 값을 모두 `0`으로 고정했다. 기본 상태에서 quota API는 404이고
+browser는 quota endpoint를 호출하거나 UI를 표시하지 않는다. 전체 local 검증은
+`231 tests / 223 pass / 8 PostgreSQL tool skips / 0 fail`,
+typecheck·build·production asset test·diff check 통과다. 새 immutable 후보를
+고정한 뒤 metadata-only Gate A를 재개한다.
+
 PLAN-0008 Tasks 2–7을 local/disposable 범위에서 구현했다. Migration 0007은
 기본 10회, 등록 사용자 override/disable, 한국 날짜 counter와 operation별
 reservation을 additive하게 추가한다. PostgreSQL 17 disposable 검증에서

@@ -19,6 +19,7 @@ import { PostgresPersistence } from "../persistence/postgres-persistence.ts";
 import { createProductionDashboardPorts } from "./production-dashboard-ports.ts";
 import { createAdminCommandIpcClient } from "../ipc/admin-command-ipc.ts";
 import { adminCommandFeatureEnabled } from "../ipc/admin-command-feature.ts";
+import { dashboardQuotaEnabled } from "../summary/quota-feature.ts";
 
 const credentialsDirectory = process.env.CREDENTIALS_DIRECTORY;
 const [databaseUrl, clientSecret, csrfKey] = await Promise.all([
@@ -95,6 +96,9 @@ const app = buildDashboardServer({
   }),
   serviceVersion: process.env.WAW_SERVICE_VERSION ?? "unknown",
   callbackOrigin: configuration.allowedOrigin,
+  summaryQuotaDashboardEnabled: dashboardQuotaEnabled(
+    process.env.WAW_DASHBOARD_QUOTA_ENABLED,
+  ),
   spaRoot: path.resolve(import.meta.dirname, "../../web"),
   operationalLog(event) {
     process.stdout.write(`${JSON.stringify(event)}\n`);

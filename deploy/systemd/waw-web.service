@@ -19,6 +19,7 @@ Environment=WAW_MEMBER_ROLE_SOCKET=/run/waw-member-role/member-role.sock
 Environment=WAW_BOT_HEALTH_PATH=/run/waw-member-role/health.json
 Environment=WAW_BACKUP_MARKER_PATH=/var/lib/waw-backup/last-published.json
 Environment=WAW_ADMIN_COMMAND_IPC_ENABLED=0
+Environment=WAW_DASHBOARD_QUOTA_ENABLED=0
 Environment=WAW_ADMIN_COMMAND_SOCKET=/run/waw-admin-command/admin-command.sock
 ExecStart=/usr/local/bin/node /opt/waw/current/dist/server/web/main.js
 Restart=on-failure

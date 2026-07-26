@@ -45,7 +45,7 @@ type ViewState =
       audit: AuditEventsDto;
       riotRequests: PendingRiotLinkRequestsDto;
       commandLog: CommandLogPageDto;
-      quotas: SummaryQuotaSettingsDto;
+      quotas: SummaryQuotaSettingsDto | undefined;
     };
 
 export function App({ api }: { api: DashboardApi }) {
@@ -215,7 +215,7 @@ function Dashboard({
         <nav className="section-nav" aria-label="Dashboard 주요 영역">
           <a href="#attention">확인 필요</a>
           <a href="#commands">명령 기록</a>
-          <a href="#quotas">요약 한도</a>
+          {quotas && <a href="#quotas">요약 한도</a>}
         </nav>
         <section aria-labelledby="health-title">
           <div className="section-heading">
@@ -332,7 +332,7 @@ function Dashboard({
           )}
         </section>
 
-        <section className="panel wide-panel" id="quotas" aria-labelledby="quotas-title">
+        {quotas && <section className="panel wide-panel" id="quotas" aria-labelledby="quotas-title">
           <p className="eyebrow">한국시간 자정 초기화</p>
           <h2 id="quotas-title">요약 한도 관리</h2>
           <p className="notice">서버 기본 일일 한도는 {quotas.defaultLimit}회입니다.</p>
@@ -358,7 +358,7 @@ function Dashboard({
               }).then(setQuotas).catch(() => setResult({ kind: "error", message: "사용자 한도를 변경하지 못했습니다." }));
             }}>{user.enabled ? "사용 중지" : "사용 허용"}</button>}
           </li>)}</ul>
-        </section>
+        </section>}
       </main>
     </div>
   );
@@ -417,7 +417,9 @@ async function loadDashboard(api: DashboardApi): Promise<ViewState> {
         ? api.getRiotRequests()
         : Promise.resolve({ requests: [] }),
       api.getCommandLog(),
-      api.getSummaryQuotas(),
+      session.features.summaryQuotaDashboard
+        ? api.getSummaryQuotas()
+        : Promise.resolve(undefined),
     ]);
     return { kind: "ready", session, overview, settings, audit, riotRequests, commandLog, quotas };
   } catch (error) {

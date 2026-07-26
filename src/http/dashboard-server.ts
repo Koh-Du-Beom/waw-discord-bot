@@ -95,6 +95,7 @@ export type DashboardServerOptions = {
   operationalLog?: (event: OperationalLogEvent) => void;
   callbackOrigin?: string;
   spaRoot?: string;
+  summaryQuotaDashboardEnabled?: boolean;
 };
 
 export class HttpPortError extends Error {
@@ -150,7 +151,7 @@ const errorSchema = {
 const sessionSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["authenticated", "actor", "csrfToken"],
+  required: ["authenticated", "actor", "csrfToken", "features"],
   properties: {
     authenticated: { type: "boolean", const: true },
     actor: {
@@ -163,6 +164,14 @@ const sessionSchema = {
       },
     },
     csrfToken: { type: "string", minLength: 32 },
+    features: {
+      type: "object",
+      additionalProperties: false,
+      required: ["summaryQuotaDashboard"],
+      properties: {
+        summaryQuotaDashboard: { type: "boolean" },
+      },
+    },
   },
 } as const;
 const commandLogQuerySchema = {
@@ -545,6 +554,10 @@ export function buildDashboardServer(
             tier: authorization.tier,
           },
           csrfToken,
+          features: {
+            summaryQuotaDashboard:
+              options.summaryQuotaDashboardEnabled === true,
+          },
         });
       } catch (error) {
         sendPortError(reply, error, request.id);
@@ -657,55 +670,57 @@ export function buildDashboardServer(
       }
     },
   );
-  app.get(
-    DASHBOARD_API_PATHS.summaryQuotas,
-    { schema: { querystring: emptyObjectSchema } },
-    async (request, reply) => {
-      const authorization = await authorize(options.auth, request, "read");
-      if (!authorization.allowed) {
-        sendAuthorizationError(reply, authorization.response, request.id);
-        return;
-      }
-      try {
-        reply.send(await options.ports.readSummaryQuotas());
-      } catch (error) {
-        sendPortError(reply, error, request.id);
-      }
-    },
-  );
-  app.post<{ Body: UpdateSummaryQuotaDefaultRequestDto }>(
-    DASHBOARD_API_PATHS.summaryQuotaDefault,
-    { schema: { querystring: emptyObjectSchema, body: quotaDefaultSchema } },
-    async (request, reply) => {
-      const authorization = await authorize(options.auth, request, "mutation");
-      if (!authorization.allowed) { sendAuthorizationError(reply, authorization.response, request.id); return; }
-      if (authorization.tier !== "administrator") { sendError(reply, 403, "forbidden", request.id); return; }
-      try {
-        const result = await options.ports.updateSummaryQuotaDefault({
-          request: request.body, actorId: authorization.actorId, operationId: request.id,
-        });
-        if (result === "conflict") { sendError(reply, 409, "conflict", request.id); return; }
-        reply.send(await options.ports.readSummaryQuotas());
-      } catch (error) { sendPortError(reply, error, request.id); }
-    },
-  );
-  app.post<{ Body: UpdateSummaryQuotaUserRequestDto }>(
-    DASHBOARD_API_PATHS.summaryQuotaUser,
-    { schema: { querystring: emptyObjectSchema, body: quotaUserSchema } },
-    async (request, reply) => {
-      const authorization = await authorize(options.auth, request, "mutation");
-      if (!authorization.allowed) { sendAuthorizationError(reply, authorization.response, request.id); return; }
-      if (authorization.tier !== "administrator") { sendError(reply, 403, "forbidden", request.id); return; }
-      try {
-        const result = await options.ports.updateSummaryQuotaUser({
-          request: request.body, actorId: authorization.actorId, operationId: request.id,
-        });
-        if (result === "conflict") { sendError(reply, 409, "conflict", request.id); return; }
-        if (result === "unavailable") { sendError(reply, 503, "unavailable", request.id); return; }
-        reply.send(await options.ports.readSummaryQuotas());
-      } catch (error) { sendPortError(reply, error, request.id); }
-    },
-  );
+  if (options.summaryQuotaDashboardEnabled === true) {
+    app.get(
+      DASHBOARD_API_PATHS.summaryQuotas,
+      { schema: { querystring: emptyObjectSchema } },
+      async (request, reply) => {
+        const authorization = await authorize(options.auth, request, "read");
+        if (!authorization.allowed) {
+          sendAuthorizationError(reply, authorization.response, request.id);
+          return;
+        }
+        try {
+          reply.send(await options.ports.readSummaryQuotas());
+        } catch (error) {
+          sendPortError(reply, error, request.id);
+        }
+      },
+    );
+    app.post<{ Body: UpdateSummaryQuotaDefaultRequestDto }>(
+      DASHBOARD_API_PATHS.summaryQuotaDefault,
+      { schema: { querystring: emptyObjectSchema, body: quotaDefaultSchema } },
+      async (request, reply) => {
+        const authorization = await authorize(options.auth, request, "mutation");
+        if (!authorization.allowed) { sendAuthorizationError(reply, authorization.response, request.id); return; }
+        if (authorization.tier !== "administrator") { sendError(reply, 403, "forbidden", request.id); return; }
+        try {
+          const result = await options.ports.updateSummaryQuotaDefault({
+            request: request.body, actorId: authorization.actorId, operationId: request.id,
+          });
+          if (result === "conflict") { sendError(reply, 409, "conflict", request.id); return; }
+          reply.send(await options.ports.readSummaryQuotas());
+        } catch (error) { sendPortError(reply, error, request.id); }
+      },
+    );
+    app.post<{ Body: UpdateSummaryQuotaUserRequestDto }>(
+      DASHBOARD_API_PATHS.summaryQuotaUser,
+      { schema: { querystring: emptyObjectSchema, body: quotaUserSchema } },
+      async (request, reply) => {
+        const authorization = await authorize(options.auth, request, "mutation");
+        if (!authorization.allowed) { sendAuthorizationError(reply, authorization.response, request.id); return; }
+        if (authorization.tier !== "administrator") { sendError(reply, 403, "forbidden", request.id); return; }
+        try {
+          const result = await options.ports.updateSummaryQuotaUser({
+            request: request.body, actorId: authorization.actorId, operationId: request.id,
+          });
+          if (result === "conflict") { sendError(reply, 409, "conflict", request.id); return; }
+          if (result === "unavailable") { sendError(reply, 503, "unavailable", request.id); return; }
+          reply.send(await options.ports.readSummaryQuotas());
+        } catch (error) { sendPortError(reply, error, request.id); }
+      },
+    );
+  }
   app.post<{ Body: ListPendingRiotLinksRequestDto }>(
     DASHBOARD_API_PATHS.riotRequests,
     {

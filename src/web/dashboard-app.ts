@@ -91,6 +91,7 @@ export function buildDashboardApp(options: DashboardAppOptions): FastifyInstance
         tier: session.authorizationTier,
       },
       csrfToken,
+      features: { summaryQuotaDashboard: false },
     };
   });
 

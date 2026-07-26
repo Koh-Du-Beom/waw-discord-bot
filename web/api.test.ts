@@ -10,6 +10,7 @@ test("browser mutation sends the session CSRF token and consumes the audited res
     if (String(input) === "/api/session") {
       return Response.json({
         authenticated: true,
+        features: { summaryQuotaDashboard: false },
         actor: { displayName: "합성 운영자", tier: "operator" },
         csrfToken: "csrf-synthetic-browser",
       });

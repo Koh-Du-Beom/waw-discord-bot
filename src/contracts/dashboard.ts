@@ -25,6 +25,9 @@ export type SessionDto = {
     tier: AuthorizationTier;
   };
   csrfToken: string;
+  features: {
+    summaryQuotaDashboard: boolean;
+  };
 };
 
 export type ComponentHealthDto = {
