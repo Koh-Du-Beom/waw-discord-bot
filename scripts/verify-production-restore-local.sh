@@ -30,8 +30,10 @@ EXPECTED_HASH="$(jq -er .archiveSha256 "$MANIFEST")"
 EXPECTED_BYTES="$(jq -er .encryptedBytes "$MANIFEST")"
 EXPECTED_ROWS="$(jq -er .expectedRowCount "$MANIFEST")"
 EXPECTED_SCHEMA="$(jq -er .schemaVersion "$MANIFEST")"
+EXPECTED_INVARIANT="$(jq -er .expectedInvariant "$MANIFEST")"
 [[ "$(shasum -a 256 "$ARCHIVE" | awk '{print $1}')" == "$EXPECTED_HASH" ]]
 [[ "$(wc -c < "$ARCHIVE" | tr -d ' ')" == "$EXPECTED_BYTES" ]]
+[[ "$EXPECTED_INVARIANT" == constraints_valid ]]
 
 age-keygen -o "$TMP/wrong-identity.txt" >/dev/null 2>&1
 if age -d -i "$TMP/wrong-identity.txt" -o /dev/null "$ARCHIVE" >/dev/null 2>&1; then
@@ -46,19 +48,23 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 docker exec "$CONTAINER" pg_isready -U postgres >/dev/null
+docker exec "$CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 \
+  -c 'create role waw_web nologin nosuperuser nocreatedb nocreaterole noinherit; create role waw_bot nologin nosuperuser nocreatedb nocreaterole noinherit;' >/dev/null
 docker exec "$CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 -c 'drop schema public cascade;' >/dev/null
 
 echo "Enter the owner recovery identity passphrase when age prompts."
 age -d -i "$IDENTITY" "$ARCHIVE" \
   | docker exec -i "$CONTAINER" pg_restore --exit-on-error --no-owner --no-acl -U postgres -d postgres
 
-SCHEMA_VERSION="$(docker exec "$CONTAINER" psql -U postgres -Atqc 'select version from public.app_schema_version;')"
+SCHEMA_VERSION="$(docker exec "$CONTAINER" psql -U postgres -Atqc 'select max(version) from public.app_schema_version;')"
 ROW_COUNT="$(docker exec "$CONTAINER" psql -U postgres -Atqc 'select (select count(*) from public.app_session) + (select count(*) from public.operation_ledger) + (select count(*) from public.audit_event);')"
 INVALID_CONSTRAINTS="$(docker exec "$CONTAINER" psql -U postgres -Atqc "select count(*) from pg_constraint where connamespace = 'public'::regnamespace and not convalidated;")"
+INVALID_FOREIGN_KEYS="$(docker exec "$CONTAINER" psql -U postgres -Atqc "select count(*) from pg_constraint where connamespace = 'public'::regnamespace and contype = 'f' and not convalidated;")"
 [[ "$SCHEMA_VERSION" == "$EXPECTED_SCHEMA" ]]
 [[ "$ROW_COUNT" == "$EXPECTED_ROWS" ]]
 [[ "$INVALID_CONSTRAINTS" == 0 ]]
+[[ "$INVALID_FOREIGN_KEYS" == 0 ]]
 [[ "$(shasum -a 256 "$ARCHIVE" | awk '{print $1}')" == "$EXPECTED_HASH" ]]
 
-printf 'production_restore_verified\nschema_version=%s\nrow_count=%s\ninvalid_constraints=%s\nelapsed_seconds=%s\n' \
-  "$SCHEMA_VERSION" "$ROW_COUNT" "$INVALID_CONSTRAINTS" "$((SECONDS - START_SECONDS))"
+printf 'production_restore_verified\nschema_version=%s\nrow_count=%s\ninvalid_constraints=%s\ninvalid_foreign_keys=%s\nelapsed_seconds=%s\n' \
+  "$SCHEMA_VERSION" "$ROW_COUNT" "$INVALID_CONSTRAINTS" "$INVALID_FOREIGN_KEYS" "$((SECONDS - START_SECONDS))"

@@ -9,6 +9,9 @@
 
 ## Unreleased
 
+- PLAN-0008 Gate B production archive의 wrong-identity 거부, exact hash/byte
+  검증과 disposable PostgreSQL 17 empty-target restore를 완료하고 schema
+  version 6, expected row count 97, invalid constraint/FK 0 및 cleanup을 확인
 - PLAN-0008 Tasks 2–7: additive daily-summary quota schema, atomic PostgreSQL
   reservations, redacted command-log and quota APIs, administrator quota
   mutations, and the responsive Pretendard Direction A dashboard

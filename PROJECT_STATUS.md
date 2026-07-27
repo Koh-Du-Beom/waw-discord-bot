@@ -4,6 +4,13 @@
 
 ## 현재 단계
 
+PLAN-0008 Gate B의 exact encrypted archive를 offline recovery identity가 있는
+별도 Mac에서 disposable PostgreSQL 17로 복원했다. Wrong identity 거부,
+archive byte/hash·manifest 일치, schema version 6, expected row count 97,
+invalid constraint/FK 0, 21초 복원과 임시 IAM reader·archive·container 정리를
+확인했다. Gate B는 통과했으며 migration 0007과 default-off 후보 배포는
+여전히 별도 owner 승인 대상이다.
+
 PLAN-0008 production 후보의 선행 검토에서 migration 0007 전 quota store와
 dashboard quota API/UI가 무조건 조립되는 결함을 발견했다. Bot enforcement는
 `WAW_SUMMARY_QUOTA_ENABLED=1`, dashboard quota API/UI는
