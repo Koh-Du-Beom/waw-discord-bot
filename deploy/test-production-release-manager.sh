@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 ROOT="$(mktemp -d /tmp/waw-release-manager.XXXXXX)"
-trap 'rm -rf -- "$ROOT"' EXIT
+trap 'chmod -R u+w "$ROOT"; rm -rf -- "$ROOT"' EXIT
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 export WAW_INSTALL_ROOT="$ROOT"
 release_root="$ROOT/opt/waw/releases"
