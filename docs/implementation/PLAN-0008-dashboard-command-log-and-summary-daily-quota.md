@@ -1,6 +1,6 @@
 # 구현 계획: 대시보드 명령 로그와 요약 일일 한도
 
-- Status: Approved
+- Status: Superseded by PLAN-0010 for quota; command-log work remains complete
 - Related requirements: FUN-004, FUN-005, PRI-001 through PRI-003
 - Related ADRs: ADR-0007, ADR-0010, ADR-0014, ADR-0016, ADR-0019
 - Owner: Product owner

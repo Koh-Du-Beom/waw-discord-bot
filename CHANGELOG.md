@@ -9,6 +9,24 @@
 
 ## Unreleased
 
+- Replace the configurable daily `/요약` quota with one reservation per
+  registered user per rolling hour. Migration `0008` removes the daily default,
+  override, counter, and reset model while preserving idempotent reservations;
+  production quota and game-observation flags remain off.
+- Production migration resume 실패가 `0003`/`0004` CRLF가 아니라 migration
+  `0005` ledger에 SHA-256 두 글자가 빠진 historical 기록 오기임을 확인하고,
+  exact version 5와 canonical SQL에만 묶인 compatibility 검증과 disposable
+  PostgreSQL/Linux exact-archive 회귀를 추가; candidate `1d9a1fa`의 동일
+  archive를 CloudShell Amazon Linux 2023에서 재검증해 Gate A 통과
+- KBO를 현재 제품 명세, dashboard 설정, 구현·완료·배포 범위에서 제외하고
+  추후 새 제품 정책으로 재검토하도록 변경
+- Candidate `f126ce3` CloudShell Linux 검증에서 exact archive와 Node
+  `24.18.0`은 확인했지만 release-manager fixture의 read-only cleanup이 exit
+  `1`로 실패해 stage를 중단; temporary artifact와 production mutation 0,
+  Gate A 미통과 유지
+- Linux fixture cleanup을 최소 수정한 candidate `1785255`의 exact archive를
+  CloudShell에서 재검증해 release-manager test, production stage, migration
+  asset 7개, default-off quota flags와 cleanup을 통과; production mutation 0
 - PLAN-0008 Gate B production archive의 wrong-identity 거부, exact hash/byte
   검증과 disposable PostgreSQL 17 empty-target restore를 완료하고 schema
   version 6, expected row count 97, invalid constraint/FK 0 및 cleanup을 확인

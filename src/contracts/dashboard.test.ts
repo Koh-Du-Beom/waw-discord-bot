@@ -9,7 +9,6 @@ import {
   type UpdateLowRiskSettingsResponseDto,
 } from "./dashboard.ts";
 import {
-  koreanQuotaDate,
   parseCommandLogPageInput,
 } from "../summary/summary-quota-contract.ts";
 
@@ -84,12 +83,6 @@ test("command-log pagination bounds and opaque cursor format are fixed", () => {
     parseCommandLogPageInput({ cursor: "opaque_cursor_0123456789" }),
     { limit: 50, cursor: "opaque_cursor_0123456789" },
   );
-});
-
-test("quota dates use the Asia/Seoul calendar boundary", () => {
-  assert.equal(koreanQuotaDate(new Date("2026-07-27T14:59:59.999Z")), "2026-07-27");
-  assert.equal(koreanQuotaDate(new Date("2026-07-27T15:00:00.000Z")), "2026-07-28");
-  assert.throws(() => koreanQuotaDate(new Date("invalid")), /invalid/u);
 });
 
 test("session and mutation contracts carry CSRF and audited version results", () => {

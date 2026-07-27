@@ -17,7 +17,7 @@ before(async () => {
 
 after(async () => pool?.end());
 
-test("twenty concurrent attempts reserve exactly the default ten", { skip: !enabled }, async () => {
+test("concurrent attempts reserve once per user per rolling hour", { skip: !enabled }, async () => {
   const at = new Date("2026-07-27T14:59:59.000Z");
   const results = await Promise.all(Array.from({ length: 20 }, (_, index) =>
     store.reserve({
@@ -27,8 +27,8 @@ test("twenty concurrent attempts reserve exactly the default ten", { skip: !enab
       receivedAt: at,
     }),
   ));
-  assert.equal(results.filter((result) => result.kind === "reserved").length, 10);
-  assert.equal(results.filter((result) => result.kind === "exhausted").length, 10);
+  assert.equal(results.filter((result) => result.kind === "reserved").length, 1);
+  assert.equal(results.filter((result) => result.kind === "cooldown").length, 19);
 
   const reservedIndex = results.findIndex((result) => result.kind === "reserved");
   const duplicate = await store.reserve({
@@ -38,9 +38,28 @@ test("twenty concurrent attempts reserve exactly the default ten", { skip: !enab
     receivedAt: at,
   });
   assert.equal(duplicate.kind, "duplicate");
-  const count = await pool.query<{ used: number }>(
-    `select used from summary_quota_counter
-      where guild_id='quota-guild' and discord_user_id='quota-user'`,
-  );
-  assert.equal(count.rows[0]?.used, 10);
+
+  const tooSoon = await store.reserve({
+    operationId: "quota-too-soon",
+    guildId: "quota-guild",
+    discordUserId: "quota-user",
+    receivedAt: new Date(at.getTime() + 3_599_999),
+  });
+  assert.equal(tooSoon.kind, "cooldown");
+
+  const nextHour = await store.reserve({
+    operationId: "quota-next-hour",
+    guildId: "quota-guild",
+    discordUserId: "quota-user",
+    receivedAt: new Date(at.getTime() + 3_600_000),
+  });
+  assert.equal(nextHour.kind, "reserved");
+
+  const otherUser = await store.reserve({
+    operationId: "quota-other-user",
+    guildId: "quota-guild",
+    discordUserId: "quota-user-2",
+    receivedAt: at,
+  });
+  assert.equal(otherUser.kind, "reserved");
 });

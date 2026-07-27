@@ -178,3 +178,7 @@ bot and `WAW_DASHBOARD_QUOTA_ENABLED=0` for the web service. Only the exact
 value `1` enables either boundary. The bot enforcement gate and dashboard
 quota API/UI gate are approved and activated separately after migration 0007
 schema and workload-role verification.
+
+ADR-0021 and migration `0008` supersede the daily quota contract. New releases
+use only the bot-side rolling one-hour `/요약` cooldown. The legacy dashboard
+quota flag remains `0` and does not authorize a dashboard quota API or UI.

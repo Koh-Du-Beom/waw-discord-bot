@@ -161,3 +161,29 @@ docs/research/technology-options/summary-api-constraints.md의 검증 공백만 
 아직 API를 호출하거나 결제하지 말고, 후보별 성공/실패 기준·측정 항목·예상 최대 비용을 담은
 Spike 계획만 전용 문서로 작성해. PRI-001과 120초 전체 deadline을 위반하지 마.
 ```
+
+## 2026-07-27 model refresh
+
+Official model and data-control pages were rechecked for the owner's same-day
+completion goal.
+
+- Recommended implementation target:
+  OpenAI `gpt-5.4-mini-2026-03-17`, Responses API, `store: false`, reasoning
+  disabled, structured output. It has a 400,000-token context window,
+  128,000-token maximum output, and text pricing of USD 0.75/M input and
+  USD 4.50/M output. The pinned snapshot avoids an alias changing silently.
+- Strong long-context alternative: Gemini `gemini-3.6-flash`, with a
+  1,048,576-token input limit and USD 1.50/M input, USD 7.50/M output.
+- Cost-floor alternative: Gemini `gemini-3.5-flash-lite`, USD 0.30/M input and
+  USD 2.50/M output. It is not selected without a Korean-summary fidelity
+  benchmark.
+- Anthropic Haiku 4.5 remains a viable fast alternative but its 200,000-token
+  context and USD 1/M input, USD 5/M output do not improve the primary path.
+
+This is an implementation recommendation, not production activation evidence.
+OpenAI API content is not used for training by default, but default abuse
+monitoring may retain content for up to 30 days; `store: false` avoids Responses
+application-state storage but is not equivalent to approved Zero Data
+Retention. A provider credential, owner acceptance of this retention boundary,
+and a synthetic Korean marker-recall/deadline spike remain required before
+real Discord messages are sent.

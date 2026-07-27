@@ -122,11 +122,13 @@ export class KoreanCommandHandler {
         discordUserId: request.actorId,
         receivedAt: this.input.now(),
       });
-      if (decision.kind === "disabled") {
-        throw new CommandFailure("summary_quota_disabled", "요약 기능 사용이 중지되어 있습니다.", "denied");
-      }
-      if (decision.kind === "exhausted") {
-        throw new CommandFailure("summary_quota_exhausted", "오늘 사용할 수 있는 요약 횟수를 모두 사용했습니다.", "denied");
+      if (decision.kind === "cooldown" ||
+          (decision.kind === "duplicate" && decision.decision === "cooldown")) {
+        throw new CommandFailure(
+          "summary_quota_cooldown",
+          "요약은 사용자별로 1시간에 한 번 사용할 수 있습니다.",
+          "denied",
+        );
       }
     }
     const sections = await this.input.summarizer.summarize({

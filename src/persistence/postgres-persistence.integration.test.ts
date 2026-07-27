@@ -33,6 +33,7 @@ const migrationFourPath = path.join(projectRoot, "migrations/0004_dashboard_sett
 const migrationFivePath = path.join(projectRoot, "migrations/0005_summary_riot_game.sql");
 const migrationSixPath = path.join(projectRoot, "migrations/0006_admin_command_result.sql");
 const migrationSevenPath = path.join(projectRoot, "migrations/0007_summary_daily_quota.sql");
+const migrationEightPath = path.join(projectRoot, "migrations/0008_summary_hourly_cooldown.sql");
 const migrationOneSql = await readFile(migrationOnePath, "utf8");
 const migrationTwoSql = await readFile(migrationTwoPath, "utf8");
 const migrationThreeSql = await readFile(migrationThreePath, "utf8");
@@ -40,6 +41,7 @@ const migrationFourSql = await readFile(migrationFourPath, "utf8");
 const migrationFiveSql = await readFile(migrationFivePath, "utf8");
 const migrationSixSql = await readFile(migrationSixPath, "utf8");
 const migrationSevenSql = await readFile(migrationSevenPath, "utf8");
+const migrationEightSql = await readFile(migrationEightPath, "utf8");
 
 let clusterDirectory = "";
 let socketDirectory = "";
@@ -131,6 +133,11 @@ test("applies migration transactionally, records version, and rejects reapplicat
     name: "summary_daily_quota",
     sql: migrationSevenSql,
   });
+  await applyMigration(adminPool, {
+    version: 8,
+    name: "summary_hourly_cooldown",
+    sql: migrationEightSql,
+  });
 
   const version = await adminPool.query<{ version: number }>(
     "select version from app_schema_version order by version",
@@ -143,6 +150,7 @@ test("applies migration transactionally, records version, and rejects reapplicat
     { version: 5 },
     { version: 6 },
     { version: 7 },
+    { version: 8 },
   ]);
 
   await assert.rejects(
@@ -472,6 +480,7 @@ test("resumes from the exact mixed-line-ending production ledger", async () => {
       { version: 5, name: "summary_riot_game", sql: migrationFiveSql },
       { version: 6, name: "admin_command_result", sql: migrationSixSql },
       { version: 7, name: "summary_daily_quota", sql: migrationSevenSql },
+      { version: 8, name: "summary_hourly_cooldown", sql: migrationEightSql },
     ]),
     [],
   );
@@ -537,9 +546,9 @@ test("enforces RLS and workload grants for web and bot roles", async () => {
     );
 
     await assert.rejects(botPool.query("select session_id_hash from app_session"), /permission denied/);
-    await botPool.query("select summary_daily_limit from dashboard_setting");
+    await botPool.query("select summary_enabled from dashboard_setting");
     await assert.rejects(
-      botPool.query("update dashboard_setting set summary_daily_limit = 11"),
+      botPool.query("update dashboard_setting set summary_enabled = false"),
       /permission denied/,
     );
     await botPool.query(

@@ -6,7 +6,7 @@
 - Related requirements: FUN-004, FUN-005, PRI-001 through PRI-003
 - Related research: `docs/research/technology-options/summary-api-constraints.md`
 - Supersedes:
-- Superseded by:
+- Superseded by: ADR-0021
 
 ## Context
 

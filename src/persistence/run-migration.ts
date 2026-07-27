@@ -47,6 +47,11 @@ const migrations = [
     name: "summary_daily_quota",
     path: path.resolve(import.meta.dirname, "../../migrations/0007_summary_daily_quota.sql"),
   },
+  {
+    version: 8,
+    name: "summary_hourly_cooldown",
+    path: path.resolve(import.meta.dirname, "../../migrations/0008_summary_hourly_cooldown.sql"),
+  },
 ] as const;
 
 async function main(): Promise<void> {

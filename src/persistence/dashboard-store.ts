@@ -380,8 +380,7 @@ function publicReason(code: string): string {
     completed: "완료",
     invalid_summary_range: "입력 범위 오류",
     summary_range_incomplete: "범위 수집 미완료",
-    summary_quota_disabled: "사용 중지",
-    summary_quota_exhausted: "일일 한도 소진",
+    summary_quota_cooldown: "1시간 대기",
   };
   return labels[code] ?? "처리 결과";
 }

@@ -4,6 +4,55 @@
 
 ## 현재 단계
 
+ADR-0021/PLAN-0010 owner 승인에 따라 `/요약` quota를 등록 사용자별 rolling
+1시간 1회로 교체했다. Migration `0008`은 daily default, 개인 override,
+한국 날짜 counter와 reset 모델을 제거하고 operation-idempotent reservation
+ledger만 유지한다. 등록 사용자 row lock으로 20개 동시 요청 중 정확히 1개만
+예약됐고, 59분 59.999초 거부·정확히 60분 허용·다른 사용자 독립성을 disposable
+PostgreSQL 17에서 확인했다. Production web assembly는 legacy dashboard quota
+flag를 읽지 않으며 summary quota와 game observation flag는 계속 `0`이다.
+로컬 전체 회귀는 `247 tests / 240 pass / 7 explicit external-URL skips /
+0 fail`, clean PostgreSQL 17 Linux 전체 회귀와 typecheck·build·production
+asset 검증도 통과했다. 새 immutable candidate와 exact archive Gate A 고정이
+다음 단계다.
+
+KBO는 2026-07-27 owner 결정으로 현재 제품 명세, 구현, 완료 기준과 배포
+범위에서 제외했다. 과거 연구 ID와 기록은 추적성만 유지하며, 재개하려면 새
+제품 정책과 요구사항부터 승인한다.
+
+Candidate `1785255`의 production migration은 checksum mismatch에서 안전
+중단됐다. Read-only 진단 결과 `0003`/`0004`의 CRLF historical checksum은 exact
+staged compiled module이 정상 허용했고, 실제 원인은 migration `0005` ledger에
+canonical SHA-256의 `a6` 두 글자가 빠져 62자로 기록된 historical 오기였다.
+이 exact 값은 version 5와 canonical `0005` SQL이 모두 일치할 때만 허용하도록
+제한했다. 새 candidate `1d9a1fa37e0049a9de4281704d369e35ae7ee275`,
+archive SHA-256
+`867aa6e4b64906626d3c322c661f10c8da8af2e5e5075d167ef147f5225855b4`,
+`611980` bytes를 고정했다. Disposable PostgreSQL 17 전체 검증은
+`246 tests / 239 pass / 7 explicit external-boundary skips / 0 fail`이며,
+clean Linux Node 24 exact archive stage와 compiled checksum scope 검증도
+통과했다. CloudShell Amazon Linux 2023에서도 official Node `24.18.0` checksum,
+release-manager fixture, exact isolated stage, migration asset 7개,
+compiled version-5 compatibility scope, migration `0007` hash와 quota flag
+`0`/`0`을 재검증했다. 최종 CloudShell `/tmp`와 home matching artifact count는
+각각 `0`이다. Production mutation은 수행하지 않았고 Gate A는 통과했으며 새
+exact production 승인이 남았다.
+
+Linux fixture cleanup을 한 줄 수정한 새 candidate `1785255`를 고정했다.
+CloudShell Amazon Linux 2023에서 exact archive SHA-256과 `611578` bytes,
+checksum 검증한 임시 Node `24.18.0`, release-manager test exit `0`, exact
+stage, migration runner와 byte-identical SQL 7개, migration `0007` hash,
+quota flag 두 개의 default-off를 확인했다. 최종 CloudShell `/tmp`와 home
+artifact count는 모두 `0`이고 production mutation도 `0`이다. Gate A exact
+archive stage는 통과했으며 exact production mutation은 별도 owner 승인을
+기다린다.
+
+저장소에 기록된 운영 상태를 기준으로 소유자가 직접 보관해야 하는 offline
+`age` 복구 identity, 외부 계정 복구 수단, 재발급 가능한 service credential과
+최소 장애 복구 순서를 루트 `OWNER_BACKUP_AND_ACCOUNT_CHECKLIST.md`에 정리했다.
+비밀값은 기록하지 않았으며 계정별 MFA/recovery code, identity 두 번째 사본,
+도메인 갱신 상태는 실제 보유 여부를 확인해야 한다.
+
 PLAN-0008 Gate B의 exact encrypted archive를 offline recovery identity가 있는
 별도 Mac에서 disposable PostgreSQL 17로 복원했다. Wrong identity 거부,
 archive byte/hash·manifest 일치, schema version 6, expected row count 97,
@@ -531,7 +580,6 @@ detail UI는 unrelated distribution/certificate/domain reads를 요구해 aggreg
 
 - Homebrew AWS CLI API 경로는 기존 Python 3.14·system `libexpat` 충돌로 사용할 수 없어 공식 AWS CLI container 경로를 사용함; 임시 profile 인증과 서울 VM 실행은 완료
 - `codex-settings/scripts/install.sh`는 Codex 사용자 환경에 Ponytail과 Superpowers 플러그인을 설치하므로 프로젝트 외부 변경 승인 전에는 실행하지 않음
-- KBO 기능은 자동 접근·Discord 재표시 권리와 공급자 갱신 정보를 서면으로 확인할 때까지 연기하며, 30분 측정 기준도 함께 보류
 - Riot Production/RSO 승인 가능성과 시작·종료 5분 감지는 미확정
 - 예상 사용자 수, 메시지량, 월 요약 요청 수와 동시 게임 수가 미확정이므로 외부 API 비용·처리량은 복수 사용량 시나리오로 유지
 - 단일 server host, GPT API, 도메인과 외부 백업을 합친 원화 비용이 월 3만 원을 충족하는지 미확정
@@ -545,7 +593,7 @@ detail UI는 unrelated distribution/certificate/domain reads를 요구해 aggreg
 
 ## 현재 확정되지 않은 사항
 
-- Riot 및 KBO 데이터 공급 방식
+- Riot 데이터 공급 방식
 - 요약 모델 공급자
 - 실제 product dependency exact version과 lockfile audit 결과
 - Supabase workload role·RLS·connection mode의 production 최소 권한
@@ -556,5 +604,4 @@ detail UI는 unrelated distribution/certificate/domain reads를 요구해 aggreg
 - Production web/bot main assembly, immutable release installer와 fixture가 아닌
   production systemd ExecStart/rollback contract
 - 저가 VM의 1GB급 bot+web 자원 여유와 VM·backup·domain·GPT 원화 총액
-- KBO 기능 재개 시 30분 지연 측정 시작점
 - Riot 5분 감지 실패 시 완화할 목표 또는 수동 경로의 장기 정책
