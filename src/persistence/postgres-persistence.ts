@@ -51,12 +51,33 @@ export function migrationChecksum(sql: string): string {
   return createHash("sha256").update(normalizeMigrationSql(sql), "utf8").digest("hex");
 }
 
-export function acceptedMigrationChecksums(sql: string): ReadonlySet<string> {
+const productionHistoricalMigrationChecksums = new Map([
+  [
+    5,
+    {
+      canonical: "d4f1dac70fafb0d43ec18ee63303db4be25b13b7f4ba66a6d71f97972b71d32a",
+      ledger: "d4f1dac70fafb0d43ec18ee63303db4be25b13b7f4ba66d71f97972b71d32a",
+    },
+  ],
+]);
+
+export function acceptedMigrationChecksums(
+  sql: string,
+  version?: number,
+): ReadonlySet<string> {
   const normalized = normalizeMigrationSql(sql);
-  return new Set([
-    migrationChecksum(normalized),
+  const canonical = migrationChecksum(normalized);
+  const accepted = new Set([
+    canonical,
     createHash("sha256").update(normalized.replaceAll("\n", "\r\n"), "utf8").digest("hex"),
   ]);
+  const historical = version === undefined
+    ? undefined
+    : productionHistoricalMigrationChecksums.get(version);
+  if (historical?.canonical === canonical) {
+    accepted.add(historical.ledger);
+  }
+  return accepted;
 }
 
 export async function applyPendingMigrations(
@@ -76,7 +97,11 @@ export async function applyPendingMigrations(
             [migration.version],
           );
     if (existing !== undefined && existing.rowCount !== 0) {
-      if (!acceptedMigrationChecksums(migration.sql).has(existing.rows[0]?.sha256 ?? "")) {
+      if (
+        !acceptedMigrationChecksums(migration.sql, migration.version).has(
+          existing.rows[0]?.sha256 ?? "",
+        )
+      ) {
         throw new MigrationChecksumMismatchError(migration.version);
       }
       continue;

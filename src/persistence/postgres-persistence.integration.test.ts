@@ -454,6 +454,7 @@ test("resumes from the exact mixed-line-ending production ledger", async () => {
     [2, "fabb240cfc7104b6bd9650bb0ade6cdd3c099934a9ad95fbff8d836debaa165d"],
     [3, "f7f94d1f2c5b4d5f39fd763f36f7b7d8819462f818d37052bf51507058edc184"],
     [4, "a48187b28dc3726726e5bef174a6e9b01a33ba7779c75ad93c68b0e3485e6419"],
+    [5, "d4f1dac70fafb0d43ec18ee63303db4be25b13b7f4ba66d71f97972b71d32a"],
   ] as const;
   for (const [version, sha256] of productionHistoricalChecksums) {
     await adminPool.query(
