@@ -74,11 +74,12 @@ AWS CloudShell Amazon Linux 2023 independently passed the same exact archive:
 - final marker:
   `CLOUDSHELL_GATE_A_PASS candidate=cff6308 ... writable=0 flags=0,0,0,0 migrations=8`.
 
-The first interactive invocation completed successfully, but an earlier
-interactive `set -e` caused the terminal to exit before its already-emitted
-result could be read. The runner was repeated with output captured to a
-diagnostic file; it passed and removed the archive, runner and isolated stage.
-The diagnostic file was then removed and the final matching artifact check was
+The first interactive invocation failed before PASS; an earlier interactive
+`set -e` also closed the terminal, so its transient output did not preserve the
+failure line. Its EXIT trap removed the isolated stage. The runner was repeated
+from the unchanged exact archive with output captured to a diagnostic file; it
+passed and removed the archive, runner and isolated stage. The diagnostic file
+was then removed and the final matching artifact check was
 `CLOUDSHELL_FINAL_CLEANUP home=0 tmp=0`.
 
 The first full regression after adding deferred replies found one stale fake
