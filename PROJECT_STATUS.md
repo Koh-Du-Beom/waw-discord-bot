@@ -17,8 +17,11 @@ skips / 0 fail`이며 typecheck, build, production asset과 dependency audit가
 `cff6308846a447cda17cdf9c496a8b85192ce3ae`, exact archive SHA-256
 `9badc975212b2d6d3d23bc7db6a3d2598760b69d3a9d71825bd55d1c78051fd9`,
 `632208` bytes를 고정했고 clean Linux exact archive Gate A가 통과했다.
-Production mutation은 없었으며 CloudShell exact 재검증과 provider retention
-승인·credentialed synthetic spike가 다음 gate다.
+CloudShell Amazon Linux 2023에서도 official Node `24.18.0` checksum, exact
+archive identity, fixtures, isolated stage, build/prune/audit, compiled adapter,
+8개 migration, writable file 0과 네 flag `0`을 재검증했다. 최종 home/tmp
+matching artifact는 모두 `0`이다. Production mutation은 없었으며 provider
+retention 승인과 credentialed synthetic-only spike가 다음 gate다.
 
 ADR-0021/PLAN-0010 owner 승인에 따라 `/요약` quota를 등록 사용자별 rolling
 1시간 1회로 교체했다. Migration `0008`은 daily default, 개인 override,

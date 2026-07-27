@@ -1,6 +1,6 @@
 # OpenAI summary provider Gate A handoff — 2026-07-27
 
-- Status: local Linux exact archive Gate A PASS; CloudShell revalidation pending
+- Status: local Linux and CloudShell exact archive Gate A PASS
 - Candidate commit: `cff6308846a447cda17cdf9c496a8b85192ce3ae`
 - Release ID: `cff6308`
 - Archive SHA-256:
@@ -55,6 +55,31 @@ changed.
     exactly `0`;
   - final marker:
     `EXACT_ARCHIVE_GATE_A_PASS candidate=cff6308 ... flags=0,0,0,0 migrations=8`.
+
+### CloudShell Linux revalidation
+
+AWS CloudShell Amazon Linux 2023 independently passed the same exact archive:
+
+- uploaded SHA-256 and `632208` byte count matched;
+- the downloaded official Node `v24.18.0` Linux archive passed its published
+  checksum;
+- release-manager and production application asset fixtures passed;
+- isolated clean install, typecheck, build, production prune, and production
+  dependency audit passed with zero vulnerabilities;
+- eight source/compiled migrations were byte-identical;
+- the immutable marker matched and writable-file count was zero;
+- compiled output contained the pinned model and `store:false`;
+- provider, bot quota, game observation, and dashboard quota flags were all
+  exactly `0`;
+- final marker:
+  `CLOUDSHELL_GATE_A_PASS candidate=cff6308 ... writable=0 flags=0,0,0,0 migrations=8`.
+
+The first interactive invocation completed successfully, but an earlier
+interactive `set -e` caused the terminal to exit before its already-emitted
+result could be read. The runner was repeated with output captured to a
+diagnostic file; it passed and removed the archive, runner and isolated stage.
+The diagnostic file was then removed and the final matching artifact check was
+`CLOUDSHELL_FINAL_CLEANUP home=0 tmp=0`.
 
 The first full regression after adding deferred replies found one stale fake
 Discord interaction without `deferReply`/`editReply`. The fixture was corrected
