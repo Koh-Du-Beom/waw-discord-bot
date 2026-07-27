@@ -79,15 +79,17 @@ function normalizeVoiceState(value: unknown): {
     id?: unknown;
     member?: { id?: unknown };
     selfStream?: unknown;
+    streaming?: unknown;
   };
   const guildId = state.guild?.id;
   const discordUserId = state.id ?? state.member?.id;
+  const selfStream = state.selfStream ?? state.streaming;
   if (
     typeof guildId !== "string" ||
     typeof discordUserId !== "string" ||
-    (typeof state.selfStream !== "boolean" && state.selfStream !== null)
+    (typeof selfStream !== "boolean" && selfStream !== null)
   ) {
     return undefined;
   }
-  return { guildId, discordUserId, selfStream: state.selfStream };
+  return { guildId, discordUserId, selfStream };
 }

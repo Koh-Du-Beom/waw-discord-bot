@@ -126,10 +126,11 @@ connects web authorization to the bot-owned executor, production ports return
 `riot_admin_ipc_unavailable` and HTTP 503. Do not work around this by granting
 feature-table writes to `waw_web`.
 
-The bot service currently pins `WAW_GAME_OBSERVATION_ENABLED=0`. Do not change
-it to `1` until an approved Riot observer credential/adapter is present and the
-consented propagation spike in ADR-0016 has passed. The current release fails
-fast if the flag is enabled without that adapter; it must not silently run a
+The bot service pins `WAW_GAME_OBSERVATION_ENABLED=0`. Candidates containing
+the approved Riot Spectator adapter still remain default-off. Do not change the
+flag to `1` until the exact candidate is deployed, the bot-only credential is
+verified without disclosure, and the consented propagation spike in ADR-0016
+has passed. Releases without the adapter fail fast when enabled; never run a
 partial scheduler.
 
 For the Supabase session pooler, preserve encrypted libpq-compatible TLS

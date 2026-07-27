@@ -9,6 +9,7 @@ import {
   type DiscordHistoryChannel,
 } from "../adapters/discord/conversation-history.ts";
 import { createDiscordInteractionHandler } from "../adapters/discord/interaction-handler.ts";
+import { createDiscordVoiceSource } from "../adapters/discord/voice-observation-adapter.ts";
 import {
   createMemberRoleIpcServer,
   type CurrentAuthorizationResult,
@@ -22,6 +23,8 @@ import { FileSingletonLease } from "../gateway/singleton-lease.ts";
 import { KoreanCommandHandler } from "../commands/command-handler.ts";
 import { RoutedFeatureCommandExecutor } from "../commands/feature-command-executor.ts";
 import { GameCommandExecutor } from "../game/game-command-executor.ts";
+import { GameObservationExecutor } from "../game/game-observation-executor.ts";
+import { GameObservationScheduler } from "../game/observation-scheduler.ts";
 import {
   readDatabaseUrlCredential,
   readSystemdCredential,
@@ -30,8 +33,11 @@ import { PostgresCommandAuditSink } from "../persistence/command-audit-store.ts"
 import { PostgresSummaryQuotaStore } from "../persistence/postgres-summary-quota-store.ts";
 import { summaryQuotaEnforcementEnabled } from "../summary/quota-feature.ts";
 import { PostgresFeatureStore } from "../persistence/feature-store.ts";
+import { PostgresGameObservationStore } from "../persistence/postgres-game-observation-store.ts";
+import { PostgresObservationTargetSource } from "../persistence/postgres-observation-target-source.ts";
 import { PostgresRiotCommandStore } from "../persistence/postgres-riot-command-store.ts";
 import { RiotCommandExecutor } from "../riot/riot-command-executor.ts";
+import { RiotSpectatorObserver } from "../riot/riot-game-observer.ts";
 import { RiotPuuidValidator } from "../riot/riot-puuid-validator.ts";
 import { DUPLICATE_BOT_EXIT_CODE } from "./bot-entrypoint.ts";
 import {
@@ -65,9 +71,9 @@ const [token, databaseUrl, riotApiKey] = await Promise.all([
 ]);
 const authorizationConfiguration =
   parseBotAuthorizationConfiguration(process.env);
-if (observationFeatureEnabled(process.env.WAW_GAME_OBSERVATION_ENABLED)) {
-  throw new Error("game observation adapter is not configured");
-}
+const gameObservationEnabled = observationFeatureEnabled(
+  process.env.WAW_GAME_OBSERVATION_ENABLED,
+);
 const client = new Client({ intents: [...DISCORDJS_MINIMUM_INTENTS] });
 const pool = new Pool({
   connectionString: databaseUrl,
@@ -142,6 +148,30 @@ const diagnostics: DiscordJsGatewayDiagnosticSource = {
 const reportFailure = (reason: BotFailureReason): void => {
   process.stderr.write(`${gatewayFailureDiagnostic(reason)}\n`);
 };
+const observationScheduler = gameObservationEnabled
+  ? new GameObservationScheduler({
+      targets: new PostgresObservationTargetSource(
+        pool,
+        authorizationConfiguration.allowedGuildId,
+      ),
+      riot: new RiotSpectatorObserver(riotApiKey),
+      voice: createDiscordVoiceSource({
+        async fetchMembers(guildId) {
+          const guild = await client.guilds.fetch(guildId);
+          const members = await guild.members.fetch();
+          return members.map((member) => ({
+            discordUserId: member.id,
+            selfStream: member.voice.streaming === true,
+          }));
+        },
+      }),
+      observations: new GameObservationExecutor(
+        new PostgresGameObservationStore(pool),
+      ),
+      now: () => new Date(),
+      timeoutMilliseconds: 3_000,
+    })
+  : undefined;
 const reconcileMembers = async () => {
   let guild;
   try {
@@ -197,6 +227,16 @@ const assembly = await startDiscordJsBot({
     source: client,
     handle: handleInteraction,
   },
+  ...(observationScheduler === undefined
+    ? {}
+    : {
+        observations: {
+          source: client,
+          scheduler: observationScheduler,
+          guildId: authorizationConfiguration.allowedGuildId,
+          pollIntervalMilliseconds: 30_000,
+        },
+      }),
 });
 if (assembly.process.exitCode === DUPLICATE_BOT_EXIT_CODE) {
   await pool.end();

@@ -157,6 +157,17 @@
 
 ## 진행 기록
 
+- 2026-07-27 production observer candidate slice: Accepted ADR-0016의 기존
+  `RiotGameObserver` port에 KR Spectator v5 adapter를 구현하고 production bot의
+  target source, Discord `VoiceState.streaming` reconciliation, scheduler,
+  comparison executor와 PostgreSQL observation store를 조립했다. 404는
+  inactive, 429는 `Retry-After` 동안 unknown, provider·형식 오류는 식별자 없는
+  unknown으로 정규화한다. Feature flag와 quota flags는 계속 `0`이다. Fake
+  adapter/lifecycle 회귀와 migration 0001–0007을 적용한 분리 disposable
+  PostgreSQL observation tests를 통과했다. 실제 external propagation은
+  별도 승인된 consented spike 전까지 미검증이며 자동 confirmed/stack 전이는
+  아직 구현하지 않았다.
+
 - 2026-07-26 Task 8: 기본 local runner가 PostgreSQL toolchain 부재를
   명시적으로 skip하고 강제 검증 모드에서는 fail-closed하도록 보완했다.
   Exact-source PostgreSQL 17 harness에서 전체 `215 pass / 6 explicit external-URL

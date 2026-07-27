@@ -40,7 +40,7 @@ test("normalizes voice events and reconciles after ready or resume", async () =>
   emit(listeners, Events.VoiceStateUpdate, {}, {
     guild: { id: "guild" },
     id: "member",
-    selfStream: true,
+    streaming: true,
   });
   emit(listeners, Events.ShardReconnecting);
   emit(listeners, Events.ShardResume);
