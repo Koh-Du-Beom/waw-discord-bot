@@ -19,6 +19,7 @@ Environment=WAW_BOT_HEALTH_PATH=/run/waw-member-role/health.json
 Environment=WAW_GAME_OBSERVATION_ENABLED=0
 Environment=WAW_ADMIN_COMMAND_IPC_ENABLED=0
 Environment=WAW_SUMMARY_QUOTA_ENABLED=0
+Environment=WAW_SUMMARY_PROVIDER_ENABLED=0
 Environment=WAW_ADMIN_COMMAND_SOCKET=/run/waw-admin-command/admin-command.sock
 ExecStartPre=+/usr/bin/install -d -o waw-bot -g waw-admin-command -m 0750 /run/waw-admin-command
 ExecStart=/usr/local/bin/node /opt/waw/current/dist/server/bot/main.js

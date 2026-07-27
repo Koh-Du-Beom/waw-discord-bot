@@ -65,7 +65,7 @@
 - Multi-host, queue, public web→bot API, Docker와 managed load balancer
 - 최초 production journald vacuum
 
-GPT 기능은 공급자·모델·비용·보존 경계의 별도 research/Proposed ADR/owner 승인 뒤에만 시작한다. Riot/RSO는 production key/RSO 승인과 5분 감지 가능성의 별도 gate 뒤에만 시작한다. 두 기능 모두 PLAN-0004 success criterion에 포함하지 않고 placeholder route, dependency 또는 credential도 미리 추가하지 않는다. KBO도 기존 공급 권리 gate를 유지한다.
+GPT 기능은 공급자·모델·비용·보존 경계의 별도 research/Proposed ADR/owner 승인 뒤에만 시작한다. Riot/RSO는 production key/RSO 승인과 5분 감지 가능성의 별도 gate 뒤에만 시작한다. 두 기능 모두 PLAN-0004 success criterion에 포함하지 않고 placeholder route, dependency 또는 credential도 미리 추가하지 않는다. KBO는 2026-07-27 owner 결정으로 현재 명세와 이 계획에서 제외했다.
 
 ## 전역 안전 규칙과 선행 조건
 
@@ -534,7 +534,7 @@ GPT 기능은 공급자·모델·비용·보존 경계의 별도 research/Propos
 - One active bot, canonical HTTPS, exact OAuth redirect, workload별 credential deny와 safe rollback이 검증되었다.
 - Backup RPO 24시간, DB size alert와 non-zero restore rehearsal/RTO 8시간 증거가 있다.
 - Existing backup·journald·monitoring과 host alarm이 유지되며 최초 vacuum은 실행되지 않았다.
-- GPT, Riot/RSO와 KBO가 배포물/dependency/credential에 포함되지 않고 후속 gate로 남아 있다.
+- GPT와 Riot/RSO가 배포물/dependency/credential에 포함되지 않고 후속 gate로 남아 있으며, KBO는 현재 명세에서 제외돼 어떤 placeholder도 없다.
 - Known issue, residual resource, failed test와 unverified path가 문서에 숨김없이 기록되었다.
 
 ## 아키텍처 충돌과 Proposed ADR gate

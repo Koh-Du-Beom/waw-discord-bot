@@ -1,6 +1,7 @@
 import {
   collectCompleteConversation,
   createManifest,
+  SummaryCapacityError,
   SummaryIncompleteError,
   SummaryRangeError,
   type ConversationHistoryReader,
@@ -115,6 +116,12 @@ export class KoreanCommandHandler {
       end,
       signal: request.signal,
     });
+    const summaryInput = {
+      messages,
+      manifest: createManifest(messages, 100),
+      signal: request.signal,
+    };
+    this.input.summarizer.validate?.(summaryInput);
     if (this.input.quota) {
       const decision = await this.input.quota.reserve({
         operationId: request.eventId,
@@ -131,11 +138,7 @@ export class KoreanCommandHandler {
         );
       }
     }
-    const sections = await this.input.summarizer.summarize({
-      messages,
-      manifest: createManifest(messages, 100),
-      signal: request.signal,
-    });
+    const sections = await this.input.summarizer.summarize(summaryInput);
     return [
       section("핵심 논의", sections.coreDiscussion),
       section("결정", sections.decisions),
@@ -180,6 +183,13 @@ function commandFailure(error: unknown): {
       outcome: "failure",
       reasonCode: "summary_range_incomplete",
       message: KOREAN_COMMAND_RESPONSES.incompleteSummary,
+    };
+  }
+  if (error instanceof SummaryCapacityError) {
+    return {
+      outcome: "failure",
+      reasonCode: "summary_range_too_large",
+      message: "요약 범위가 처리 한도를 넘었습니다. 더 짧은 범위로 다시 요청해 주세요.",
     };
   }
   return {

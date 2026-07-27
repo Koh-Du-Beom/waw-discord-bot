@@ -4,6 +4,17 @@
 
 ## 현재 단계
 
+OpenAI summary adapter를 production 비활성 상태로 bot assembly에 조립했다.
+고정 snapshot `gpt-5.4-mini-2026-03-17`, Responses API `store:false`,
+strict structured output, 4,096 output-token 상한과 120초 deadline을 사용한다.
+`/요약`은 provider 작업 전에 Discord interaction을 defer하며, provider flag가
+exact `1`일 때만 bot-only systemd credential을 읽는다. Base unit의 provider,
+rolling-hour quota와 game observation flag는 모두 `0`이다. 합성 transport
+회귀만 수행했고 credential 주입, 실제 원문 전송과 production mutation은 하지
+않았다. 로컬 전체 회귀는 `254 tests / 247 pass / 7 explicit external-URL
+skips / 0 fail`이며 typecheck, build, production asset과 dependency audit가
+통과했다. 새 immutable candidate의 exact Linux archive Gate A가 다음 단계다.
+
 ADR-0021/PLAN-0010 owner 승인에 따라 `/요약` quota를 등록 사용자별 rolling
 1시간 1회로 교체했다. Migration `0008`은 daily default, 개인 override,
 한국 날짜 counter와 reset 모델을 제거하고 operation-idempotent reservation

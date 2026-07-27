@@ -144,3 +144,61 @@ test("normalizes the Riot link display ID from the registered 계정 option", as
   assert.deepEqual(requestedOptions, ["계정"]);
   assert.deepEqual(requests[0]?.options, { 계정: "표시 이름#KR1" });
 });
+
+test("defers summary before waiting for provider work", async () => {
+  const calls: string[] = [];
+  const handler = new KoreanCommandHandler({
+    history: {
+      async readPage() {
+        calls.push("history");
+        return { messages: [], complete: true };
+      },
+    },
+    summarizer: {
+      async summarize() {
+        calls.push("provider");
+        return {
+          coreDiscussion: [],
+          decisions: [],
+          actionItems: [],
+          unresolved: [],
+        };
+      },
+    },
+    features: { async execute() { throw new Error("not used"); } },
+    audit: { async append() {} },
+    now: () => new Date("2026-07-27T00:00:00Z"),
+  });
+  const listen = createDiscordInteractionHandler({
+    handler,
+    createCorrelationId: () => "summary-correlation",
+  });
+
+  await listen({
+    id: "9301",
+    commandName: "요약",
+    user: { id: "9302" },
+    guildId: "9303",
+    channelId: "9304",
+    channel: { isThread: () => false },
+    options: {
+      getSubcommand: () => null,
+      getString: (name) =>
+        name === "시작"
+          ? "2026-07-27T00:00:00Z"
+          : "2026-07-27T01:00:00Z",
+      getUser: () => null,
+    },
+    async deferReply() {
+      calls.push("defer");
+    },
+    async editReply() {
+      calls.push("edit");
+    },
+    async reply() {
+      throw new Error("summary must edit deferred reply");
+    },
+  });
+
+  assert.deepEqual(calls, ["defer", "history", "provider", "edit"]);
+});

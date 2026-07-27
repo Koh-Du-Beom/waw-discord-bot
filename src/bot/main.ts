@@ -31,6 +31,8 @@ import {
 } from "../persistence/database-credential.ts";
 import { PostgresCommandAuditSink } from "../persistence/command-audit-store.ts";
 import { PostgresSummaryQuotaStore } from "../persistence/postgres-summary-quota-store.ts";
+import { OpenAiConversationSummarizer } from "../summary/openai-conversation-summarizer.ts";
+import { summaryProviderEnabled } from "../summary/provider-feature.ts";
 import { summaryQuotaEnforcementEnabled } from "../summary/quota-feature.ts";
 import { PostgresFeatureStore } from "../persistence/feature-store.ts";
 import { PostgresGameObservationStore } from "../persistence/postgres-game-observation-store.ts";
@@ -60,7 +62,10 @@ import {
 } from "../ipc/admin-command-feature.ts";
 
 const credentialsDirectory = process.env.CREDENTIALS_DIRECTORY;
-const [token, databaseUrl, riotApiKey] = await Promise.all([
+const providerEnabled = summaryProviderEnabled(
+  process.env.WAW_SUMMARY_PROVIDER_ENABLED,
+);
+const [token, databaseUrl, riotApiKey, summaryApiKey] = await Promise.all([
   readSystemdCredential(
     credentialsDirectory,
     "discord-bot-token",
@@ -68,6 +73,13 @@ const [token, databaseUrl, riotApiKey] = await Promise.all([
   ),
   readDatabaseUrlCredential(credentialsDirectory),
   readSystemdCredential(credentialsDirectory, "riot-api-key", "riot_api_key"),
+  providerEnabled
+    ? readSystemdCredential(
+      credentialsDirectory,
+      "summary-api-key",
+      "summary_provider_credential",
+    )
+    : undefined,
 ]);
 const authorizationConfiguration =
   parseBotAuthorizationConfiguration(process.env);
@@ -127,6 +139,9 @@ const commandHandler = new KoreanCommandHandler({
     ),
   ),
   audit: new PostgresCommandAuditSink(pool),
+  ...(summaryApiKey === undefined
+    ? {}
+    : { summarizer: new OpenAiConversationSummarizer(summaryApiKey) }),
   ...(summaryQuotaEnforcementEnabled(process.env.WAW_SUMMARY_QUOTA_ENABLED)
     ? { quota: new PostgresSummaryQuotaStore(pool) }
     : {}),

@@ -7,6 +7,7 @@ import {
   type CommandAuditEvent,
   type CommandRequest,
 } from "./command-handler.ts";
+import { SummaryCapacityError } from "../summary/conversation-summary.ts";
 
 const baseRequest = (): CommandRequest => ({
   eventId: "event-1",
@@ -107,4 +108,43 @@ test("does not invoke history when no summary provider is configured", async () 
   });
   assert.match(await handler.handle(baseRequest()), /아직 설정되지 않았습니다/);
   assert.equal(reads, 0);
+});
+
+test("rejects provider capacity before consuming the hourly reservation", async () => {
+  let reservations = 0;
+  const handler = new KoreanCommandHandler({
+    history: {
+      async readPage() {
+        return {
+          messages: [{
+            id: "message-1",
+            createdAt: new Date("2026-07-25T00:30:00Z"),
+            authorLabel: "합성 사용자",
+            content: "합성 메시지",
+          }],
+          complete: true,
+        };
+      },
+    },
+    summarizer: {
+      validate() {
+        throw new SummaryCapacityError();
+      },
+      async summarize() {
+        throw new Error("must not dispatch");
+      },
+    },
+    quota: {
+      async reserve() {
+        reservations += 1;
+        return { kind: "reserved" };
+      },
+    },
+    features: { async execute() { throw new Error("not used"); } },
+    audit: { async append() {} },
+    now: () => new Date(),
+  });
+
+  assert.match(await handler.handle(baseRequest()), /더 짧은 범위/u);
+  assert.equal(reservations, 0);
 });

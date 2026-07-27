@@ -18,6 +18,8 @@ export type DiscordChatInputInteraction = {
   channelId: string | null;
   channel: { isThread(): boolean } | null;
   options: DiscordCommandOptions;
+  deferReply?(input: { ephemeral: true }): Promise<unknown>;
+  editReply?(input: { content: string }): Promise<unknown>;
   reply(input: { content: string; ephemeral: true }): Promise<unknown>;
 };
 
@@ -27,6 +29,15 @@ export function createDiscordInteractionHandler(input: {
 }): (interaction: DiscordChatInputInteraction) => Promise<void> {
   return async (interaction) => {
     const request = normalizeInteraction(interaction, input.createCorrelationId());
+    if (request.commandName === "요약") {
+      if (!interaction.deferReply || !interaction.editReply) {
+        throw new Error("summary interaction defer unavailable");
+      }
+      await interaction.deferReply({ ephemeral: true });
+      const content = await input.handler.handle(request);
+      await interaction.editReply({ content });
+      return;
+    }
     const content = await input.handler.handle(request);
     await interaction.reply({ content, ephemeral: true });
   };

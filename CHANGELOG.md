@@ -9,6 +9,10 @@
 
 ## Unreleased
 
+- Add a default-off OpenAI Responses summary adapter using the pinned
+  `gpt-5.4-mini-2026-03-17` snapshot, `store:false`, strict structured output,
+  a 120-second provider deadline, conditional bot-only credential loading, and
+  deferred Discord `/요약` replies; no provider or quota activation.
 - Replace the configurable daily `/요약` quota with one reservation per
   registered user per rolling hour. Migration `0008` removes the daily default,
   override, counter, and reset model while preserving idempotent reservations;

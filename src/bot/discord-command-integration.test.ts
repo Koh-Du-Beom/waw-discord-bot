@@ -113,6 +113,7 @@ test("dispatches all eight Korean commands through the bot listener and audits e
   ];
   for (const interaction of fixtures) {
     interaction.reply = async ({ content }) => { replies.push(content); };
+    interaction.editReply = async ({ content }) => { replies.push(content); };
     client.emit(Events.InteractionCreate, interaction);
   }
   await assembly.commands?.whenIdle();
@@ -197,6 +198,8 @@ function fixture(
       getString: (name: string) => strings[name]!,
       getUser: () => userId === undefined ? null : { id: userId },
     },
+    deferReply: async (_input: { ephemeral: true }) => {},
+    editReply: async (_input: { content: string }) => {},
     reply: async (_input: { content: string; ephemeral: true }) => {},
   };
 }

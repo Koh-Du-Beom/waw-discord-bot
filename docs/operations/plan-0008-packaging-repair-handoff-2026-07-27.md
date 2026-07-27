@@ -55,6 +55,25 @@ production manager uses GNU `mv -T` and the test uses GNU `stat -c`. Run that
 test and the exact release-manager stage on Linux before requesting the
 production mutation gate.
 
+### CloudShell Linux result
+
+The 2026-07-27 isolated AWS CloudShell run reproduced the exact archive hash
+and `610034` byte count on Amazon Linux 2023. A checksum-verified temporary
+Node `24.18.0` runtime was used because CloudShell's installed Node
+`20.20.2` does not satisfy the package engine.
+
+`deploy/test-production-release-manager.sh` emitted
+`production_release_manager_test_passed`, but then exited `1`: its EXIT trap
+could not remove the staged fixture after the release manager made that tree
+read-only. GNU `rm -rf` reported permission denied for the immutable fixture
+files. Because the required Linux test did not exit successfully, the exact
+archive stage was not started and Gate A did not pass.
+
+The failed fixture directory, uploaded archive, verification runner, result
+and run log were removed. Final matching CloudShell temporary and home
+artifact counts were both `0`. No production host, database, IAM, Lightsail,
+service, feature gate or release state was read or mutated.
+
 ## Production state after the failed attempt
 
 The failed runner invocation caused no database or service mutation:
@@ -80,9 +99,9 @@ Before any production mutation:
 
 1. Obtain owner approval for the exact commit, release ID, archive hash, byte
    count, and unchanged migration `0007` hash listed above.
-2. On an isolated Linux target, verify the archive hash, run
-   `deploy/test-production-release-manager.sh`, and stage the exact archive
-   through `deploy/manage-production-release.sh stage`.
+2. Repair the Linux fixture cleanup without weakening the staged release's
+   read-only contract, create a new immutable candidate, then rerun the
+   release-manager test and exact archive stage on isolated Linux.
 3. Confirm the staged runner and all seven compiled SQL assets exist and match
    their source hashes after production prune.
 4. Reconfirm both quota flags are exactly `0`, current release is `86f06fb`,

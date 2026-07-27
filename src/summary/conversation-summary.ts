@@ -27,6 +27,11 @@ export type SummarySections = {
 };
 
 export type ConversationSummarizer = {
+  validate?(input: {
+    messages: readonly ConversationMessage[];
+    manifest: readonly SummaryChunkManifest[];
+    signal: AbortSignal;
+  }): void;
   summarize(input: {
     messages: readonly ConversationMessage[];
     manifest: readonly SummaryChunkManifest[];
@@ -42,6 +47,7 @@ export type SummaryChunkManifest = {
 
 export class SummaryRangeError extends Error {}
 export class SummaryIncompleteError extends Error {}
+export class SummaryCapacityError extends Error {}
 
 export function validateSummaryRange(start: Date, end: Date): void {
   const duration = end.getTime() - start.getTime();
