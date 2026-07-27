@@ -42,6 +42,11 @@ const migrations = [
     name: "admin_command_result",
     path: path.resolve(import.meta.dirname, "../../migrations/0006_admin_command_result.sql"),
   },
+  {
+    version: 7,
+    name: "summary_daily_quota",
+    path: path.resolve(import.meta.dirname, "../../migrations/0007_summary_daily_quota.sql"),
+  },
 ] as const;
 
 async function main(): Promise<void> {

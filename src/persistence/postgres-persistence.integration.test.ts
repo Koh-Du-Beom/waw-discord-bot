@@ -536,8 +536,9 @@ test("enforces RLS and workload grants for web and bot roles", async () => {
     );
 
     await assert.rejects(botPool.query("select session_id_hash from app_session"), /permission denied/);
+    await botPool.query("select summary_daily_limit from dashboard_setting");
     await assert.rejects(
-      botPool.query("select summary_enabled from dashboard_setting"),
+      botPool.query("update dashboard_setting set summary_daily_limit = 11"),
       /permission denied/,
     );
     await botPool.query(
