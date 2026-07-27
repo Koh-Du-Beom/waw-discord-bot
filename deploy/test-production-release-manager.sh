@@ -12,13 +12,17 @@ cat >"$ROOT/bin/npm" <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 if [[ "${1:-}" == run && "${2:-}" == build ]]; then
-  mkdir -p dist/server/web dist/server/bot dist/web
+  mkdir -p dist/server/web dist/server/bot dist/server/persistence dist/web dist/migrations
   printf 'web\n' >dist/server/web/main.js
   printf 'bot\n' >dist/server/bot/main.js
+  printf 'migration runner\n' >dist/server/persistence/run-migration.js
   printf 'html\n' >dist/web/index.html
+  cp migrations/0001_fixture.sql dist/migrations/0001_fixture.sql
 fi
 EOF
 chmod 755 "$ROOT/bin/npm"
+mkdir -p "$ROOT/source/migrations"
+printf 'select 1;\n' >"$ROOT/source/migrations/0001_fixture.sql"
 tar -czf "$ROOT/source.tgz" -C "$ROOT/source" .
 source_sha="$(sha256sum "$ROOT/source.tgz" | awk '{print $1}')"
 PATH="$ROOT/bin:$PATH" \
@@ -26,6 +30,8 @@ PATH="$ROOT/bin:$PATH" \
   "$ROOT/source.tgz" "$source_sha" |
   grep -q '^production_release_staged release=3333333 sha256='
 [[ -r "$release_root/3333333/dist/server/web/main.js" ]]
+cmp -s "$release_root/3333333/migrations/0001_fixture.sql" \
+  "$release_root/3333333/dist/migrations/0001_fixture.sql"
 [[ "$(stat -c '%A' "$release_root/3333333/dist/server/web/main.js")" != *w* ]]
 
 mkdir -p "$release_root/1111111" "$release_root/2222222"

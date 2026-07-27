@@ -64,6 +64,17 @@ if [[ "$ACTION" == stage ]]; then
     { echo release_web_entrypoint_missing >&2; exit 1; }
   [[ -r "$root/dist/server/bot/main.js" ]] ||
     { echo release_bot_entrypoint_missing >&2; exit 1; }
+  [[ -r "$root/dist/server/persistence/run-migration.js" ]] ||
+    { echo release_migration_runner_missing >&2; exit 1; }
+  for migration in "$root"/migrations/000*.sql; do
+    [[ -f "$migration" ]] ||
+      { echo release_migration_source_missing >&2; exit 1; }
+    compiled_migration="$root/dist/migrations/$(basename "$migration")"
+    [[ -r "$compiled_migration" ]] ||
+      { echo release_migration_asset_missing >&2; exit 1; }
+    cmp -s "$migration" "$compiled_migration" ||
+      { echo release_migration_asset_mismatch >&2; exit 1; }
+  done
   [[ -r "$root/dist/web/index.html" ]] ||
     { echo release_web_assets_missing >&2; exit 1; }
   printf '%s\n' "$expected_sha" >"$root/.waw-release-sha256"
