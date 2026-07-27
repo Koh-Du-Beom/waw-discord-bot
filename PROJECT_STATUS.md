@@ -20,8 +20,17 @@ skips / 0 fail`이며 typecheck, build, production asset과 dependency audit가
 CloudShell Amazon Linux 2023에서도 official Node `24.18.0` checksum, exact
 archive identity, fixtures, isolated stage, build/prune/audit, compiled adapter,
 8개 migration, writable file 0과 네 flag `0`을 재검증했다. 최종 home/tmp
-matching artifact는 모두 `0`이다. Production mutation은 없었으며 provider
-retention 승인과 credentialed synthetic-only spike가 다음 gate다.
+matching artifact는 모두 `0`이다. Owner가 provider retention 경계와
+synthetic-only production spike를 승인한 뒤 exact candidate를 비활성 stage하고
+OpenAI Responses API를 정확히 1회 호출했다. 호출은 2,613 ms에 structured
+response까지 파싱했지만 `marker_validation_failed`로 실패했고 재시도하지
+않았다. OpenAI usage는 1 request, 342 total/input tokens, 표시 비용 `$0.00`이며
+owner가 전용 key를 폐기했다. 근본 원인은 adapter prompt/schema가 marker 보존
+계약을 요구하지 않는데 일회성 runner는 marker 정확히 1회·정확한 section·
+unmarked item 0을 요구한 test-oracle 불일치다. Credential, runner, transient
+unit과 실패한 staged release를 제거했고 current/previous, health와 네
+default-off flag는 유지됐다. 새 prompt/evaluator 계약, 회귀, immutable
+candidate와 별도 spike 승인이 다음 gate다.
 
 ADR-0021/PLAN-0010 owner 승인에 따라 `/요약` quota를 등록 사용자별 rolling
 1시간 1회로 교체했다. Migration `0008`은 daily default, 개인 override,

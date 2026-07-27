@@ -9,6 +9,11 @@
 
 ## Unreleased
 
+- Record the single credentialed synthetic OpenAI production spike as FAIL
+  without retry: the call completed in 2.613 seconds, but the runner required a
+  marker-preservation contract absent from the adapter prompt and schema. The
+  dedicated key, transient state and failed staged release were removed; all
+  production feature flags remain off.
 - Add a default-off OpenAI Responses summary adapter using the pinned
   `gpt-5.4-mini-2026-03-17` snapshot, `store:false`, strict structured output,
   a 120-second provider deadline, conditional bot-only credential loading, and
