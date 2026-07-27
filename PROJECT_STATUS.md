@@ -13,7 +13,12 @@ rolling-hour quota와 game observation flag는 모두 `0`이다. 합성 transpor
 회귀만 수행했고 credential 주입, 실제 원문 전송과 production mutation은 하지
 않았다. 로컬 전체 회귀는 `254 tests / 247 pass / 7 explicit external-URL
 skips / 0 fail`이며 typecheck, build, production asset과 dependency audit가
-통과했다. 새 immutable candidate의 exact Linux archive Gate A가 다음 단계다.
+통과했다. Immutable candidate
+`cff6308846a447cda17cdf9c496a8b85192ce3ae`, exact archive SHA-256
+`9badc975212b2d6d3d23bc7db6a3d2598760b69d3a9d71825bd55d1c78051fd9`,
+`632208` bytes를 고정했고 clean Linux exact archive Gate A가 통과했다.
+Production mutation은 없었으며 CloudShell exact 재검증과 provider retention
+승인·credentialed synthetic spike가 다음 gate다.
 
 ADR-0021/PLAN-0010 owner 승인에 따라 `/요약` quota를 등록 사용자별 rolling
 1시간 1회로 교체했다. Migration `0008`은 daily default, 개인 override,
