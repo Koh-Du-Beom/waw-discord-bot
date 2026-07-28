@@ -33,3 +33,6 @@ Fastify fixture, launches the installed Microsoft Edge through
 `playwright-core@1.61.1`, runs `@axe-core/playwright@4.12.1`, and verifies the
 keyboard-only settings mutation, result focus, and audit presentation. It
 does not use a real account, OAuth provider, Discord data, or remote database.
+Linux CI installs Chromium through the checked-in `playwright-core` CLI path,
+not an unpinned `npx playwright` package, so the downloaded browser revision
+always matches the runtime library.

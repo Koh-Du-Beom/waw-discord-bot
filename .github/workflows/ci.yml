@@ -27,7 +27,7 @@ jobs:
           WAW_SKIP_POSTGRES_INTEGRATION: "1"
       - run: npm run typecheck
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
+      - run: node node_modules/playwright-core/cli.js install --with-deps chromium
       - run: npm run test:browser
       - run: npm audit --omit=dev
       - run: bash deploy/test-production-application-assets.sh

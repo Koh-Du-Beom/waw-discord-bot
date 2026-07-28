@@ -15,7 +15,10 @@ test("CI has no deployment authority", () => {
   assert.match(ci, /npm test/u);
   assert.match(ci, /WAW_SKIP_POSTGRES_INTEGRATION:\s*"1"/u);
   assert.match(ci, /npm run test:browser/u);
-  assert.match(ci, /playwright install --with-deps chromium/u);
+  assert.match(
+    ci,
+    /node node_modules\/playwright-core\/cli\.js install --with-deps chromium/u,
+  );
   assert.match(ci, /bash scripts\/test-deploy-production-via-lightsail\.sh/u);
 });
 
