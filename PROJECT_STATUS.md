@@ -113,6 +113,19 @@ Service restart, staging/activation, credential 생성·변경, DB mutation과 O
 호출은 모두 제외했다. 이는 승인 요청서 작성만이며 production access,
 credential read와 DB query는 수행하지 않았다.
 
+Owner가 exact production correction 범위를 승인했다. Exact archive tuple과
+세 asset hash를 CloudShell에서 재검증한 뒤 production precondition은
+`provider_zero=0`, failed units `0`, canonical health `healthy`로 PASS했다.
+Default-off bridge 설치와 첫 daemon-reload는 PASS했고 service restart는
+`0`이었다. Labelled schema query는 허용된 1회 시도에서 `schema_query`로
+FAIL했다. Stop condition에 따라 query를 재시도하지 않았고,
+checksum/metadata-guarded bridge rollback과 두 번째 daemon-reload가 PASS했다.
+Production transient와 CloudShell controller/access/archive remainder는 모두
+`0`이다. DB mutation, staging/activation, credential 생성·변경과 OpenAI
+request는 `0`이며 production provider 선언은 원래 absent/default-off 상태로
+복구됐다. 다음 단계는 query를 수행하지 않는 별도 read-only failure-stage
+diagnostic 승인이다.
+
 OpenAI summary synthetic spike의 marker oracle 불일치를 수정했다. Adapter
 prompt와 합성 evaluator가 marker 원문 보존, 정확히 1회 출력, CORE→
 `coreDiscussion`, DECISION→`decisions`, ACTION→`actionItems`,
