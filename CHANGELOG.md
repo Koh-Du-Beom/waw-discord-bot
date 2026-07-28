@@ -19,6 +19,9 @@
 - Close the browser fixture server even when Chromium launch fails, and install
   Linux Chromium through the pinned `playwright-core` CLI so CI browser and
   runtime revisions cannot diverge.
+- Add a manually dispatched production SSH preflight that consumes the
+  registered deployment secrets, pins the host key and runs only remote `true`
+  without checkout, upload, sudo or release mutation.
 - Add the approved CI and production workflows plus an allowlisted deployment
   controller that hashes the exact commit archive, pins temporary Lightsail SSH
   host keys, serializes activation, excludes migrations and restores the

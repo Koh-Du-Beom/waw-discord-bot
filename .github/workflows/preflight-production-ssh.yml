@@ -1,0 +1,55 @@
+name: Preflight production SSH
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: waw-production
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - name: Prepare and validate SSH credentials
+        env:
+          LIGHTSAIL_HOST: ${{ vars.LIGHTSAIL_HOST }}
+          LIGHTSAIL_USER: ${{ vars.LIGHTSAIL_USER }}
+          LIGHTSAIL_DEPLOY_SSH_KEY: ${{ secrets.LIGHTSAIL_DEPLOY_SSH_KEY }}
+          LIGHTSAIL_SSH_KNOWN_HOSTS: ${{ secrets.LIGHTSAIL_SSH_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          [[ "$LIGHTSAIL_HOST" =~ ^([A-Za-z0-9][A-Za-z0-9.-]{0,252}|[0-9a-fA-F:]+)$ ]]
+          [[ "$LIGHTSAIL_USER" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]]
+          test -n "$LIGHTSAIL_DEPLOY_SSH_KEY"
+          test -n "$LIGHTSAIL_SSH_KNOWN_HOSTS"
+          printf '%s\n' "$LIGHTSAIL_DEPLOY_SSH_KEY" > "$RUNNER_TEMP/waw-preflight-key"
+          printf '%s\n' "$LIGHTSAIL_SSH_KNOWN_HOSTS" > "$RUNNER_TEMP/waw-preflight-known-hosts"
+          chmod 600 "$RUNNER_TEMP/waw-preflight-key" "$RUNNER_TEMP/waw-preflight-known-hosts"
+          ssh-keygen -y -f "$RUNNER_TEMP/waw-preflight-key" >/dev/null
+          ssh-keygen -F "$LIGHTSAIL_HOST" -f "$RUNNER_TEMP/waw-preflight-known-hosts" >/dev/null
+      - name: Verify pinned SSH connection without mutation
+        env:
+          LIGHTSAIL_HOST: ${{ vars.LIGHTSAIL_HOST }}
+          LIGHTSAIL_USER: ${{ vars.LIGHTSAIL_USER }}
+        run: |
+          set -Eeuo pipefail
+          ssh \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o "UserKnownHostsFile=$RUNNER_TEMP/waw-preflight-known-hosts" \
+            -o ConnectTimeout=15 \
+            -o ConnectionAttempts=1 \
+            -i "$RUNNER_TEMP/waw-preflight-key" \
+            "$LIGHTSAIL_USER@$LIGHTSAIL_HOST" true
+          echo ssh_preflight_pass
+      - name: Remove SSH credentials
+        if: ${{ always() }}
+        run: rm -f -- "$RUNNER_TEMP/waw-preflight-key" "$RUNNER_TEMP/waw-preflight-known-hosts"

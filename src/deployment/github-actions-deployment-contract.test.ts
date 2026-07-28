@@ -4,6 +4,10 @@ import test from "node:test";
 
 const ci = await readFile(".github/workflows/ci.yml", "utf8");
 const deploy = await readFile(".github/workflows/deploy-production.yml", "utf8");
+const preflight = await readFile(
+  ".github/workflows/preflight-production-ssh.yml",
+  "utf8",
+);
 const local = await readFile("scripts/deploy-production-via-lightsail.sh", "utf8");
 const remote = await readFile("scripts/deploy-production-release-remote.sh", "utf8");
 
@@ -44,6 +48,23 @@ test("all third-party actions are pinned to full commit SHAs", () => {
     assert.ok(uses.length > 0);
     for (const entry of uses) assert.match(entry[1] ?? "", /^[a-f0-9]{40}$/u);
   }
+});
+
+test("manual SSH preflight proves only a pinned connection", () => {
+  assert.match(preflight, /workflow_dispatch:/u);
+  assert.doesNotMatch(preflight, /\bpush:/u);
+  assert.match(preflight, /group:\s*waw-production/u);
+  assert.match(preflight, /environment:\s*production/u);
+  assert.match(preflight, /secrets\.LIGHTSAIL_DEPLOY_SSH_KEY/u);
+  assert.match(preflight, /secrets\.LIGHTSAIL_SSH_KNOWN_HOSTS/u);
+  assert.match(preflight, /StrictHostKeyChecking=yes/u);
+  assert.match(preflight, /ssh-keygen -F/u);
+  assert.match(preflight, /"\$LIGHTSAIL_USER@\$LIGHTSAIL_HOST" true/u);
+  assert.match(preflight, /if: \$\{\{ always\(\) \}\}/u);
+  assert.doesNotMatch(preflight, /\b(?:scp|sudo|git|curl)\b/u);
+  assert.doesNotMatch(preflight, /actions\/checkout/u);
+  assert.doesNotMatch(preflight, /deploy-production/u);
+  assert.doesNotMatch(preflight, /set -x/u);
 });
 
 test("secret-backed Lightsail SSH pins host keys and cleans temporary files", () => {

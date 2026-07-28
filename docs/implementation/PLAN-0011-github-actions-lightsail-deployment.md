@@ -43,7 +43,9 @@
 - Independently read and pin the exact production SSH host keys.
 - Install only the public key for the selected deployment account.
 - Register the two secrets and two variables without printing their values.
-- Perform a metadata-only/no-mutation SSH preflight.
+- Use a manually dispatched production-environment workflow to validate the
+  private key, pinned host entry and an SSH connection whose only remote
+  command is `true`.
 - Do not merge/push the candidate into `production` until the owner accepts the
   lack of branch protection or upgrades repository protection.
 
