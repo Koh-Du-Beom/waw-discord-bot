@@ -157,24 +157,6 @@ test("announces mutation failure without claiming success", async () => {
   assert.equal(alert.textContent?.includes("다시 불러온 뒤 시도"), true);
 });
 
-test("does not load or render quota UI when the server feature is disabled", async () => {
-  let quotaReads = 0;
-  const api = apiFixture({
-    session: {
-      ...sessionFixture,
-      features: { summaryQuotaDashboard: false },
-    },
-  });
-  api.getSummaryQuotas = async () => {
-    quotaReads += 1;
-    return { defaultLimit: 10, version: 0, users: [] };
-  };
-  render(<App api={api} />);
-  await screen.findByRole("heading", { name: "운영 현황" });
-  assert.equal(quotaReads, 0);
-  assert.equal(screen.queryByRole("heading", { name: "요약 한도 관리" }), null);
-});
-
 test("administrator can review a KR request and approve with a hidden PUUID", async () => {
   let approved = false;
   render(<App api={apiFixture({
@@ -246,15 +228,6 @@ function apiFixture(
     },
     async getCommandLog() {
       return { entries: [] };
-    },
-    async getSummaryQuotas() {
-      return { defaultLimit: 10, version: 0, users: [] };
-    },
-    async updateSummaryQuotaDefault() {
-      return { defaultLimit: 10, version: 1, users: [] };
-    },
-    async updateSummaryQuotaUser() {
-      return { defaultLimit: 10, version: 1, users: [] };
     },
     async logout() {},
     async getRiotRequests() {

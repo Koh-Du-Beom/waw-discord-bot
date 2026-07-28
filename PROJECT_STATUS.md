@@ -4,6 +4,27 @@
 
 ## 현재 단계
 
+2026-07-28 dashboard policy-alignment audit에서 Pretendard refresh와 redacted
+command log는 `main`에 있지만, ADR-0021이 폐기한 일일 quota DTO·API·DB
+mutation·React UI가 default-off gate 뒤에 남아 있음을 확인했다. 새 ADR 없이
+Accepted ADR-0021을 적용해 이 active-source 경로와 web feature flag를
+제거했고 command log, Riot 승인, OAuth/session/CSRF/recent-auth 경계와
+rolling-hour bot enforcement는 유지했다. Local test `249` 중 pass `241`,
+PostgreSQL-tool explicit skip `8`, fail `0`; typecheck, build, browser
+accessibility/keyboard check와 diff check가 PASS했다. Canonical root와
+`/health`는 read-only HTTP `200`, health `healthy`였다. Production mutation은
+`0`이며 exact immutable candidate와 별도 activation 승인이 남았다. 결과는
+`docs/operations/dashboard-policy-alignment-audit-2026-07-28.md`에 기록했다.
+
+2026-07-28 owner가 production Discord에서 실제 `/요약`을 직접 실행해 정상적인
+요약 결과 반환을 확인했다. 이 확인으로 등록 사용자 real-content smoke와
+사용자 관점의 summary production 활성화는 PASS로 종료한다. 정확한 실행 시각,
+선택 범위, 메시지 원문과 요약 결과 본문은 저장소에 기록하지 않았으며 이번
+갱신에서 production 로그나 persistence를 추가 조회하지 않았다. 별도
+`/도움말` private read-back과 redaction 재검수는 summary 기능 차단 요소가 아닌
+최종 운영 acceptance 항목으로 유지한다. 결과는
+`docs/operations/summary-owner-smoke-result-2026-07-28.md`에 기록했다.
+
 실제 read-only 진단에서 최근 10분 메시지는 `0`, 최근 24시간 메시지는 `100`,
 본문이 있는 최근 24시간 메시지도 `100`으로 확인됐다. 따라서 기존
 `읽을 수 있는 대화 본문이 없습니다` 안내는 Discord 권한 문제가 아니라 빈
@@ -1086,23 +1107,27 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 ## 다음 작업
 
 2026-07-28 현재 제품 완성 critical path는 다음 순서다. 먼저 access-detail
-action 또는 대체 production channel 문제를 해결하고 summary read-only
-preflight를 통과한다. 이어 synthetic-only OpenAI marker spike, default-off
-release migration·rollout, 실제 summary disclosure/credential/activation과
-Discord smoke를 각각 별도 gate로 수행한다. 그 뒤 Riot production capability,
-consented Riot/Go Live observation, Gate C/D dashboard smoke를 완료하고 clean
-Linux exact-archive, canonical HTTPS/OAuth/authorization/singleton/monitoring,
+action을 포함한 summary preflight correction, synthetic marker spike,
+default-off rollout, disclosure/credential/activation과 owner의 실제 Discord
+smoke까지 완료했다. 따라서 summary 사용자 기능은 critical path에서
+제거한다. 다음 순서는 owner가 승인한 KR Riot 연결 요청 하나를 생성해
+Gate C/D 관리자 승인 경계를 완료하고, 동일한 동의된 계정과 명시된 시간
+범위로 Riot/Go Live observation spike를 수행하는 것이다. 그 뒤 clean Linux
+exact-archive, canonical HTTPS/OAuth/authorization/singleton/monitoring,
 backup/restore applicability, redaction과 rollback을 최종 검수한다. Owner의
 offline recovery identity, account recovery, domain renewal과 reissuable
 credential 확인도 완료 기준에 포함된다. 최초 journald vacuum은 제품 완성과
 독립된 maintenance gate다.
 
-이번 권장 작업인 Lightsail read-boundary 진단은 PASS해 일반 AWS/Lightsail
-권한 문제가 아님을 확인했다. 다음 bounded 작업은 access-detail 호출을
-재시도하지 않고, 기존 정책을 만족하는 대체 production read-only channel을
-선정·고정하여 실패한 두 preflight correction assertion만 검증하는 것이다.
-이 단계가 credential/access material 읽기나 production 접속을 요구하면 exact
-외부 실행 승인 gate에서 멈춘다.
+현재 production release `90611ee`는 Gateway Gate C, canonical health와
+Dashboard Gate D pending-list 조회를 통과했지만 pending 요청은 `0`건이다.
+다음 bounded 외부 단계는 동의한 테스트 사용자가
+`/라이엇계정 연결 계정:<이름#태그>`로 본인의 KR 계정 요청 하나를 만드는
+것이다. 실제 Riot ID, Discord 사용자 ID와 PUUID는 저장소·운영 문서·로그에
+기록하지 않는다. 요청 생성 뒤 owner-approved 관리자 승인 mutation,
+stale/duplicate reconciliation을 완료하고, observation spike는 정확한 후보와
+시간 범위를 별도로 고정한 뒤에만 `WAW_GAME_OBSERVATION_ENABLED=1`을
+일시적으로 사용한다.
 
 Task 5와 G4는 완료됐다. G5 전 production operator 최소 권한 policy
 template·renderer·local deny contract와 Task 6 runbook도 준비됐다. Exact instance

@@ -9,7 +9,6 @@ export const sessionFixture: SessionDto = {
   authenticated: true,
   actor: { displayName: "합성 운영자", tier: "operator" },
   csrfToken: "csrf-synthetic-browser-fixture",
-  features: { summaryQuotaDashboard: true },
 };
 
 export const healthyOverviewFixture: DashboardOverviewDto = {

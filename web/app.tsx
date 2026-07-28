@@ -12,9 +12,6 @@ import {
   type ApproveRiotLinkRequestDto,
   type RiotLinkDecisionResponseDto,
   type SessionDto,
-  type SummaryQuotaSettingsDto,
-  type UpdateSummaryQuotaDefaultRequestDto,
-  type UpdateSummaryQuotaUserRequestDto,
   type UpdateLowRiskSettingsRequestDto,
 } from "../src/contracts/dashboard.ts";
 
@@ -26,9 +23,6 @@ export type DashboardApi = {
   updateSettings(request: UpdateLowRiskSettingsRequestDto): Promise<LowRiskSettingsDto>;
   getAudit(): Promise<AuditEventsDto>;
   getCommandLog(): Promise<CommandLogPageDto>;
-  getSummaryQuotas(): Promise<SummaryQuotaSettingsDto>;
-  updateSummaryQuotaDefault(request: UpdateSummaryQuotaDefaultRequestDto): Promise<SummaryQuotaSettingsDto>;
-  updateSummaryQuotaUser(request: UpdateSummaryQuotaUserRequestDto): Promise<SummaryQuotaSettingsDto>;
   getRiotRequests(): Promise<PendingRiotLinkRequestsDto>;
   approveRiotRequest(request: ApproveRiotLinkRequestDto): Promise<RiotLinkDecisionResponseDto>;
 };
@@ -46,7 +40,6 @@ type ViewState =
       audit: AuditEventsDto;
       riotRequests: PendingRiotLinkRequestsDto;
       commandLog: CommandLogPageDto;
-      quotas: SummaryQuotaSettingsDto | undefined;
     };
 
 export function App({ api }: { api: DashboardApi }) {
@@ -125,7 +118,6 @@ function Dashboard({
   const [result, setResult] = useState<{ kind: "success" | "error"; message: string }>();
   const resultRef = useRef<HTMLParagraphElement>(null);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [quotas, setQuotas] = useState(value.quotas);
 
   useEffect(() => {
     if (result) resultRef.current?.focus();
@@ -216,7 +208,6 @@ function Dashboard({
         <nav className="section-nav" aria-label="Dashboard 주요 영역">
           <a href="#attention">확인 필요</a>
           <a href="#commands">명령 기록</a>
-          {quotas && <a href="#quotas">요약 한도</a>}
         </nav>
         <section aria-labelledby="health-title">
           <div className="section-heading">
@@ -336,33 +327,6 @@ function Dashboard({
           )}
         </section>
 
-        {quotas && <section className="panel wide-panel" id="quotas" aria-labelledby="quotas-title">
-          <p className="eyebrow">한국시간 자정 초기화</p>
-          <h2 id="quotas-title">요약 한도 관리</h2>
-          <p className="notice">서버 기본 일일 한도는 {quotas.defaultLimit}회입니다.</p>
-          {value.session.actor.tier === "administrator" && <form className="inline-form" onSubmit={(event) => {
-            event.preventDefault();
-            const field = new FormData(event.currentTarget).get("dailyLimit");
-            void api.updateSummaryQuotaDefault({ dailyLimit: Number(field), expectedVersion: quotas.version })
-              .then(setQuotas)
-              .then(() => setResult({ kind: "success", message: "기본 한도를 저장했습니다." }))
-              .catch((error) => setResult({ kind: "error", message: errorCode(error) === "conflict" ? "한도가 먼저 변경되었습니다. 다시 시도하세요." : "한도를 저장하지 못했습니다." }));
-          }}>
-            <label>기본 일일 한도 <input name="dailyLimit" type="number" min="1" max="100" defaultValue={quotas.defaultLimit} /></label>
-            <button type="submit">기본 한도 저장</button>
-          </form>}
-          <ul className="quota-list">{quotas.users.map((user) => <li key={user.userKey}>
-            <strong>{user.displayLabel}</strong>
-            <span>{user.enabled ? `${user.used} / ${user.effectiveLimit}회 · ${user.remaining}회 남음` : "사용 중지"}</span>
-            {value.session.actor.tier === "administrator" && <button className="secondary" type="button" onClick={() => {
-              void api.updateSummaryQuotaUser({
-                userKey: user.userKey, enabled: !user.enabled,
-                dailyLimit: user.limitSource === "override" ? user.effectiveLimit : null,
-                expectedVersion: user.version,
-              }).then(setQuotas).catch(() => setResult({ kind: "error", message: "사용자 한도를 변경하지 못했습니다." }));
-            }}>{user.enabled ? "사용 중지" : "사용 허용"}</button>}
-          </li>)}</ul>
-        </section>}
       </main>
     </div>
   );
@@ -413,7 +377,7 @@ async function loadDashboard(api: DashboardApi): Promise<ViewState> {
   try {
     const session = await api.getSession();
     if (!session) return { kind: "login" };
-    const [overview, settings, audit, riotRequests, commandLog, quotas] = await Promise.all([
+    const [overview, settings, audit, riotRequests, commandLog] = await Promise.all([
       api.getOverview(),
       api.getSettings(),
       api.getAudit(),
@@ -421,11 +385,8 @@ async function loadDashboard(api: DashboardApi): Promise<ViewState> {
         ? api.getRiotRequests()
         : Promise.resolve({ requests: [] }),
       api.getCommandLog(),
-      session.features.summaryQuotaDashboard
-        ? api.getSummaryQuotas()
-        : Promise.resolve(undefined),
     ]);
-    return { kind: "ready", session, overview, settings, audit, riotRequests, commandLog, quotas };
+    return { kind: "ready", session, overview, settings, audit, riotRequests, commandLog };
   } catch (error) {
     return errorCode(error) === "forbidden" ? { kind: "denied" } : { kind: "unavailable" };
   }

@@ -29,11 +29,6 @@ export function buildBrowserFixtureServer() {
       reasonLabel: "완료",
     }],
   }));
-  app.get("/api/summary/quotas", async () => ({
-    defaultLimit: 10,
-    version: 0,
-    users: [],
-  }));
   app.put<{ Body: { summaryEnabled: boolean; expectedVersion: number } }>(
     "/api/settings/summary",
     async (request, reply) => {

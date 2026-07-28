@@ -174,10 +174,9 @@ dashboard feature gates, reactivates the previous release, and preserves the
 additive quota tables and reservation audit rows.
 
 The immutable release must deploy with `WAW_SUMMARY_QUOTA_ENABLED=0` for the
-bot and `WAW_DASHBOARD_QUOTA_ENABLED=0` for the web service. Only the exact
-value `1` enables either boundary. The bot enforcement gate and dashboard
-quota API/UI gate are approved and activated separately after migration 0007
-schema and workload-role verification.
+bot. Only the exact value `1` enables that boundary. The superseded dashboard
+daily-quota API/UI and its feature flag are absent from the active web
+assembly.
 
 ADR-0021 and migration `0008` supersede the daily quota contract. New releases
 use only the bot-side rolling one-hour `/요약` cooldown. The legacy dashboard

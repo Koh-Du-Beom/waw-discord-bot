@@ -5,7 +5,6 @@ import {
   DASHBOARD_API_PATHS,
   type CommandLogEntryDto,
   type SessionDto,
-  type SummaryQuotaStatusDto,
   type UpdateLowRiskSettingsResponseDto,
 } from "./dashboard.ts";
 import {
@@ -25,9 +24,6 @@ test("dashboard API paths remain same-origin and canonical", () => {
     riotApprove: "/api/riot/requests/approve",
     riotReject: "/api/riot/requests/reject",
     commandLog: "/api/command-log",
-    summaryQuotas: "/api/summary/quotas",
-    summaryQuotaDefault: "/api/summary/quotas/default",
-    summaryQuotaUser: "/api/summary/quotas/user",
   });
 
   for (const path of Object.values(DASHBOARD_API_PATHS)) {
@@ -36,7 +32,7 @@ test("dashboard API paths remain same-origin and canonical", () => {
   }
 });
 
-test("command-log and quota DTOs expose only exact redacted keys", () => {
+test("command-log DTO exposes only exact redacted keys", () => {
   const log: CommandLogEntryDto = {
     occurredAt: "2026-07-27T00:00:00.000Z",
     commandLabel: "요약",
@@ -44,26 +40,10 @@ test("command-log and quota DTOs expose only exact redacted keys", () => {
     outcome: "success",
     reasonLabel: "완료",
   };
-  const quota: SummaryQuotaStatusDto = {
-    userKey: "opaque_user_key",
-    displayLabel: "등록 사용자",
-    used: 3,
-    effectiveLimit: 10,
-    remaining: 7,
-    limitSource: "default",
-    enabled: true,
-    nextResetAt: "2026-07-28T00:00:00+09:00",
-    version: 1,
-  };
-
   assert.deepEqual(Object.keys(log).sort(), [
     "actorLabel", "commandLabel", "occurredAt", "outcome", "reasonLabel",
   ]);
-  assert.deepEqual(Object.keys(quota).sort(), [
-    "displayLabel", "effectiveLimit", "enabled", "limitSource",
-    "nextResetAt", "remaining", "used", "userKey", "version",
-  ]);
-  const rendered = JSON.stringify({ log, quota });
+  const rendered = JSON.stringify({ log });
   for (const forbidden of [
     "discordUserId", "guildId", "channelId", "eventId", "operationId",
     "correlationId", "puuid", "messageContent", "commandOptions",
@@ -88,7 +68,6 @@ test("command-log pagination bounds and opaque cursor format are fixed", () => {
 test("session and mutation contracts carry CSRF and audited version results", () => {
   const session: SessionDto = {
     authenticated: true,
-    features: { summaryQuotaDashboard: false },
     actor: { displayName: "synthetic operator", tier: "operator" },
     csrfToken: "csrf-synthetic",
   };

@@ -9,6 +9,14 @@
 
 ## Unreleased
 
+- Align the active dashboard with the accepted rolling-hour summary policy by
+  removing the superseded daily quota DTO, API, persistence mutation, React UI,
+  session feature advertisement and web feature flag while preserving the
+  redacted command log and historical migration evidence.
+- Record the owner's successful real-content production `/요약` smoke as the
+  completion of the user-facing summary activation gate without storing the
+  selected range, Discord message content, or returned summary body. Keep the
+  private help read-back and redaction recheck in final operational acceptance.
 - Define one shared synthetic summary marker contract for the adapter prompt and
   evaluator: preserve each marker verbatim exactly once, keep it in its assigned
   section, and reject unmarked output items. Add response-free aggregate fake

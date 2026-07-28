@@ -329,8 +329,6 @@ table { width: 100%; border-collapse: collapse; }
 th, td { padding: .85rem; border-bottom: 1px solid #ddd8cc; text-align: left; }
 th { color: #52665f; font-size: .82rem; }
 code { color: #075d4d; font-weight: 800; }
-.quota-list { display: grid; gap: .75rem; margin: 0; padding: 0; list-style: none; }
-.quota-list li { display: flex; justify-content: space-between; gap: 1rem; padding: 1rem; border: 1px solid #ddd8cc; border-radius: 12px; }
 
 .state-page {
   display: grid;
@@ -376,7 +374,6 @@ code { color: #075d4d; font-weight: 800; }
   tr { padding: .75rem 0; border-bottom: 1px solid #ddd8cc; }
   td { display: grid; grid-template-columns: 7rem 1fr; border: 0; padding: .35rem 0; }
   td::before { content: attr(data-label); color: #52665f; font-weight: 700; }
-  .quota-list li { flex-direction: column; }
 }
 
 @media (prefers-reduced-motion: reduce) {

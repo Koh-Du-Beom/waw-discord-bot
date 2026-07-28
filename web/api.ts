@@ -9,9 +9,6 @@ import {
   type ApproveRiotLinkRequestDto,
   type RiotLinkDecisionResponseDto,
   type SessionDto,
-  type SummaryQuotaSettingsDto,
-  type UpdateSummaryQuotaDefaultRequestDto,
-  type UpdateSummaryQuotaUserRequestDto,
   type UpdateLowRiskSettingsRequestDto,
   type UpdateLowRiskSettingsResponseDto,
 } from "../src/contracts/dashboard.ts";
@@ -90,17 +87,6 @@ export function createBrowserApi(fetcher: typeof fetch = fetch): DashboardApi {
       return readJson<CommandLogPageDto>(
         await fetcher(DASHBOARD_API_PATHS.commandLog, requestInit()),
       );
-    },
-    async getSummaryQuotas() {
-      return readJson<SummaryQuotaSettingsDto>(
-        await fetcher(DASHBOARD_API_PATHS.summaryQuotas, requestInit()),
-      );
-    },
-    async updateSummaryQuotaDefault(request: UpdateSummaryQuotaDefaultRequestDto) {
-      return mutate<SummaryQuotaSettingsDto>(DASHBOARD_API_PATHS.summaryQuotaDefault, request);
-    },
-    async updateSummaryQuotaUser(request: UpdateSummaryQuotaUserRequestDto) {
-      return mutate<SummaryQuotaSettingsDto>(DASHBOARD_API_PATHS.summaryQuotaUser, request);
     },
     async getRiotRequests() {
       return mutate<PendingRiotLinkRequestsDto>(DASHBOARD_API_PATHS.riotRequests, {});

@@ -87,13 +87,6 @@ function ports(overrides: Partial<DashboardHttpPorts> = {}): DashboardHttpPorts 
     }),
     readAudit: async () => audit,
     readCommandLog: async () => ({ entries: [] }),
-    readSummaryQuotas: async () => ({
-      defaultLimit: 10,
-      version: 0,
-      users: [],
-    }),
-    updateSummaryQuotaDefault: async () => "updated",
-    updateSummaryQuotaUser: async () => "updated",
     listPendingRiotLinks: async () => ({ requests: [] }),
     approveRiotLink: async () => ({ message: "승인했습니다." }),
     rejectRiotLink: async () => ({ message: "거절했습니다." }),
@@ -106,7 +99,6 @@ function server(input: {
   ports?: Partial<DashboardHttpPorts>;
   logs?: OperationalLogEvent[];
   spaRoot?: string;
-  summaryQuotaDashboardEnabled?: boolean;
 } = {}) {
   const logs = input.logs ?? [];
   return buildDashboardServer({
@@ -117,12 +109,6 @@ function server(input: {
       logs.push(event);
     },
     ...(input.spaRoot === undefined ? {} : { spaRoot: input.spaRoot }),
-    ...(input.summaryQuotaDashboardEnabled === undefined
-      ? {}
-      : {
-          summaryQuotaDashboardEnabled:
-            input.summaryQuotaDashboardEnabled,
-        }),
   });
 }
 
@@ -167,7 +153,6 @@ test("composes auth and protected read routes with allowlisted DTOs", async () =
     authenticated: true,
     actor: { displayName: "Fixture Operator", tier: "operator" },
     csrfToken,
-    features: { summaryQuotaDashboard: false },
   });
 
   for (const url of ["/api/overview", "/api/settings/summary", "/api/audit"]) {
@@ -291,33 +276,6 @@ test("Riot administrator routes require current admin, CSRF, recent auth, confir
   });
   assert.equal(missingConfirmation.statusCode, 400);
   await app.close();
-});
-
-test("keeps quota API routes default-off and exposes them only when enabled", async () => {
-  const disabled = server();
-  assert.equal(
-    (await disabled.inject({ method: "GET", url: "/api/summary/quotas" }))
-      .statusCode,
-    404,
-  );
-  await disabled.close();
-
-  const enabled = server({ summaryQuotaDashboardEnabled: true });
-  const session = await enabled.inject({
-    method: "GET",
-    url: "/api/session",
-    headers: { cookie: `${sessionCookie}; __Host-waw_csrf=${csrfToken}` },
-  });
-  assert.equal(session.json().features.summaryQuotaDashboard, true);
-  assert.equal(
-    (await enabled.inject({
-      method: "GET",
-      url: "/api/summary/quotas",
-      headers: { cookie: sessionCookie },
-    })).statusCode,
-    200,
-  );
-  await enabled.close();
 });
 
 test("Riot administrator routes reject a current operator before invoking ports", async () => {

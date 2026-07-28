@@ -62,7 +62,8 @@ No migration or provider call occurred. Full evidence is in
 
 ### 3. Real summary activation
 
-Status: runtime and command UX activation PASS; registered-user smoke remains.
+Status: PASS. Runtime/command UX activation과 owner의 registered-user
+real-content smoke가 완료됐다.
 
 Before sending any real Discord content:
 
@@ -72,9 +73,12 @@ Before sending any real Discord content:
    changed;~~ PASS;
 3. ~~approve the exact provider and rolling-hour quota flag changes;~~ PASS;
 4. ~~verify Discord command registration/readback;~~ PASS;
-5. run one bounded authorized `/요약 최근` smoke and read back private
-   `/도움말`;
-6. confirm raw message content is absent from persistence, audit and journals;
+5. ~~run one bounded authorized `/요약 최근` smoke;~~ PASS: owner가
+   production Discord에서 직접 정상 요약 결과 반환을 확인했다. 정확한 시각,
+   범위와 content/result 본문은 기록하지 않았다.
+6. confirm private `/도움말` read-back and recheck that raw message content is
+   absent from persistence, audit and journals during final operational
+   acceptance;
 7. retain a default-off rollback that does not lose quota reservation audit
    rows.
 

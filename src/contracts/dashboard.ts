@@ -25,9 +25,6 @@ export type SessionDto = {
     tier: AuthorizationTier;
   };
   csrfToken: string;
-  features: {
-    summaryQuotaDashboard: boolean;
-  };
 };
 
 export type ComponentHealthDto = {
@@ -134,41 +131,6 @@ export type ListCommandLogRequestDto = {
   to?: string;
 };
 
-export type SummaryQuotaStatusDto = {
-  userKey: string;
-  displayLabel: string;
-  used: number;
-  effectiveLimit: number;
-  remaining: number;
-  limitSource: "default" | "override";
-  enabled: boolean;
-  nextResetAt: string;
-  version: number;
-};
-
-export type SummaryQuotaPageDto = {
-  users: SummaryQuotaStatusDto[];
-  nextCursor?: string;
-};
-
-export type SummaryQuotaSettingsDto = {
-  defaultLimit: number;
-  version: number;
-  users: SummaryQuotaStatusDto[];
-};
-
-export type UpdateSummaryQuotaDefaultRequestDto = {
-  dailyLimit: number;
-  expectedVersion: number;
-};
-
-export type UpdateSummaryQuotaUserRequestDto = {
-  userKey: string;
-  enabled: boolean;
-  dailyLimit: number | null;
-  expectedVersion: number;
-};
-
 export const DASHBOARD_API_PATHS = {
   login: "/auth/login",
   callback: "/auth/discord/callback",
@@ -181,7 +143,4 @@ export const DASHBOARD_API_PATHS = {
   riotApprove: "/api/riot/requests/approve",
   riotReject: "/api/riot/requests/reject",
   commandLog: "/api/command-log",
-  summaryQuotas: "/api/summary/quotas",
-  summaryQuotaDefault: "/api/summary/quotas/default",
-  summaryQuotaUser: "/api/summary/quotas/user",
 } as const;

@@ -58,7 +58,6 @@ test("Fastify inject rechecks current role and returns allowlisted settings plus
     assert.equal(session.statusCode, 200);
     assert.deepEqual(session.json(), {
       authenticated: true,
-      features: { summaryQuotaDashboard: false },
       actor: { displayName: "합성 운영자", tier: "operator" },
       csrfToken: fixture.csrfToken,
     });

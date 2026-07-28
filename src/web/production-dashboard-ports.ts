@@ -54,15 +54,6 @@ export function createProductionDashboardPorts(input: {
     async readCommandLog(request) {
       return store.readCommandLog(request);
     },
-    async readSummaryQuotas() {
-      return store.readSummaryQuotas();
-    },
-    async updateSummaryQuotaDefault(request) {
-      return store.updateSummaryQuotaDefault(request);
-    },
-    async updateSummaryQuotaUser(request) {
-      return store.updateSummaryQuotaUser(request);
-    },
     async listPendingRiotLinks(request) {
       if (adminPorts) return adminPorts.listPendingRiotLinks(request);
       throw new HttpPortError("unavailable", "riot_admin_ipc_unavailable");

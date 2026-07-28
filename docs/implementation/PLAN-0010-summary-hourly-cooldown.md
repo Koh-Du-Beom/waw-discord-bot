@@ -16,6 +16,14 @@
 5. Freeze a new immutable candidate and write a production-mutation-free Gate A
    handoff.
 
+## Dashboard alignment follow-up
+
+On 2026-07-28 the active source was aligned with ADR-0021 by removing the
+superseded daily quota DTO, API, persistence mutation, UI and web feature flag.
+The redacted command-log contract from ADR-0019 remains. Local validation and
+the production read-only canonical health check passed; exact candidate
+preparation and production activation remain separately gated.
+
 Production migration, release deployment, summary-provider credential,
 provider activation, Discord registration, and game-observation activation are
 outside this plan and require their own gates.
