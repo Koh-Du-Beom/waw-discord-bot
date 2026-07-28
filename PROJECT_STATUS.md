@@ -21,7 +21,10 @@ observation 활성화는 수행하지 않았다. 새 immutable candidate
 0 fail`, typecheck/build/prune/audit, Linux fixture, compiled marker contract,
 8개 byte-identical migration, writable file `0`과 네 default-off flag `0`을
 재검증했다. 최종 home/tmp artifact는 모두 `0`이며 Gate A가 통과했다. 다음
-단계는 이 exact tuple을 명시한 별도 synthetic-only OpenAI spike 승인 요청이다.
+단계인 이 exact tuple의 synthetic-only OpenAI spike 승인 요청서를 작성했다.
+승인 전 credential 생성, OpenAI 호출, production staging/activation은 없으며,
+요청 범위도 invented Korean input 1회, retry 0, 응답 원문 없는 네 marker count,
+cleanup과 네 flag `0` 유지로 제한된다.
 
 OpenAI summary adapter를 production 비활성 상태로 bot assembly에 조립했다.
 고정 snapshot `gpt-5.4-mini-2026-03-17`, Responses API `store:false`,
