@@ -4,6 +4,88 @@
 
 ## 현재 단계
 
+Owner가 exact candidate `f42e2b0`의 synthetic-only OpenAI spike 범위를
+승인했다. Read-only production preflight를 재개했지만 production host 명령
+실행 전 access 경계에서 중단했다. 첫 CloudShell access-details 응답의
+`hostKeys`가 null이었고, fresh 응답의 세 host key를 고정한 private-key-only
+SSH는 `Permission denied (publickey)`였다. 응답에는 별도 SSH certificate가
+있으므로 certificate를 함께 쓰지 않은 연결 방식이 불완전했다. 이미 로그인된
+Lightsail browser terminal은 canvas input을 안전하게 구동할 수 없었고 paste
+control이 unrelated local clipboard text를 hidden input에 넣어 즉시 Enter 전
+clear했다. Production command, staging, credential, OpenAI request와 mutation은
+모두 `0`이며 CloudShell/local transient artifact를 제거했다. 이후 returned
+private key와 certificate를 함께 사용하고 세 returned host key를 고정한
+channel proof는 production host에서 통과했지만, 뒤따른 read-only preflight
+assertion 중 하나가 불일치해 `rc=1`로 중단했다. 승인된 stop condition에 따라
+개별 assertion 진단을 재시도하지 않았으며 staging, credential과 OpenAI
+request는 여전히 `0`이다. 다음 재개는 각 불변조건의 pass/fail만 출력하는
+별도 승인된 labelled read-only diagnostic이다. Synthetic spike PASS 뒤에도
+default-off release rollout, real-summary disclosure/activation, consented
+Riot/game-observation, final release acceptance와 독립 journald vacuum gate가
+남는다. 전체 순서는
+`docs/operations/project-completion-gates-2026-07-28.md`에 기록했다.
+
+Owner 승인으로 labelled read-only diagnostic을 정확히 1회 실행했다. Current
+`2ac0996`, previous `cb93ed8`, rollback distinct, candidate와 summary credential
+부재, bot/web/timer active, timer enabled, backup/monitor success, failed unit
+`0`, summary quota/game observation/dashboard quota flag `0`, canonical health
+`healthy`와 capacity metadata는 PASS였다. Bot unit의 exact
+`WAW_SUMMARY_PROVIDER_ENABLED=0` 선언은 `0`개라 FAIL했고 schema readback은
+`UNKNOWN`이라 version `8`을 증명하지 못했다. 추가 조회나 재실행은 하지
+않았다. Staging, credential, OpenAI request와 production mutation은 모두
+`0`이고 one-time access material과 transient를 제거했다. 다음 gate는 이 두
+실패 assertion만 다루는 별도 read-only 조사 승인이다.
+
+Owner가 두 실패 원인만 대상으로 한 sanitized read-only 조사를 승인했다.
+Provider flag는 `/etc/systemd/system/waw-bot.service`와 유일한
+`admin-command-ipc.conf` drop-in 어디에도 선언되지 않았고 resolved environment
+count도 `zero=0, one=0, other=0`이었다. 즉 absent를 exact zero로 인정하지 않는
+preflight 계약 때문에 실패했다. Schema credential source는 `root:root 0600`,
+존재·nonempty·root-readable이고 `waw-bot` 직접 read는 거부돼 credential
+경계가 유지됐다. Node는 존재하지만 current `2ac0996`에서 `postgres` dynamic
+import가 실패해 credential parse, DB connect와 query에 도달하지 못한 것이
+`UNKNOWN`의 원인이다. 오류 본문, URL, credential과 unit body는 출력하지
+않았고 추가 조회도 하지 않았다. Staging, credential, OpenAI request와
+production mutation은 `0`, controller cleanup은 `rc=0`이고 transient를
+제거했다. 다음 단계는 두 preflight 가정을 교정하는 exact change set 제안이며
+production mutation은 아직 승인되지 않았다.
+
+두 preflight 불일치의 production-free 교정안을
+`docs/operations/openai-summary-preflight-correction-proposal-2026-07-28.md`
+로 작성했다. Provider는 current older unit용
+`summary-provider-default-off.conf` bridge를 exact `root:root 0644`,
+SHA-256
+`b8827b09064dc932599b074d77c1446669c083b9df7ef9f90b28d2c0836d2d0a`
+로 제안하며 daemon-reload만 하고 bot restart는 금지한다. Rollback은 exact
+hash/metadata가 유지된 target만 제거하고 PID/start timestamp/health 불변을
+검증한다. Candidate base unit 교체 시 zero 선언 중복을 막기 위해 bridge를
+같은 bounded change에서 제거해야 한다. Schema readback은 current release
+Node dependency와 잘못된 `schema_migrations` 가정을 버리고 host PostgreSQL
+17 `psql`로 canonical `public.app_schema_version`의 `max(version)`만 조회한다.
+DB URL은 argv/history/file/output에 두지 않고 OS Python 표준 URI parser로
+분해한 libpq 필드만 root-owned `psql` child environment에 잠시 넣으며 fixed
+stage metadata만 출력한다. 이
+교정안은 문서와 disposable 검증 제안뿐이며 production mutation, daemon
+reload, credential과 OpenAI call은 수행하지 않았다.
+
+Owner 승인으로 교정안의 local/disposable 구현을 완료했다. Exact provider
+drop-in, conflict-safe manager와 fake-systemd fixture를 추가해 source hash,
+production `root:root 0644`, install/idempotency, wrong-mode/content conflict,
+checksum-guarded rollback, already-absent와 simulated PID change 거부를
+검증했다. Manager는 daemon-reload 외 service 명령을 허용하지 않고 bot
+MainPID/start timestamp 불변을 요구한다. Release-independent schema runner는
+PostgreSQL client major 17, regular non-symlink credential metadata와 정확히 한
+줄을 요구하고 canonical `public.app_schema_version`만 조회한다. Fake psql
+fixture는 secret argv/output 부재, missing/empty/multiline/symlink/wrong mode,
+wrong client major, query failure/multiline/wrong version 거부를 통과했다.
+실제 disposable PostgreSQL 17.10의 version rows `1..8`에서도 runner가
+정확히 `8`을 반환하고 cluster/temp cleanup을 통과했다. 관련 asset test와
+짧은 `TMPDIR=/tmp` 전체 회귀
+`260 tests / 253 pass / 7 explicit skips / 0 fail`, typecheck, build,
+8 migration asset copy와 diff check가 통과했다. 실제 production host,
+credential, DB, daemon-reload, restart와 OpenAI는 사용하지 않았다. 다음
+gate는 exact production 교정 change set의 별도 owner 승인이다.
+
 OpenAI summary synthetic spike의 marker oracle 불일치를 수정했다. Adapter
 prompt와 합성 evaluator가 marker 원문 보존, 정확히 1회 출력, CORE→
 `coreDiscussion`, DECISION→`decisions`, ACTION→`actionItems`,
