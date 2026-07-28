@@ -103,6 +103,16 @@ local disposable PostgreSQL 17.10에서 통과했다. CloudShell/local transient
 제거했다. Production host, credential, DB query, daemon-reload와 OpenAI는
 사용하지 않았다.
 
+Gate A를 통과한 exact tuple의 production correction approval request를
+`docs/operations/openai-summary-preflight-production-correction-approval-request-2026-07-28.md`
+로 작성했다. 요청 범위는 metadata-only preconditions, exact default-off
+bridge 설치와 최대 1회 daemon-reload, 정확히 1회의 labelled read-only
+`public.app_schema_version` aggregate query다. Query 실패는 재시도하지 않고
+checksum-guarded bridge rollback과 최대 1회의 추가 daemon-reload 후 정지한다.
+Service restart, staging/activation, credential 생성·변경, DB mutation과 OpenAI
+호출은 모두 제외했다. 이는 승인 요청서 작성만이며 production access,
+credential read와 DB query는 수행하지 않았다.
+
 OpenAI summary synthetic spike의 marker oracle 불일치를 수정했다. Adapter
 prompt와 합성 evaluator가 marker 원문 보존, 정확히 1회 출력, CORE→
 `coreDiscussion`, DECISION→`decisions`, ACTION→`actionItems`,
