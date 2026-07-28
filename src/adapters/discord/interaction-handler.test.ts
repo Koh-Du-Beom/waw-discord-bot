@@ -151,7 +151,15 @@ test("defers summary before waiting for provider work", async () => {
     history: {
       async readPage() {
         calls.push("history");
-        return { messages: [], complete: true };
+        return {
+          messages: [{
+            id: "9305",
+            createdAt: new Date("2026-07-26T23:30:00Z"),
+            authorLabel: "사용자",
+            content: "합성 대화",
+          }],
+          complete: true,
+        };
       },
     },
     summarizer: {
@@ -182,11 +190,8 @@ test("defers summary before waiting for provider work", async () => {
     channelId: "9304",
     channel: { isThread: () => false },
     options: {
-      getSubcommand: () => null,
-      getString: (name) =>
-        name === "시작"
-          ? "2026-07-27T00:00:00Z"
-          : "2026-07-27T01:00:00Z",
+      getSubcommand: () => "최근",
+      getString: () => "1시간",
       getUser: () => null,
     },
     async deferReply() {

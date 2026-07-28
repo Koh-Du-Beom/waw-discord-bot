@@ -49,13 +49,13 @@ class FakeDiagnostics implements DiscordJsGatewayDiagnosticSource {
   }
 }
 
-test("declares only the guild, member-role, and voice-state intents", () => {
+test("declares the minimum member, voice, and summary-content intents", () => {
   assert.deepEqual(DISCORDJS_MINIMUM_INTENTS, [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.MessageContent,
   ]);
-  assert.equal(DISCORDJS_MINIMUM_INTENTS.includes(GatewayIntentBits.MessageContent), false);
   assert.equal(DISCORDJS_MINIMUM_INTENTS.includes(GatewayIntentBits.GuildMessages), false);
 });
 

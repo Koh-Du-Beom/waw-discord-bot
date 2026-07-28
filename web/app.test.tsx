@@ -19,6 +19,7 @@ import {
   sessionFixture,
   settingsFixture,
 } from "./fixtures.ts";
+import { SUMMARY_EXTERNAL_PROCESSING_NOTICE } from "../src/contracts/summary-disclosure.ts";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {
   url: "https://waw.dubeom.com/",
@@ -51,6 +52,10 @@ test("shows a keyboard-accessible loading state and then healthy dashboard conte
   assert.equal(screen.getAllByText("연결됨").length, 2);
   assert.equal(screen.getByRole("checkbox", { name: "서버 요약 기능 사용" }).getAttribute("type"), "checkbox");
   assert.equal(screen.getByRole("button", { name: "설정 저장" }).getAttribute("type"), "submit");
+  assert.equal(
+    screen.getByLabelText("요약 외부 처리 안내").textContent,
+    SUMMARY_EXTERNAL_PROCESSING_NOTICE,
+  );
 });
 
 test("exposes named landmarks and controls without relying on color alone", async () => {

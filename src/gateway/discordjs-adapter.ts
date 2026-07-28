@@ -11,6 +11,7 @@ export const DISCORDJS_MINIMUM_INTENTS = [
   GatewayIntentBits.Guilds,
   GatewayIntentBits.GuildMembers,
   GatewayIntentBits.GuildVoiceStates,
+  GatewayIntentBits.MessageContent,
 ] as const;
 
 type EventListener = (...arguments_: readonly unknown[]) => void;

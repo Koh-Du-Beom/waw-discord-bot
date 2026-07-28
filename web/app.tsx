@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { SUMMARY_EXTERNAL_PROCESSING_NOTICE } from "../src/contracts/summary-disclosure.ts";
 
 import {
   DASHBOARD_API_PATHS,
@@ -269,6 +270,9 @@ function Dashboard({
           <section className="panel" aria-labelledby="settings-title">
             <p className="eyebrow">낮은 위험 설정</p>
             <h2 id="settings-title">서버 요약</h2>
+            <p className="notice" aria-label="요약 외부 처리 안내">
+              {SUMMARY_EXTERNAL_PROCESSING_NOTICE}
+            </p>
             <form onSubmit={(event) => void save(event)}>
               <label className="switch-row">
                 <span>

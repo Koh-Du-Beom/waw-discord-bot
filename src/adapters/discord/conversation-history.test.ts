@@ -23,7 +23,7 @@ test("uses a stable oldest-message cursor without caching raw messages", async (
         messages: {
           async fetch(options) {
             calls.push(options);
-            return messages;
+            return new Map(messages.map((message) => [message.id, message]));
           },
         },
       };
@@ -44,9 +44,9 @@ test("maps permission, rate limit and malformed pages to non-reflective incomple
     const reader = createDiscordConversationHistoryReader({
       async resolve() {
         return {
-          messages: {
-            async fetch() {
-              throw fixture;
+        messages: {
+          async fetch() {
+            throw fixture;
             },
           },
         };
@@ -67,10 +67,11 @@ test("maps permission, rate limit and malformed pages to non-reflective incomple
       return {
         messages: {
           async fetch() {
-            return [
+            const messages = [
               { ...discordMessage(1), id: "same" },
               { ...discordMessage(2), id: "same" },
             ];
+            return new Map(messages.map((message, index) => [String(index), message]));
           },
         },
       };

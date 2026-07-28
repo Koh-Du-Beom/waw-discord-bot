@@ -101,8 +101,7 @@ export class KoreanCommandHandler {
   }
 
   private async summary(request: CommandRequest): Promise<string> {
-    const start = new Date(request.options["시작"] ?? "");
-    const end = new Date(request.options["종료"] ?? "");
+    const { start, end } = summaryRange(request.options, this.input.now());
     if (!this.input.summarizer) {
       throw new CommandFailure(
         "provider_unavailable",
@@ -116,6 +115,18 @@ export class KoreanCommandHandler {
       end,
       signal: request.signal,
     });
+    if (messages.length === 0) {
+      throw new CommandFailure(
+        "summary_range_empty",
+        "선택한 시간 범위에 요약할 대화가 없습니다. 더 긴 범위를 선택해 주세요.",
+      );
+    }
+    if (messages.every((message) => message.content.trim().length === 0)) {
+      throw new CommandFailure(
+        "summary_content_unavailable",
+        "읽을 수 있는 대화 본문이 없습니다. 봇의 메시지 콘텐츠 권한을 확인해 주세요.",
+      );
+    }
     const summaryInput = {
       messages,
       manifest: createManifest(messages, 100),
@@ -146,6 +157,50 @@ export class KoreanCommandHandler {
       section("미해결", sections.unresolved),
     ].join("\n\n");
   }
+}
+
+const RECENT_RANGES_MS: Readonly<Record<string, number>> = {
+  "10분": 10 * 60_000,
+  "30분": 30 * 60_000,
+  "1시간": 60 * 60_000,
+  "3시간": 3 * 60 * 60_000,
+  "6시간": 6 * 60 * 60_000,
+  "12시간": 12 * 60 * 60_000,
+  "24시간": 24 * 60 * 60_000,
+};
+
+export function summaryRange(
+  options: Readonly<Record<string, string | undefined>>,
+  now: Date,
+): { start: Date; end: Date } {
+  if (options["방식"] === "최근") {
+    const duration = RECENT_RANGES_MS[options["범위"] ?? ""];
+    if (!duration) throw new SummaryRangeError("invalid recent range");
+    return { start: new Date(now.getTime() - duration), end: new Date(now) };
+  }
+  if (options["방식"] !== "직접") {
+    throw new SummaryRangeError("invalid summary mode");
+  }
+  const start = koreanWallTime(options["시작"] ?? "", now);
+  const end = koreanWallTime(options["종료"] ?? "", now);
+  if (!(start < end) || end > now || end.getTime() - start.getTime() > 24 * 60 * 60_000) {
+    throw new SummaryRangeError("invalid direct range");
+  }
+  return { start, end };
+}
+
+function koreanWallTime(value: string, now: Date): Date {
+  const match = /^(?:(오늘|어제)\s+)?([01]\d|2[0-3]):([0-5]\d)$/u.exec(value.trim());
+  if (!match) throw new SummaryRangeError("invalid Korean wall time");
+  const korea = new Date(now.getTime() + 9 * 60 * 60_000);
+  const dayOffset = match[1] === "어제" ? -1 : 0;
+  return new Date(Date.UTC(
+    korea.getUTCFullYear(),
+    korea.getUTCMonth(),
+    korea.getUTCDate() + dayOffset,
+    Number(match[2]) - 9,
+    Number(match[3]),
+  ));
 }
 
 export class CommandFailure extends Error {

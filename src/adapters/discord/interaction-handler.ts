@@ -53,7 +53,14 @@ function normalizeInteraction(
     case "도움말":
       return request(interaction, correlationId, guildId, channelId, "도움말", {});
     case "요약":
+      if (interaction.options.getSubcommand(true) === "최근") {
+        return request(interaction, correlationId, guildId, channelId, "요약", {
+          방식: "최근",
+          범위: interaction.options.getString("범위", true),
+        });
+      }
       return request(interaction, correlationId, guildId, channelId, "요약", {
+        방식: "직접",
         시작: interaction.options.getString("시작", true),
         종료: interaction.options.getString("종료", true),
       });

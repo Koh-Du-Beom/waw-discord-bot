@@ -18,7 +18,7 @@ export type DiscordHistoryChannel = {
       limit: 100;
       before?: string;
       cache: false;
-    }): Promise<Iterable<DiscordHistoryMessage>>;
+    }): Promise<ReadonlyMap<string, DiscordHistoryMessage>>;
   };
 };
 
@@ -46,7 +46,7 @@ export function createDiscordConversationHistoryReader(
           ...(input.before === undefined ? {} : { before: input.before }),
           cache: false,
         });
-        const values = [...fetched];
+        const values = [...fetched.values()];
         validatePage(values);
         const messages = values
           .map(mapMessage)

@@ -15,6 +15,15 @@ test("defines the approved command tree with Korean descriptions", () => {
       "options" in option ? [option.name] : [],
     ),
   );
-  assert.deepEqual(subcommands, ["연결", "목록", "연결해제", "현황", "정정", "취소"]);
+  assert.deepEqual(subcommands, [
+    "최근",
+    "직접",
+    "연결",
+    "목록",
+    "연결해제",
+    "현황",
+    "정정",
+    "취소",
+  ]);
   assert.equal(JSON.stringify(WAW_SLASH_COMMANDS).includes("관리자"), true);
 });

@@ -4,6 +4,7 @@ import {
   type APIApplicationCommandStringOption,
   type RESTPostAPIApplicationCommandsJSONBody,
 } from "discord.js";
+import { SUMMARY_EXTERNAL_PROCESSING_NOTICE } from "../contracts/summary-disclosure.ts";
 
 const stringOption = (
   name: string,
@@ -27,8 +28,35 @@ export const WAW_SLASH_COMMANDS: readonly RESTPostAPIApplicationCommandsJSONBody
     name: "요약",
     description: "현재 채널 또는 스레드의 대화를 요약합니다.",
     options: [
-      stringOption("시작", "요약 시작 시각(ISO 8601)"),
-      stringOption("종료", "요약 종료 시각(ISO 8601)"),
+      {
+        type: ApplicationCommandOptionType.Subcommand,
+        name: "최근",
+        description: "지금부터 선택한 시간만큼 이전 대화를 요약합니다.",
+        options: [{
+          type: ApplicationCommandOptionType.String,
+          name: "범위",
+          description: "요약할 최근 시간 범위",
+          required: true,
+          choices: [
+            { name: "최근 10분", value: "10분" },
+            { name: "최근 30분", value: "30분" },
+            { name: "최근 1시간", value: "1시간" },
+            { name: "최근 3시간", value: "3시간" },
+            { name: "최근 6시간", value: "6시간" },
+            { name: "최근 12시간", value: "12시간" },
+            { name: "최근 24시간", value: "24시간" },
+          ],
+        }],
+      },
+      {
+        type: ApplicationCommandOptionType.Subcommand,
+        name: "직접",
+        description: "한국 시간으로 시작과 종료 시각을 직접 입력합니다.",
+        options: [
+          stringOption("시작", "예: 20:00 또는 어제 23:30"),
+          stringOption("종료", "예: 21:00 또는 오늘 00:30"),
+        ],
+      },
     ],
   },
   {
@@ -109,9 +137,13 @@ export const KOREAN_COMMAND_RESPONSES = {
   help: [
     "**WAW 명령 도움말**",
     "",
-    "**대화 요약**",
-    "`/요약 시작:<ISO 8601 시각> 종료:<ISO 8601 시각>`",
-    "현재 채널이나 스레드에서 최대 24시간 범위를 요약합니다.",
+    "**대화 요약 도움말**",
+    "`/요약 최근 범위:<최근 10분~24시간>` — 선택한 최근 범위를 요약합니다.",
+    "`/요약 직접 시작:<20:00> 종료:<21:00>` — 한국 시간으로 직접 지정합니다.",
+    "자정을 넘는 범위는 `어제 23:30`, `오늘 00:30`처럼 입력합니다.",
+    "현재 채널이나 스레드에서 최대 24시간까지만 요약할 수 있습니다.",
+    "",
+    `※ 외부 처리 안내: ${SUMMARY_EXTERNAL_PROCESSING_NOTICE}`,
     "",
     "**Riot 계정**",
     "`/라이엇계정 연결 계정:<이름#태그>` — 화면에 표시되는 KR Riot ID로 연결 승인을 요청합니다.",
@@ -126,7 +158,8 @@ export const KOREAN_COMMAND_RESPONSES = {
     "",
     "명령 결과와 이 도움말은 호출자에게만 표시됩니다.",
   ].join("\n"),
-  invalidRange: "시작 시각은 종료 시각보다 빨라야 하며 범위는 최대 24시간입니다.",
+  invalidRange:
+    "시간을 확인해 주세요. `20:00` 또는 `어제 23:30`처럼 입력하며 최대 24시간까지만 요약할 수 있습니다.",
   incompleteSummary: "요청한 전체 대화 범위를 확인할 수 없어 요약하지 않았습니다.",
   providerUnavailable: "요약 제공자가 아직 설정되지 않았습니다.",
   riotPendingApproval: "관리자 확인 전에는 소유권이 검증되지 않은 연결로 표시됩니다.",
