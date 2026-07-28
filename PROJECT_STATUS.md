@@ -4,6 +4,18 @@
 
 ## 현재 단계
 
+2026-07-29 production 최초 승격과 실제 GitHub Actions CD 검증을 위한
+activation checklist를 작성하고 전체 본문을 한국어로 제공했다. Exact
+candidate/CI, unprotected production branch owner acceptance, no-mutation SSH
+preflight, production read-only
+readiness, 단일 workflow 관찰, post-deploy health와 transient cleanup,
+자연 실패 시 rollback 확인을 독립 gate로 구분했다. 정상 배포 성공만으로
+고의 rollback 경로까지 검증했다고 간주하지 않으며 controlled failure
+rehearsal은 별도 owner approval로 남긴다. 문서 검토 중 기존 production
+runbook의 GitHub Actions 절이 폐기된 ADR-0023 OIDC 경로를 설명하는 충돌을
+발견해 Accepted ADR-0024의 repository-secret SSH 경로로 정정했다. Production
+push, workflow 실행, SSH 접속과 host mutation은 수행하지 않았다.
+
 Owner가 단일 Lightsail host 배포에는 OIDC/AWS IAM control plane이 과도하다고
 판단해 GitHub repository secret 기반 전용 SSH key 주입을 승인했다. ADR-0024가
 ADR-0023을 대체하며 workflow의 AWS/OIDC 권한과 temporary access-detail 호출을

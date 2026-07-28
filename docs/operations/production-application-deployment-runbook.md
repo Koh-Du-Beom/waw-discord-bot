@@ -6,21 +6,30 @@ opening an SSH session, installing credentials or assets, or changing services.
 
 ## GitHub Actions delivery path
 
-ADR-0023 adds an automated delivery path without changing the systemd release
-model below. A reviewed `develop` to `production` merge triggers the production
-workflow. Only that workflow may request a branch-bound GitHub OIDC AWS role
-and exact-instance Lightsail temporary SSH access.
+ADR-0024 supersedes ADR-0023 and adds an automated delivery path without
+changing the systemd release model below. A reviewed `develop` to `production`
+promotion triggers the production workflow. The current GitHub Free/private
+repository cannot technically enforce branch protection or environment
+reviewers, so the owner must explicitly accept that risk before the first
+promotion.
 
-The Actions path must identify the release by `GITHUB_SHA` and archive SHA-256,
-use the temporary Lightsail SSH private key, certificate and returned host keys
-with strict checking, serialize deployments, run the existing timer/service/
-health preflight, preserve drop-ins and credential sources, and restore the
-recorded units and previous release on failed activation. Migration, credential
-changes, Discord registration and feature activation remain separate gates.
+The Actions path identifies the release by exact `GITHUB_SHA` and archive
+SHA-256, uses a dedicated repository-secret SSH private key and independently
+pinned known-host records, performs strict host-key checking, serializes
+deployments, and runs the timer/service/health preflight. It preserves unit
+files and restores the recorded previous release on failed activation.
+Migration, application credential changes, Discord registration and feature
+activation remain separate gates.
 
-Repository variables contain only the non-secret role ARN and instance name.
-No AWS key, SSH key or application secret is stored in GitHub. The named human
-operator path remains the break-glass fallback.
+Repository variables contain only `LIGHTSAIL_HOST` and `LIGHTSAIL_USER`.
+Repository secrets contain `LIGHTSAIL_DEPLOY_SSH_KEY` and
+`LIGHTSAIL_SSH_KNOWN_HOSTS`; they must never be printed. The deploy key is not a
+human operator key. The named human operator path remains the break-glass
+fallback.
+
+Use
+`docs/operations/first-production-promotion-activation-checklist.md` for the
+first promotion and evidence record.
 
 ## G5 approval record
 
