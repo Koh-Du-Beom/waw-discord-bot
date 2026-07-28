@@ -1,8 +1,20 @@
 # 프로젝트 상태
 
-마지막 갱신일: 2026-07-27
+마지막 갱신일: 2026-07-28
 
 ## 현재 단계
+
+OpenAI summary synthetic spike의 marker oracle 불일치를 수정했다. Adapter
+prompt와 합성 evaluator가 marker 원문 보존, 정확히 1회 출력, CORE→
+`coreDiscussion`, DECISION→`decisions`, ACTION→`actionItems`,
+UNRESOLVED→`unresolved` 귀속, marker 입력 시 unmarked output 금지를 공유한다.
+Evaluator는 응답 원문 없이 omission, duplicate, wrong-section, unmarked-item
+count만 반환하며 각 실패 조건의 fake 회귀가 통과했다. 짧은 macOS `TMPDIR`에서
+전체 회귀는 `260 tests / 253 pass / 7 explicit external skips / 0 fail`이고
+typecheck, build, production dependency audit와 diff check가 통과했다. 실제
+OpenAI 호출, credential 사용, production mutation과 provider/quota/game
+observation 활성화는 수행하지 않았다. 새 immutable candidate와 exact archive를
+고정한 뒤 CloudShell Gate A가 다음 단계다.
 
 OpenAI summary adapter를 production 비활성 상태로 bot assembly에 조립했다.
 고정 snapshot `gpt-5.4-mini-2026-03-17`, Responses API `store:false`,

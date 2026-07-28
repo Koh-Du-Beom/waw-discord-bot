@@ -44,6 +44,8 @@ test("sends synthetic conversation with store false and parses structured sectio
   assert.equal(body.reasoning.effort, "none");
   assert.equal(body.max_output_tokens, 4096);
   assert.equal(body.text.format.type, "json_schema");
+  assert.match(body.instructions, /marker.*정확히 한 번/u);
+  assert.match(body.instructions, /CORE.*coreDiscussion/u);
   assert.match(body.input, /실제 Discord 원문이 아닌 합성 메시지/u);
   assert.deepEqual(result, {
     coreDiscussion: ["합성 토론"],

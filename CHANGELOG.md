@@ -9,6 +9,11 @@
 
 ## Unreleased
 
+- Define one shared synthetic summary marker contract for the adapter prompt and
+  evaluator: preserve each marker verbatim exactly once, keep it in its assigned
+  section, and reject unmarked output items. Add response-free aggregate fake
+  regressions that distinguish omission, duplication, wrong-section placement,
+  and unmarked items; production provider and quota flags remain off.
 - Record the single credentialed synthetic OpenAI production spike as FAIL
   without retry: the call completed in 2.613 seconds, but the runner required a
   marker-preservation contract absent from the adapter prompt and schema. The

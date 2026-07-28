@@ -3,6 +3,7 @@ import type {
   SummarySections,
 } from "./conversation-summary.ts";
 import { SummaryCapacityError } from "./conversation-summary.ts";
+import { SUMMARY_MARKER_INSTRUCTIONS } from "./summary-marker-contract.ts";
 
 const ENDPOINT = "https://api.openai.com/v1/responses";
 const MODEL = "gpt-5.4-mini-2026-03-17";
@@ -66,7 +67,8 @@ export class OpenAiConversationSummarizer implements ConversationSummarizer {
       reasoning: { effort: "none" },
       max_output_tokens: MAX_OUTPUT_TOKENS,
       instructions:
-        "주어진 전체 대화를 한국어로 요약한다. 사실을 추가하지 말고 네 섹션을 분리한다.",
+        "주어진 전체 대화를 한국어로 요약한다. 사실을 추가하지 말고 네 섹션을 " +
+        `분리한다. ${SUMMARY_MARKER_INSTRUCTIONS}`,
       input: JSON.stringify(
         input.messages.map((message, ordinal) => ({
           ordinal,
