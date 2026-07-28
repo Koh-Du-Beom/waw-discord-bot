@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { AxeBuilder } from "@axe-core/playwright";
-import { chromium } from "playwright-core";
+import { chromium, type Browser } from "playwright-core";
 
 import { buildBrowserFixtureServer } from "./browser-fixture-server.ts";
 
@@ -11,13 +11,14 @@ const edgeExecutable =
 
 test("production SPA has no automatic axe violations and supports keyboard mutation", async () => {
   const app = buildBrowserFixtureServer();
-  const address = await app.listen({ host: "127.0.0.1", port: 0 });
-  const browser = await chromium.launch(
-    process.platform === "win32"
-      ? { executablePath: edgeExecutable, headless: true }
-      : { headless: true },
-  );
+  let browser: Browser | undefined;
   try {
+    const address = await app.listen({ host: "127.0.0.1", port: 0 });
+    browser = await chromium.launch(
+      process.platform === "win32"
+        ? { executablePath: edgeExecutable, headless: true }
+        : { headless: true },
+    );
     const context = await browser.newContext({ reducedMotion: "reduce" });
     const page = await context.newPage();
     await page.goto(address, { waitUntil: "networkidle" });
@@ -56,7 +57,10 @@ test("production SPA has no automatic axe violations and supports keyboard mutat
       /성공/,
     );
   } finally {
-    await browser.close();
-    await app.close();
+    try {
+      await browser?.close();
+    } finally {
+      await app.close();
+    }
   }
 });
