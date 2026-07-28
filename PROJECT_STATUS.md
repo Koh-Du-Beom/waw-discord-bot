@@ -35,6 +35,35 @@ accessibility, dependency audit, application-assets fixture, release-manager
 fixture, SSH controller fixture와 diff check가 모두 PASS했다. Production
 push와 deployment는 `0`이다.
 
+2026-07-29 GitHub repository에 등록된 SSH secret을 실제 배포
+전에 검증하기 위한 manual-only `workflow_dispatch` preflight를 추가했다.
+Workflow는 production deployment와 같은 concurrency group을 사용하고,
+private key와 pinned known-host를 runner temporary mode `0600` 파일로 검증한
+뒤 원격에서 `true`만 실행한다. Checkout, archive, SCP, sudo, service와 release
+mutation은 포함하지 않는다. Commit `bd28a05`, develop CI run `30374365190`은
+전체 PASS했고 preflight 자체의 수동 실행과 production push/deployment는
+각각 `0`이다.
+
+2026-07-29 GitHub repository 기본 브랜치를 승인된 branch model에 맞춰
+`main`에서 `develop`로 전환했다. 이에 따라 deploy와 preflight workflow가
+GitHub에 등록됐고, no-mutation SSH preflight run `30406139720`을 exact
+`bd28a05572ce5d10a5e080a22b9a27356db156eb`에서 실행해 PASS했다. 전용 private
+key 파싱, `waw.dubeom.com` pinned host-key lookup, `ubuntu` 계정의
+host-key-pinned SSH `true`와 runner temporary credential cleanup이 모두
+성공했다. Actions log에서 두 secret은 마스킹됐고 secret 값, private key와
+known-host 본문은 출력되지 않았다. Workflow의 `environment: production`
+선언으로 보호 규칙이 없는 environment deployment record `5648817399`가
+생성됐지만 checkout, archive, SCP, sudo, service와 release mutation은 `0`이다.
+`production` branch는 계속
+`30d6f1763195950a9f45710c8825a3a4f9aaa156`이며 보호되지 않은 production
+승격과 실제 deploy는 별도 owner activation gate로 남긴다.
+
+브랜치 정리 확인에서 GitHub 기본 브랜치와 로컬 작업 브랜치를 `develop`로
+맞췄다. 호환용 `main`, `develop`과 현재 작업 HEAD는 모두 exact
+`bd28a05572ce5d10a5e080a22b9a27356db156eb`이고 divergence는 `0/0`이다.
+별도 force push나 production 변경은 수행하지 않았으며, 이후 integration
+작업은 `develop`을 기준으로 한다.
+
 Owner가 ADR-0023을 승인해 Accepted로 전환하고 PLAN-0011을 Approved로
 작성했다. GitHub Actions CI와 production workflow, exact `GITHUB_SHA` archive,
 branch-bound OIDC, Lightsail temporary SSH certificate/host-key pinning,
