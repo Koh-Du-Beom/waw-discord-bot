@@ -4,6 +4,24 @@ This runbook implements PLAN-0004 Task 6. It does not authorize a production
 change. G5 owner approval is required before creating or changing the operator,
 opening an SSH session, installing credentials or assets, or changing services.
 
+## GitHub Actions delivery path
+
+ADR-0023 adds an automated delivery path without changing the systemd release
+model below. A reviewed `develop` to `production` merge triggers the production
+workflow. Only that workflow may request a branch-bound GitHub OIDC AWS role
+and exact-instance Lightsail temporary SSH access.
+
+The Actions path must identify the release by `GITHUB_SHA` and archive SHA-256,
+use the temporary Lightsail SSH private key, certificate and returned host keys
+with strict checking, serialize deployments, run the existing timer/service/
+health preflight, preserve drop-ins and credential sources, and restore the
+recorded units and previous release on failed activation. Migration, credential
+changes, Discord registration and feature activation remain separate gates.
+
+Repository variables contain only the non-secret role ARN and instance name.
+No AWS key, SSH key or application secret is stored in GitHub. The named human
+operator path remains the break-glass fallback.
+
 ## G5 approval record
 
 Record only non-secret metadata:

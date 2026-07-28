@@ -9,6 +9,14 @@
 
 ## Unreleased
 
+- Propose a protected `develop`/`production` promotion model and GitHub
+  Actions deployment to Lightsail using GitHub OIDC, an exact branch-bound AWS
+  role and temporary host-key-pinned Lightsail SSH access instead of long-lived
+  AWS or deploy-key secrets.
+- Add the approved CI and production workflows plus an allowlisted deployment
+  controller that hashes the exact commit archive, pins temporary Lightsail SSH
+  host keys, serializes activation, excludes migrations and restores the
+  previous immutable release and unit files on failed health.
 - Align the active dashboard with the accepted rolling-hour summary policy by
   removing the superseded daily quota DTO, API, persistence mutation, React UI,
   session feature advertisement and web feature flag while preserving the

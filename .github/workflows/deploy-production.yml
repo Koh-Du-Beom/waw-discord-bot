@@ -1,0 +1,41 @@
+name: Deploy production
+
+on:
+  push:
+    branches: [production]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: waw-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Validate deployment authority
+        env:
+          AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          LIGHTSAIL_INSTANCE_NAME: ${{ vars.LIGHTSAIL_INSTANCE_NAME }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/production
+          test -n "$AWS_DEPLOY_ROLE_ARN"
+          test -n "$LIGHTSAIL_INSTANCE_NAME"
+      - uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-northeast-2
+          role-session-name: waw-production-${{ github.run_id }}
+      - name: Deploy exact commit
+        env:
+          LIGHTSAIL_INSTANCE_NAME: ${{ vars.LIGHTSAIL_INSTANCE_NAME }}
+          WAW_RELEASE_COMMIT: ${{ github.sha }}
+        run: bash scripts/deploy-production-via-lightsail.sh

@@ -136,6 +136,14 @@
 
 ## 10. 배포 점검
 
+ADR-0023 이후 application source 승격은 보호된 `develop`→`production` PR과
+GitHub Actions를 기본 경로로 사용합니다. Workflow는 production ref에 묶인
+OIDC 임시 AWS role과 Lightsail temporary SSH certificate만 사용하며 장기
+AWS/SSH secret을 GitHub에 저장하지 않습니다. Migration, credential 변경,
+Discord 등록, provider/game flag activation과 journald vacuum은 application
+push로 승인되지 않습니다. 기존 named operator/CloudShell 경로는 break-glass
+rollback으로 유지합니다.
+
 - 테스트 통과
 - 승인된 ADR과 일치
 - 스키마 마이그레이션 검토

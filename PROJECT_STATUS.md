@@ -4,6 +4,28 @@
 
 ## 현재 단계
 
+Owner가 ADR-0023을 승인해 Accepted로 전환하고 PLAN-0011을 Approved로
+작성했다. GitHub Actions CI와 production workflow, exact `GITHUB_SHA` archive,
+branch-bound OIDC, Lightsail temporary SSH certificate/host-key pinning,
+serialized deployment, timer/service/health preflight와 failed-activation
+rollback controller를 local 구현했다. CI에는 AWS 권한이 없고 normal deploy는
+migration, credential과 feature activation을 호출하지 않는다. Workflow action
+세 개는 official tag가 가리키는 full commit SHA로 고정했다. 정적 deployment
+계약 5개, typecheck와 build가 PASS했다. Windows host에 Bash/WSL distribution이
+없어 shell syntax와 disposable Linux fixture는 GitHub Ubuntu CI에서 검증해야
+한다. GitHub branch/ruleset/variable과 AWS OIDC/IAM, production
+connection/change는 아직 `0`이다.
+
+2026-07-28 local Orca/CloudShell UI 의존성을 application 배포 critical path에서
+제거하기 위해 GitHub Actions→Lightsail 배포 대안을 조사했다. Private
+repository의 Environment required reviewer는 account plan에 따라 사용할 수
+없으므로 production 승인 자체는 보호된 `develop`→`production` PR merge로
+기록하고, Actions는 GitHub OIDC short-lived AWS role과 Lightsail temporary
+SSH key/certificate·host key pinning을 사용하는 Option을 권고했다. Static
+AWS/SSH secret과 production self-hosted runner는 채택하지 않았다.
+`ADR-0023-github-actions-lightsail-deployment.md`를 Proposed로 작성했고 이후
+owner가 권고안을 승인했다.
+
 2026-07-28 dashboard policy-alignment audit에서 Pretendard refresh와 redacted
 command log는 `main`에 있지만, ADR-0021이 폐기한 일일 quota DTO·API·DB
 mutation·React UI가 default-off gate 뒤에 남아 있음을 확인했다. 새 ADR 없이
