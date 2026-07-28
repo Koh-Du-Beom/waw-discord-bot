@@ -4,6 +4,18 @@
 
 ## 현재 단계
 
+2026-07-29 최초 GitHub Actions production deploy run `30408412211`이 exact
+candidate `464eb99542dfdc375cd75af1efcf29f1938e204e`를 stage·activate했지만
+web restart 직후 단일 loopback health probe가 connection refused로 실패했다.
+Controller는 이전 release `bb53cf2`와 unit을 자동 복구했고 SSH credential
+cleanup도 PASS했다. Rollback 담당자가 current=`bb53cf2`, web/bot active와
+loopback healthy를 확인했고 canonical health도 HTTP `200` healthy여서
+`ROLLBACK OBSERVED=PASS`로 판정했다. 재실행은 `0`이다. Restart와 probe 사이
+bounded readiness retry가 없는 startup race가 유력하지만 아직 확정하지
+않았으며, 수정과 delayed-start/timeout fixture 검증 전까지 정상 CD 경로는
+미검증 상태다. Production ref는 후보 commit을 가리키고 host active release는
+rollback된 `bb53cf2`임을 구분한다.
+
 2026-07-29 production 최초 승격과 실제 GitHub Actions CD 검증을 위한
 activation checklist를 작성하고 전체 본문을 한국어로 제공했다. Exact
 candidate/CI, unprotected production branch owner acceptance, no-mutation SSH
