@@ -1,6 +1,6 @@
 # 프로젝트 상태
 
-마지막 갱신일: 2026-07-28
+마지막 갱신일: 2026-07-29
 
 ## 현재 단계
 
@@ -24,6 +24,16 @@ audit(`0` vulnerabilities)가 PASS했다. 새 controller fixture도 Git Bash에�
 PASS했다. Windows host에는 WSL distribution과 실행 중인 Docker daemon이 없어
 POSIX permission을 요구하는 기존 application-assets/release-manager fixture의
 fresh Linux 실행은 아직 CI 검증으로 남아 있다.
+
+2026-07-29 develop CI에서 browser test의 Chromium launch 실패가 fixture HTTP
+server를 닫지 못해 job cancellation까지 process를 유지하던 cleanup 결함을
+수정했다. 이어서 unpinned `npx playwright`가 runtime
+`playwright-core@1.61.1`과 다른 browser revision을 설치하는 근본 원인을 확인해
+checked-in `playwright-core` CLI로 설치 경계를 고정했다. Develop run
+`30372905666`, commit `61f69ed`에서 test, typecheck, build, browser
+accessibility, dependency audit, application-assets fixture, release-manager
+fixture, SSH controller fixture와 diff check가 모두 PASS했다. Production
+push와 deployment는 `0`이다.
 
 Owner가 ADR-0023을 승인해 Accepted로 전환하고 PLAN-0011을 Approved로
 작성했다. GitHub Actions CI와 production workflow, exact `GITHUB_SHA` archive,

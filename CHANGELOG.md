@@ -16,6 +16,9 @@
   behind a separate gate.
 - Add a Linux deployment-controller fixture that exercises missing, empty,
   symlink and malformed SSH credential rejection without opening a connection.
+- Close the browser fixture server even when Chromium launch fails, and install
+  Linux Chromium through the pinned `playwright-core` CLI so CI browser and
+  runtime revisions cannot diverge.
 - Add the approved CI and production workflows plus an allowlisted deployment
   controller that hashes the exact commit archive, pins temporary Lightsail SSH
   host keys, serializes activation, excludes migrations and restores the
