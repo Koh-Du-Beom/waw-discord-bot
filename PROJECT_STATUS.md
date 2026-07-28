@@ -4,6 +4,178 @@
 
 ## 현재 단계
 
+실제 read-only 진단에서 최근 10분 메시지는 `0`, 최근 24시간 메시지는 `100`,
+본문이 있는 최근 24시간 메시지도 `100`으로 확인됐다. 따라서 기존
+`읽을 수 있는 대화 본문이 없습니다` 안내는 Discord 권한 문제가 아니라 빈
+선택 범위를 잘못 분류한 것이었다. 빈 범위는
+`summary_range_empty`와 `선택한 시간 범위에 요약할 대화가 없습니다. 더 긴
+범위를 선택해 주세요.`로, 메시지는 있으나 모든 본문이 비어 있는 경우만
+`summary_content_unavailable`로 구분했다. production release `bb53cf2`,
+archive SHA-256
+`bb53cf2c3477001fcf09cc13a3340f3d7db9be9eb9263c8723646c297f8122ed`,
+`207414` bytes를 활성화했다. 전체 회귀 `264` 중 pass `257`, explicit skip
+`7`, fail `0`, typecheck와 build가 PASS했다. Production build, Map fixture,
+Message Content intent, 새 안내문, bot/web restart, health/singleton과 flag
+검증이 모두 PASS했다. Provider call과 migration은 `0`, transient remainder는
+`0`이다. 등록 사용자는 메시지가 실제로 포함된 `/요약 최근 범위:최근 1시간`
+이상의 범위로 실제 provider smoke를 완료할 수 있다. 결과는
+`docs/operations/summary-empty-range-guidance-result-2026-07-28.md`에
+기록했다.
+
+실제 메시지가 있었지만 네 summary section이 모두 비어 나온 원인을 교정해
+production release `f08089f`, archive SHA-256
+`f08089fb57f3c0645c2f845648bcca05c53c3ed9a05cd480ae3ea4bfe02605b4`,
+`207305` bytes로 활성화했다. Discord Developer Portal의 기존 로그인 세션에서
+승인된 `Message Content Intent`만 활성화·저장했고 token이나 다른 intent는
+변경하지 않았다. Runtime도 `GatewayIntentBits.MessageContent`를 요청하도록
+교정했다. 수집 범위 안 메시지가 없거나 모든 본문이 비어 있으면 quota 예약과
+OpenAI 호출 전에 `summary_content_unavailable`로 중단한다. 전체 회귀 `263`
+중 pass `256`, explicit skip `7`, fail `0`, typecheck/build/audit/diff check가
+PASS했다. Production Map fixture와 intent 검증, activation, bot/web restart,
+health/singleton과 flag 검증도 PASS했다. Provider call과 migration은 `0`,
+transient remainder는 `0`이다. 등록 사용자는 `/요약 최근`을 다시 실행해
+실제 content smoke를 완료할 수 있다. 결과는
+`docs/operations/summary-message-content-activation-result-2026-07-28.md`에
+기록했다.
+
+실제 `/요약 최근` smoke가 `summary_range_incomplete`로 실패한 원인을
+수정해 production release `7cb6c24`, archive SHA-256
+`7cb6c248c97cb05629531856352b3de03df94176915f832576c2423e0a175b86`,
+`207004` bytes로 활성화했다. Discord `messages.fetch()`의 실제 반환값은
+Map 계열 `Collection`인데 어댑터가 iterable을 배열처럼 펼쳐 `[ID, message]`
+entry를 message로 검증한 것이 근본 원인이었다. `fetched.values()`로 교정하고
+테스트 fixture도 실제 Map 형태로 바꿨다. Production Map fixture, build,
+activation, bot/web restart, health/singleton과 flag 검증은 PASS했다.
+Provider call과 migration은 `0`, transient remainder는 `0`이다. 등록 사용자는
+동일한 `/요약 최근` 요청을 다시 실행해 실제 provider smoke를 완료할 수 있다.
+결과는
+`docs/operations/summary-history-collection-fix-result-2026-07-28.md`에
+기록했다.
+
+승인된 summary time UX release `f8bf082`, archive SHA-256
+`f8bf082e6524a07775222e97bd889a97a77bb87ab41d1a140e16b48374e58393`,
+`222679` bytes를 production에 활성화했다. `/요약 최근`은 10분, 30분,
+1/3/6/12/24시간 선택형 범위를 제공하고 `/요약 직접`은 한국 시간
+`20:00`, `어제 23:30`, `오늘 00:30` 형식을 받는다. 최대 범위는 24시간이며
+외부 처리 고지는 별도 섹션 대신 요약 도움말의 `※ 외부 처리 안내`로 배치했다.
+첫 등록 시도는 절대 디렉터리 ESM import가
+`ERR_UNSUPPORTED_DIR_IMPORT`로 실패해 자동 rollback됐다. 절대 경로
+`createRequire`로 교정한 재실행은 command schema/register/readback, release
+activation, bot/web restart, health/singleton과 flag 검증을 모두 통과했다.
+Provider call과 migration은 `0`, transient remainder는 `0`이다. 남은 확인은
+등록 사용자의 private `/도움말` read-back과 선택형 `/요약 최근` 1회
+bounded smoke다. 결과는
+`docs/operations/summary-time-ux-activation-result-2026-07-28.md`에 기록했다.
+
+OpenAI summary disclosure release `3a73844`, archive SHA-256
+`3a73844cc5b1cc8f016f9b1e65b00559abe23eb0788ce26517ab766a500a39f3`,
+`221481` bytes를 production에 활성화했다. Multi-file browser upload가 bundle만
+전달하고 key를 누락한 것이 반복 credential 실패의 원인이었고, key-free
+diagnostic으로 target ABSENT와 healthy default-off 상태를 증명한 뒤 key와
+bundle을 각각 업로드해 해결했다. Credential은 root:root `0600`, bot direct
+read DENY이며 모든 key transient를 제거했다. Runtime archive는 local과
+production에서 build/typecheck/disclosure PASS 후 stage됐다. Daemon reload
+`1`, bot/web restart 각 `1`, health/singleton PASS, failed unit `0`,
+provider/quota `1`, game observation `0`, provider call/migration `0`이다.
+Authenticated dashboard와 private `/도움말`에 승인된 고지가 포함됐다. 남은
+smoke는 등록 사용자의 `/도움말` read-back과 1회 bounded `/요약` 호출이다.
+결과는
+`docs/operations/openai-summary-disclosure-activation-result-2026-07-28.md`에
+기록했다.
+
+Owner가 실제 summary 외부 처리 고지 정책을 승인했다. OpenAI 공식 data-control
+문서를 재확인해 API input/output 기본 학습 제외, default abuse-monitoring
+content 최대 30일 보존 가능, Responses `store:false`가 application-state
+저장은 끄지만 abuse-monitoring 보존은 제거하지 않는 경계를 확정했다. Accepted
+ADR-0022와 product policy에 기록하고, 동일한 한국어 고지를 authenticated
+dashboard summary panel과 private `/도움말`에 추가했다. Local test `261`
+(pass `254`, explicit skip `7`, fail `0`), typecheck, build, production
+dependency audit와 diff check가 PASS했다. 아직 disclosure release는 production에
+활성화하지 않았고 Discord 공지, provider call과 production change는 `0`이다.
+등록 공지 채널 authority가 없으므로 임의 채널/수신자를 선택한 direct message는
+보내지 않았다. Owner가 전용 OpenAI project key를 발급·복사했고, one-time
+handoff로 production root-only `0600` credential source 설치를 완료했다.
+Bot-user direct read는 DENY, bot PID/start timestamp 불변, restart/provider
+call `0`, provider/quota flag `0`이며 CloudShell/local/remote key transient는
+제거됐다. 다음 작업은 disclosure release 활성화와 bot-only LoadCredential
+연결 뒤 provider/quota 동시 활성화 및 bounded smoke다.
+결과는
+`docs/operations/openai-summary-disclosure-and-key-handoff-2026-07-28.md`에
+기록했다.
+
+Exact candidate `f42e2b0`의 default-off production rollout이 PASS했다.
+Candidate bot/web unit을 설치하고 임시 provider-zero bridge를 같은 bounded
+change에서 제거한 뒤 release symlink를 활성화했다. Daemon reload `1`,
+bot/web restart 각 `1`, loopback health와 singleton PASS, failed unit `0`,
+summary provider/quota, game observation, dashboard quota flag 모두 `0`이다.
+Provider call과 DB migration은 `0`이며 controller/CloudShell/remote transient는
+제거됐다. 첫 controller 시도는 허용되지 않은 `180s` timeout을 로컬 SSH
+경계가 거부해 production command가 실행되지 않았고, 기존 허용값 `600s`로
+교정한 두 번째 실행만 production rollout을 수행했다. 결과는
+`docs/operations/default-off-f42e2b0-rollout-result-2026-07-28.md`에 기록했다.
+다음 product gate는 실제 Discord content를 외부 처리하기 전 등록 사용자
+고지와 provider/model/data-control 재확인, provider/quota flag 활성화 결정이다.
+
+OpenAI marker synthetic spike가 exact candidate `f42e2b0`에서 PASS했다.
+staging wrapper의 `umask 077`로 build output이 root 전용이 됐지만 release
+manager가 쓰기 권한만 제거해 bot-user compiled import가 실패한 것이
+근본 원인이었다. Secret-free release tree를 `a+rX`로 정규화한 뒤 모든 write
+bit를 제거하도록 manager를 수정했고, 비활성 staged release만 같은 방식으로
+수리했다. CloudShell Linux release-manager fixture는 `umask 077`에서도
+other-user read, directory traverse, writable file `0`을 통과했다. Bot-user
+import/validate와 systemd `LoadCredential` 심화 진단은
+network/request `0`, bootstrap/import/credential/stdout/stderr 각 `1`,
+cleanup PASS였다. 실제 invented Korean marker 요청은 정확히 `1`회, retry
+`0`, `2,895 ms`, input `444`, output `79`, total `523` tokens로 완료됐다.
+Strict schema와 omission/duplicate/wrong-section/unmarked/invented/unexpected
+모두 `0`/PASS다. Credential, transient, CloudShell/local handoff는 제거됐고
+네 flag `0`, activation/restart `0`을 유지했다. Owner의 전용 key usage
+1회 확인과 폐기도 완료됐다. Synthetic gate는 종료됐으며 남은 provider
+credential은 없다. 결과는
+`docs/operations/openai-summary-marker-spike-pass-2026-07-28.md`에 기록했다.
+
+두 번째 OpenAI marker synthetic spike는 exact staged candidate, health,
+credential metadata와 네 default-off flag preflight를 통과했지만 transient
+실행 단계에서 allowlisted runner metadata를 내기 전에 실패했다. 재시도하지
+않았고 production credential, CloudShell/controller artifact와 로컬
+clipboard를 정리했다. Owner 확인 결과 usage view의 1 request와 342 tokens는
+2026-07-27 기존 spike 기록이며 2026-07-28 이번 시도의 provider 사용 기록은
+`0`이다. 따라서 이번 실패는 provider 요청이 기록되기 전 transient
+실행/전달 경계로 좁혀졌다. 실패 시도에 사용한 key는 폐기됐고 새로 발급한
+key는 production에 설치하거나 사용하지 않았다. 실행기가 transient 시도 자체를
+`request_total=1`로 잘못 기록한 accounting 결함도 발견해, runner의 고정
+`observed_requests` 증거가 없으면 `UNKNOWN`을 기록하도록 수정했다. 실제
+provider request는 `0`이며 marker/schema 결과는 미확인이다.
+새 credentialed spike는 기존 no-retry 경계상 systemd-only 원인 수정과 Gate A
+재통과 전까지 금지한다. 다음 내부 작업은 network/API가 없는 systemd-only
+transient result-delivery 진단이다. 결과는
+`docs/operations/openai-summary-marker-spike-second-result-2026-07-28.md`에
+기록했다.
+
+Production access와 summary synthetic gate 선행조건을 복구했다. AWS
+access-details CLI option을 `--protocol ssh`로 교정하고 returned private
+key/certificate와 pinned host keys를 사용하는 단일 bounded SSH 경로에서
+client 17, URI parse, connection-only handshake를 PASS했다. 운영 URI의
+`uselibpqcompat=true`는 정확히 `true`일 때만 허용하고 `psql` 환경에는
+전달하지 않도록 고쳤다. 최소 권한 `waw_bot`은 의도적으로
+`app_schema_version` SELECT가 없으므로 권한을 넓히지 않고, 이미 같은 조회를
+수행하는 기존 backup role로 canonical aggregate를 정확히 1회 실행해 schema
+version `8`을 확인했다. DB URL, host, username, password와 provider error는
+출력하지 않았고 transient remainder는 `0`이다.
+
+Exact default-off bridge를 `root:root 0644`, approved SHA-256으로 재설치했다.
+Provider declaration/resolved count는 `zero=1, one=0, other=0`, daemon-reload
+`1`, service restart `0`, bot identity unchanged, health PASS, failed unit
+`0`이다. 이어 exact candidate `f42e2b0`, archive SHA-256
+`962bc2949a4fea4317060ec942a16986454ff67ac0136ef0d3d0669fbefe513b`,
+`640107` bytes를 `/opt/waw/releases/f42e2b0`에 stage했다. Build, migration
+`8`, writable file `0`, 네 feature flag `0`, activation/restart/migration
+`0`을 확인했고 전달 transient를 제거했다. OpenAI Platform API-key 페이지는
+login으로 redirect되어 로그인·암호·MFA·key 생성과 API 호출은 수행하지
+않았다. 결과는
+`docs/operations/openai-summary-production-preflight-and-stage-result-2026-07-28.md`
+에 기록했다. 다음 외부 gate는 owner의 OpenAI Platform 로그인이다.
+
 Owner가 exact candidate `f42e2b0`의 synthetic-only OpenAI spike 범위를
 승인했다. Read-only production preflight를 재개했지만 production host 명령
 실행 전 access 경계에서 중단했다. 첫 CloudShell access-details 응답의
@@ -125,6 +297,198 @@ Production transient와 CloudShell controller/access/archive remainder는 모두
 request는 `0`이며 production provider 선언은 원래 absent/default-off 상태로
 복구됐다. 다음 단계는 query를 수행하지 않는 별도 read-only failure-stage
 diagnostic 승인이다.
+
+직전 `schema_query` 실패를 query 없이 분리하는 승인 요청서를
+`docs/operations/openai-summary-schema-failure-readonly-diagnostic-approval-request-2026-07-28.md`
+로 작성했다. 요청 범위는 OS client 실행, 기존 credential의 메모리 내 URI
+parse, 정확히 1회의 connection-only libpq handshake와 runner의 SQL dispatch
+계약 정적 검증이다. 실제 SQL dispatch와 DB query는 `0`이며
+`sql_dispatch` label은 `mode=STATIC_ONLY`로만 판정한다. Fixed PASS/FAIL label
+밖의 credential, DB URL, host, username, provider/parser error와 row 내용은
+출력하지 않는다. Bridge 재설치, daemon-reload, service restart, production
+mutation과 OpenAI 호출도 제외했다. 이는 승인 요청서 작성만이며 production
+access, credential read, connection과 query는 수행하지 않았다.
+
+Owner가 no-query 진단을 승인해 exact commit의 schema runner hash를 다시
+검증하고 CloudShell controller를 한 번 제출했다. 그러나 허용된 관찰 시간 안에
+production stage label이나 prompt가 반환되지 않아 동일 진단을 재실행하지
+않았다. 별도 CloudShell terminal에서 exact controller/SSH process를 종료하고
+controller/access transient를 제거했으며 fixed 결과는 `query_total=0`,
+`cleanup=PASS transient_remainders=0`, `result=FAIL`이다.
+`client_execution`, `uri_parse`, `connection`, `sql_dispatch` label은 반환되지
+않아 모든 stage와 production remote 도달 여부가 `UNKNOWN`이다. SQL query,
+DB row read/mutation, bridge/daemon/service/release 변경과 OpenAI 호출은 `0`이다.
+결과는
+`docs/operations/openai-summary-schema-failure-readonly-diagnostic-result-2026-07-28.md`
+에 기록했다. 계속하려면 bounded SSH connect timeout과 controller/remote entry
+label을 포함한 새 no-query 실행 승인이 필요하다.
+
+후속 transport-only 승인 요청서를
+`docs/operations/openai-summary-transport-timeout-readonly-diagnostic-approval-request-2026-07-28.md`
+로 작성했다. 요청 범위는 controller start, 15초 bounded read-only access
+acquisition, `ConnectTimeout=10`/`ConnectionAttempts=1`/15초 전체 deadline의
+remote-command 없는 SSH master connection, 동일 connection을 재사용한 10초
+remote shell entry 확인뿐이다. Controller 전체 deadline은 45초이며 각 단계는
+fixed PASS/FAIL label만 출력한다. Production/application file과 credential,
+DB/OpenAI credential, DB connection/query, production mutation,
+bridge/systemd/service, staging/activation과 OpenAI 호출은 모두 `0`이다. 이는
+승인 요청서 작성만이며 access API, SSH와 production command는 실행하지 않았다.
+
+Owner가 exact transport-only 범위를 승인했다. Exact commit의 runner와
+controller hash를 재검증한 뒤 15초 bounded access acquisition,
+`ConnectTimeout=10`/`ConnectionAttempts=1`의 SSH master connection,
+control-socket check와 동일 connection의 10초 remote entry를 각각 한 번
+실행해 모두 PASS했다. Cleanup도
+`transient_remainders=0`, 최종 result는 PASS다. 이전 timeout의 원인은 AWS
+access, SSH 또는 production remote entry가 아니라 긴 command를 CloudShell
+terminal receiver에 제출하는 UI/input 경계였다. Application/DB/OpenAI
+credential, production file/config, DB connection/query, production mutation,
+bridge/systemd/service, staging/activation과 OpenAI 호출은 모두 `0`이다.
+결과는
+`docs/operations/openai-summary-transport-timeout-readonly-diagnostic-result-2026-07-28.md`
+에 기록했다. Schema failure-stage 조사는 이 transport 결과를 전제로 새 실행
+승인을 받아야 한다.
+
+Transport PASS를 선행조건으로 한 새 schema failure-stage no-query 재실행
+승인 요청서를
+`docs/operations/openai-summary-schema-failure-stage-second-execution-approval-request-2026-07-28.md`
+로 작성했다. 요청 범위는 click-before-Enter controller 제출, bounded
+transport, client major 17 확인, existing credential의 메모리 내 URI parse,
+정확히 1회의 `\quit` connection-only handshake와 `mode=STATIC_ONLY` dispatch
+계약 검증이다. SQL/query와 row read, transport/DB retry, production mutation,
+bridge/systemd/service, staging/activation, credential 생성·변경·복사와
+OpenAI 호출은 모두 `0`이다. 이는 Owner 검토용 문서 작성만이며 production/API,
+SSH, credential과 DB에는 접근하지 않았다.
+
+Owner가 새 schema failure-stage no-query 범위를 승인했다. Exact runner와
+controller hash를 검증하고 CloudShell textbox click 후 controller를 한 번
+실행했다. Controller start와 fresh read-only access acquisition은 PASS했지만
+bounded SSH master connection이 FAIL했다. Stop condition에 따라 retry 없이
+remote entry 전에 중단했고 cleanup은 `transient_remainders=0`으로 PASS했다.
+따라서 client execution, application credential read/parse, DB
+connection/query와 row read/mutation, production mutation, bridge/systemd/
+service/release 작업과 OpenAI 호출은 모두 `0`이다. 결과는
+`docs/operations/openai-summary-schema-failure-stage-second-execution-result-2026-07-28.md`
+에 기록했다. 계속하려면 직전 transport PASS invocation과 이번 SSH FAIL
+invocation의 차이를 local/static으로 비교하는 새 gate가 필요하다.
+
+두 historical controller의 local/static 비교를 완료했다. 두 승인 문서의 SSH
+계약은 returned private key/certificate/host keys only, strict host-key,
+`ConnectTimeout=10`, `ConnectionAttempts=1`, 15초 master connection과
+control-socket check로 동일하지만 실제 controller byte stream은 저장소에
+보존되지 않았고 서로 다른 SHA-256과 sanitized 결과만 남았다. 따라서 option
+order/path/destination/control-socket까지 byte-level로 비교하거나 controller
+drift, ephemeral access state와 external SSH 중 하나를 원인으로 확정할 수 없다.
+결과는
+`docs/operations/openai-summary-transport-invocation-static-comparison-2026-07-28.md`
+에 기록했다. 재발 방지를 위해 output-silent bounded SSH master 계약을
+`scripts/lib/bounded-lightsail-ssh.sh`로 단일화하고 synthetic fixture에서 exact
+ordered options, certificate/host-key/identity 경계, retry `0`, `ssh -O check`,
+bounded exit, destination binding, symlink 거부와 output silence를 검증했다.
+Asset SHA-256은
+`0245330bcbc4d94347df61181de968b9a265f6ab505e851e0ab4801a112765b1`,
+fixture SHA-256은
+`032115c7b1be9ef912538480890dc7d3d40900e57a1dbb67ff32a6e8a6ccf443`다.
+AWS, production, credential, DB와 OpenAI 접근은 `0`이다.
+
+같은 shared asset을 사용하는 새 no-query controller와 remote diagnostic을
+production-free로 고정했다. Controller는 library/remote/canonical schema
+runner hash를 시작 전에 검증하고, ephemeral access JSON을 private
+directory에서만 구조화하며, 한 번의 public-key/certificate SSH master,
+`ssh -O check`, `ProxyCommand=false`를 이용한 master-only remote execution과
+bounded exit를 수행한다. Remote는 PostgreSQL client 17, root-owned regular
+credential metadata, URI parse와 `psql -X --no-password --command '\quit'`
+connection-only handshake만 허용하고 SQL/query는 `0`으로 유지한다. Synthetic
+success와 SSH-start failure에서 access call `1`, SSH retry `0`, fixed label
+allowlist, secret/endpoint output 부재와 cleanup `0` remainder를 통과했다.
+Controller SHA-256은
+`b54243a4f1112af28cfce1698719e68ffa410d0b72392381f9588722034e7be8`,
+remote SHA-256은
+`e9b2a694b956af2f8a2812e1e5accf4367292823a7aedb2890de573bcedf54f3`,
+shared library SHA-256은
+`8e099f8210e9e0193ba2ae96e57fbbfad509c21385e7d85092d6e5cd8d8af23b`다.
+짧은 `TMPDIR=/tmp` 전체 회귀는
+`260 tests / 253 pass / 7 explicit skips / 0 fail`, typecheck, build,
+production application/provider/schema asset fixtures와 production dependency
+audit finding `0`, diff check를 통과했다. Shellcheck는 local toolchain에 없어
+Bash syntax와 executable fixtures로 검증했다. 실제 AWS/production/credential/
+DB/OpenAI 접근은 `0`이다. 다음 gate는 existing root-only DB credential read와
+connection-only handshake를 포함하므로 별도 owner 승인이 필요한 exact
+external 실행이다.
+
+Owner가 이 exact third execution을 승인했고 CloudShell에서 controller bundle
+hash와 pinned asset hash를 검증한 뒤 controller를 정확히 한 번 제출했다.
+Controller start는 PASS했지만 access acquisition이 FAIL해 첫 stop condition에서
+재시도 없이 종료했다. 이 고정 label은 access API 실행 실패와 access response
+검증 실패를 구분하지 않고 원문 provider output도 보존하지 않으므로 원인은
+미확정이다. SSH connection/remote entry, application credential
+metadata/read/parse, DB connection/query와 row read/mutation, production
+file/config/systemd/service/release mutation과 OpenAI 호출은 모두 `0`이다.
+Controller private transient cleanup은 즉시 PASS했다. Interactive CloudShell
+wrapper의 `EXIT` trap은 terminal이 열린 동안 실행되지 않아 outer bundle과
+run directory가 처음에는 남았지만, exact user-owned 두 항목만 cleanup-only로
+삭제하고 최종 `transient_remainders=0`을 재검증했다. 결과는
+`docs/operations/openai-summary-schema-failure-stage-third-execution-result-2026-07-28.md`
+에 기록했다. 이 controller는 재실행하지 않으며 다음 gate는 API 실행과 response
+schema 검증을 분리하는 더 작은 access-only controller다.
+
+그 access-only controller를
+`scripts/run-lightsail-access-response-diagnostic.sh`로 구현했다. 15초 bounded
+access API exit를 `access_api`, 필수 response field의 type/shape 검증을
+`access_response`로 분리하고 원문 provider/parser output과 access value는
+출력하지 않는다. SSH, production command, application credential, DB와
+OpenAI 경로는 존재하지 않는다. Synthetic success, API failure와 invalid
+response fixture에서 각각 access call `1`, retry `0`, fixed label, 원문 오류
+비노출과 cleanup remainder `0`을 통과했다. Controller SHA-256은
+`77ffa2c53ec88ebcd3cfc201ce62a9fdf94fbd5fe83f31204d3fe93144080525`,
+fixture SHA-256은
+`91487a1e421bbf9e17144d774c6a1f28ccbc79912f9279a1ed04cbc5b2dbb855`다.
+실제 AWS/API/production/credential/DB/OpenAI 접근은 추가로 수행하지 않았다.
+새 external access API 1회 실행 범위는
+`docs/operations/openai-summary-lightsail-access-response-diagnostic-approval-request-2026-07-28.md`
+에 고정했으며 별도 owner 승인 전에는 실행하지 않는다.
+
+Owner가 access-only 범위와 현재 AWS 사용을 승인했다. Exact bundle과 controller
+hash를 CloudShell에서 검증하고 controller를 정확히 한 번 실행했으며
+`controller_start=PASS`, `access_api=FAIL`에서 zero-retry stop condition으로
+중단했다. Response validation, SSH/production command, application credential,
+DB connection/query, production mutation과 OpenAI 호출은 모두 `0`이다.
+Controller와 outer CloudShell/local transient cleanup은
+`transient_remainders=0`으로 PASS했다. Cleanup 뒤 값과 응답을 모두 버리는
+별도 session-liveness API 1회는 PASS했으므로 현재 CloudShell AWS session
+자체는 유효하다. 뒤이어 제안한 일반 Lightsail read command는 terminal
+receiver에 제출되지 않아 외부 호출 `0`이며 해당 terminal을 닫아 폐기했다.
+따라서 새 IAM user/key/token은 필요하지 않지만, provider error를 출력·보존하지
+않고 retry도 금지한 현재 증거만으로 action/target/region/CLI execution 경계
+중 어느 원인인지는 확정할 수 없다. 결과는
+`docs/operations/openai-summary-lightsail-access-response-diagnostic-result-2026-07-28.md`
+에 기록했으며 이 controller는 재실행하지 않는다.
+
+후속 output-silent Lightsail read-boundary controller와 fixture를 추가했다.
+Regional instance list와 exact-target read를 각각 최대 1회, 15초로 제한하고
+access-detail, SSH, production command, credential, DB와 OpenAI 경로는 포함하지
+않는다. Success와 service API/response, target API/response 실패 fixture에서
+stop-first, retry `0`, fixed label만 출력, provider 원문과 target 비노출을
+통과했다. Controller SHA-256은
+`4af081a2ac09015c3d5a9e222a4bba78686fc5af3b382c4662c8f8c907c65c8e`,
+fixture SHA-256은
+`4385b5aa9374eb5e3bf9a9b706529fca15532e78dd85e791d99dc69e2df90385`다.
+CloudShell에서 exact archive와 controller hash를 검증하고 controller를 한 번
+실행했으며 session/service response/target response와 cleanup이 모두 PASS했다.
+외부 호출은 regional list `1`, exact-target read `1`, retry `0`이고
+access-detail/SSH/production/credential/DB/OpenAI 호출과 mutation은 `0`이다.
+CloudShell/local transient는 모두 제거했다. 따라서 기존 session, region,
+Lightsail service와 exact target 조회는 정상이며 미해결 실패는 access-detail
+action 또는 그 action-specific 실행 경계로 좁혀졌다. 새 IAM user/key/root
+credential은 필요하지 않다. 결과는
+`docs/operations/openai-summary-lightsail-read-boundary-diagnostic-result-2026-07-28.md`
+에 기록했으며 failed access-only controller는 재실행하지 않는다.
+Fresh verification은 Bash syntax, read-boundary/access-response/bounded
+SSH/schema controller·remote fixture, application integration/production
+application/provider default-off/production schema asset fixture를 모두
+통과했다. 전체 회귀는 `260 tests / 253 pass / 7 explicit external skips /
+0 fail`, typecheck, build, production operator policy, dependency audit
+finding `0`과 diff check를 통과했다.
 
 OpenAI summary synthetic spike의 marker oracle 불일치를 수정했다. Adapter
 prompt와 합성 evaluator가 marker 원문 보존, 정확히 1회 출력, CORE→
@@ -720,6 +1084,25 @@ PLAN-0001 Task 1~5 local foundation 완료; PLAN-0002 Task 1~3 production backup
 - 최초 production journal vacuum은 oldest/newest UTC와 usage를 재확인한 별도 owner-approved maintenance window 대기
 
 ## 다음 작업
+
+2026-07-28 현재 제품 완성 critical path는 다음 순서다. 먼저 access-detail
+action 또는 대체 production channel 문제를 해결하고 summary read-only
+preflight를 통과한다. 이어 synthetic-only OpenAI marker spike, default-off
+release migration·rollout, 실제 summary disclosure/credential/activation과
+Discord smoke를 각각 별도 gate로 수행한다. 그 뒤 Riot production capability,
+consented Riot/Go Live observation, Gate C/D dashboard smoke를 완료하고 clean
+Linux exact-archive, canonical HTTPS/OAuth/authorization/singleton/monitoring,
+backup/restore applicability, redaction과 rollback을 최종 검수한다. Owner의
+offline recovery identity, account recovery, domain renewal과 reissuable
+credential 확인도 완료 기준에 포함된다. 최초 journald vacuum은 제품 완성과
+독립된 maintenance gate다.
+
+이번 권장 작업인 Lightsail read-boundary 진단은 PASS해 일반 AWS/Lightsail
+권한 문제가 아님을 확인했다. 다음 bounded 작업은 access-detail 호출을
+재시도하지 않고, 기존 정책을 만족하는 대체 production read-only channel을
+선정·고정하여 실패한 두 preflight correction assertion만 검증하는 것이다.
+이 단계가 credential/access material 읽기나 production 접속을 요구하면 exact
+외부 실행 승인 gate에서 멈춘다.
 
 Task 5와 G4는 완료됐다. G5 전 production operator 최소 권한 policy
 template·renderer·local deny contract와 Task 6 runbook도 준비됐다. Exact instance
