@@ -1,82 +1,61 @@
 # PLAN-0011: GitHub Actions Lightsail deployment
 
 - Status: Approved
-- Related ADR: ADR-0023
+- Related ADR: ADR-0024
 - Owner: Product owner
 
 ## Success criteria
 
-- Pull requests and `develop` pushes run repository tests, typecheck, build,
-  production asset checks and dependency audit without AWS authority.
-- Only a `production` push job may request `id-token: write`.
-- AWS OIDC trust binds the exact repository and production authority.
-- The deploy job obtains temporary Lightsail access, pins returned host keys,
-  stages the exact `GITHUB_SHA` archive and never logs access material.
-- One deployment runs at a time. Failed activation restores the recorded
-  previous release and reports unhealthy rather than success.
-- Migration, application secret changes and feature activation remain absent
-  from the normal deployment path.
-- `develop` and `production` are protected against direct/force pushes, with
-  reviewed PR promotion to production.
+- Pull requests and `develop` pushes run tests, typecheck, build, production
+  asset checks and dependency audit without deployment authority.
+- Only a `production` push can read the two repository SSH secrets.
+- The workflow deploys the exact `GITHUB_SHA`, pins the SSH host key, runs one
+  deployment at a time and restores the previous release on failed health.
+- Normal deployment excludes migrations, application secret changes and
+  feature activation.
+- Secret registration and server key installation remain a separate,
+  reversible activation step.
 
-## Task 1: workflow and controller contracts
+## Task 1: secret-backed workflow and controller
 
-- Add CI and production workflow YAML.
-- Add an output-allowlisted local controller that consumes temporary access
-  files and an exact archive/hash.
-- Pin every third-party action to a full commit SHA.
-- Add static tests for triggers, permissions, concurrency, branch authority,
-  forbidden secrets/logging and migration absence.
-- Do not create GitHub branches, rulesets, variables, AWS resources or
-  production connections.
+- Remove OIDC, AWS permissions/actions and access-detail parsing.
+- Accept `LIGHTSAIL_HOST`/`LIGHTSAIL_USER` variables plus
+  `LIGHTSAIL_DEPLOY_SSH_KEY`/`LIGHTSAIL_SSH_KNOWN_HOSTS` secrets.
+- Write secret values only to runner-temporary mode-`0600` files.
+- Validate the private key and exact known-host entry before SSH.
+- Preserve exact archive hashing, bounded SSH, remote cleanup and rollback.
 
-## Task 2: disposable Linux deployment fixture
+## Task 2: CI and disposable validation
 
-- Reuse the production release manager against a temporary filesystem.
-- Exercise stage, already-staged idempotency, activation, failed-health
-  rollback, current/previous target integrity and cleanup.
-- Use synthetic SSH/access files only; no AWS or production host.
+- Keep static workflow contracts for triggers, permissions, concurrency,
+  secret boundaries, host-key pinning and migration absence.
+- Exercise missing, empty, symlink and malformed deployment SSH input through
+  the controller without opening a network connection.
+- Run the full repository suite, typecheck, build, browser check, audit and
+  Linux release fixtures.
+- Keep tool-dependent PostgreSQL integration out of the generic Ubuntu job via
+  the repository's explicit skip flag; PostgreSQL integration remains a
+  separate toolchain-required verification scope.
 
-## Task 3: GitHub control plane
+## Task 3: external activation gate
 
-- Create `develop` at the reviewed candidate and `production` at the recorded
-  pre-candidate baseline.
-- Set `develop` as default only after workflow paths and documentation are
-  valid on both branches.
-- Configure rulesets for PR-only changes, required CI, force-push/deletion
-  denial and production authority.
-- Configure non-secret repository/environment variables only after exact
-  target metadata is read.
-
-## Task 4: AWS OIDC control plane
-
-- Observe the repository's actual OIDC subject format before creating trust.
-- Create or reuse the GitHub OIDC provider.
-- Create one CI deployment role with exact subject/audience trust and minimum
-  Lightsail read/access-detail permissions for the tagged production instance.
-- Simulate exact allow and cross-repository/ref/region/action denial.
-- Do not create access keys or persistent SSH keys.
-
-## Task 5: dry run and first promotion
-
-- Run a no-production-mutation workflow that obtains and cleans temporary
-  access material, verifies target/host keys and runs metadata-only preflight.
-- Open the first `develop` to `production` PR for candidate
-  `bc8067591204c4122b13f92fba4115757ec58c5d`.
-- Record exact archive SHA, current/previous release and rollback criteria.
-- Merge and activate only after the dry run and owner approval gates pass.
+- Generate a dedicated deploy key; never reuse a human operator key.
+- Independently read and pin the exact production SSH host keys.
+- Install only the public key for the selected deployment account.
+- Register the two secrets and two variables without printing their values.
+- Perform a metadata-only/no-mutation SSH preflight.
+- Do not merge/push the candidate into `production` until the owner accepts the
+  lack of branch protection or upgrades repository protection.
 
 ## Rollback
 
-- Disable the deployment workflow and revoke the AWS role trust.
-- Keep production branch protection and use the existing named human operator
-  runbook.
-- On host failure, reactivate only the recorded previous immutable release;
-  never reverse compatible schema automatically.
+- Disable the workflow and remove the host public key before deleting secrets.
+- Retain the existing named human operator path.
+- On activation failure, restore the recorded previous immutable release and
+  unit files. Never reverse compatible schema automatically.
 
 ## Documentation
 
-- Update deployment/security policy and application deployment runbook.
-- Record GitHub ruleset IDs, OIDC role kind, exact workflow run, release/hash,
-  health and rollback results without account IDs, instance identifiers,
-  credentials or provider response bodies.
+- Record only secret names, key fingerprints, workflow run IDs, release/hash,
+  health and rollback results. Never record private keys, host-key source
+  response bodies, application credentials or provider payloads.

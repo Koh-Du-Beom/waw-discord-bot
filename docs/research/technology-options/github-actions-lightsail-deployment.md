@@ -145,3 +145,36 @@ the runtime evidence.
 These require metadata-only inspection and explicit external change approval.
 No workflow should contain guessed account IDs, instance identifiers or role
 ARNs.
+
+## Owner-directed simplification (2026-07-28)
+
+After ADR-0023 implementation, the owner preferred direct GitHub Secret
+injection because OIDC, IAM trust and temporary Lightsail access added
+unnecessary control-plane complexity for one host.
+
+GitHub documents that repository secrets are encrypted before reaching GitHub,
+are available to a workflow only when explicitly referenced, and should be
+passed as inputs or environment variables rather than exposed on command
+lines. GitHub also documents that private-repository environment secrets and
+required reviewers are plan-dependent and unavailable in the current GitHub
+Free/private combination.
+
+Revised option:
+
+- dedicated, independently rotatable SSH private key in
+  `LIGHTSAIL_DEPLOY_SSH_KEY`;
+- pinned known-host records in `LIGHTSAIL_SSH_KNOWN_HOSTS`;
+- non-secret host/user repository variables;
+- no AWS credential, role, OIDC token or Lightsail access-detail call;
+- unchanged immutable archive, health and rollback contract.
+
+This accepts a larger credential lifetime/blast radius in exchange for a much
+smaller deployment control plane. It is acceptable only with a dedicated key,
+strict host-key checking, runner-temporary files, no secret output, explicit
+rotation/revocation, and a separate activation gate.
+
+Additional primary sources:
+
+- <https://docs.github.com/en/actions/concepts/security/secrets>
+- <https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets>
+- <https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments>

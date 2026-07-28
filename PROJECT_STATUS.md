@@ -4,6 +4,27 @@
 
 ## 현재 단계
 
+Owner가 단일 Lightsail host 배포에는 OIDC/AWS IAM control plane이 과도하다고
+판단해 GitHub repository secret 기반 전용 SSH key 주입을 승인했다. ADR-0024가
+ADR-0023을 대체하며 workflow의 AWS/OIDC 권한과 temporary access-detail 호출을
+제거한다. Exact `GITHUB_SHA` archive, pinned host key, serialization, preflight,
+health와 previous-release rollback은 유지한다. 현재 GitHub Free/private
+repository에서는 branch protection과 environment approval을 강제할 수 없으므로
+server public-key 설치, repository secret 등록과 첫 production promotion은
+별도 activation gate로 남긴다.
+직전 develop CI는 tool-dependent PostgreSQL integration 파일을 일부만 제외한
+상태에서 마지막 `web/app.test.tsx` worker가 pending으로 취소됐다. Generic
+Ubuntu CI에는 기존 explicit `WAW_SKIP_POSTGRES_INTEGRATION=1` 경계를 적용하고
+PostgreSQL integration은 별도 toolchain-required scope로 유지한다.
+ADR-0024 전환 review에서 문서가 약속한 synthetic SSH input rejection fixture가
+정적 source 검사만으로 남아 있던 간극을 발견해 실제 controller fixture와 CI
+step을 추가했다. Local generic suite는 `247`개 중 pass `246`, explicit skip
+`1`, fail `0`; typecheck, build, browser accessibility와 production dependency
+audit(`0` vulnerabilities)가 PASS했다. 새 controller fixture도 Git Bash에서
+PASS했다. Windows host에는 WSL distribution과 실행 중인 Docker daemon이 없어
+POSIX permission을 요구하는 기존 application-assets/release-manager fixture의
+fresh Linux 실행은 아직 CI 검증으로 남아 있다.
+
 Owner가 ADR-0023을 승인해 Accepted로 전환하고 PLAN-0011을 Approved로
 작성했다. GitHub Actions CI와 production workflow, exact `GITHUB_SHA` archive,
 branch-bound OIDC, Lightsail temporary SSH certificate/host-key pinning,

@@ -1,6 +1,6 @@
 # ADR-0023: GitHub Actions를 통한 Lightsail application 배포
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-07-28
 - Owners: Product owner
 - Related requirements: OPS-001 through OPS-004, SEC-007 through SEC-010,
@@ -8,7 +8,7 @@
 - Related research:
   `docs/research/technology-options/github-actions-lightsail-deployment.md`
 - Supersedes: ADR-0011의 수동 application release 전달 경로만
-- Superseded by:
+- Superseded by: ADR-0024
 
 ## Context
 

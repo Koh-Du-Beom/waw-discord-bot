@@ -5,18 +5,25 @@ set -Eeuo pipefail
   { echo deployment_ref_denied >&2; exit 1; }
 [[ "${WAW_RELEASE_COMMIT:-}" =~ ^[a-f0-9]{40}$ ]] ||
   { echo invalid_release_commit >&2; exit 1; }
-[[ "${LIGHTSAIL_INSTANCE_NAME:-}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,253}$ ]] ||
-  { echo invalid_lightsail_instance_name >&2; exit 1; }
-[[ "${AWS_REGION:-ap-northeast-2}" == "ap-northeast-2" ]] ||
-  { echo invalid_aws_region >&2; exit 1; }
-command -v aws >/dev/null && command -v jq >/dev/null &&
-  command -v ssh >/dev/null && command -v scp >/dev/null ||
+[[ "${LIGHTSAIL_HOST:-}" =~ ^([A-Za-z0-9][A-Za-z0-9.-]{0,252}|[0-9a-fA-F:]+)$ ]] ||
+  { echo invalid_lightsail_host >&2; exit 1; }
+[[ "${LIGHTSAIL_USER:-}" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] ||
+  { echo invalid_lightsail_user >&2; exit 1; }
+[[ -f "${WAW_DEPLOY_SSH_KEY_FILE:-}" &&
+   ! -L "${WAW_DEPLOY_SSH_KEY_FILE:-}" &&
+   -s "${WAW_DEPLOY_SSH_KEY_FILE:-}" ]] ||
+  { echo invalid_deploy_key_file >&2; exit 1; }
+[[ -f "${WAW_DEPLOY_KNOWN_HOSTS_FILE:-}" &&
+   ! -L "${WAW_DEPLOY_KNOWN_HOSTS_FILE:-}" &&
+   -s "${WAW_DEPLOY_KNOWN_HOSTS_FILE:-}" ]] ||
+  { echo invalid_known_hosts_file >&2; exit 1; }
+command -v git >/dev/null && command -v sha256sum >/dev/null &&
+  command -v ssh >/dev/null && command -v scp >/dev/null &&
+  command -v ssh-keygen >/dev/null ||
   { echo deployment_tool_missing >&2; exit 1; }
 
 run_root="$(mktemp -d)"
-access_json="$run_root/access.json"
 private_key="$run_root/id"
-certificate="$run_root/id-cert.pub"
 known_hosts="$run_root/known_hosts"
 archive="$run_root/release.tar.gz"
 remote_script="$run_root/remote.sh"
@@ -39,31 +46,23 @@ archive_sha="$(sha256sum "$archive" | awk '{print $1}')"
 release_id="${WAW_RELEASE_COMMIT:0:12}"
 cp scripts/deploy-production-release-remote.sh "$remote_script"
 cp deploy/manage-production-release.sh "$remote_manager"
-
-aws lightsail get-instance-access-details \
-  --region ap-northeast-2 \
-  --instance-name "$LIGHTSAIL_INSTANCE_NAME" \
-  --protocol-name SSH \
-  --output json >"$access_json"
-
-host="$(jq -er '.accessDetails.ipAddress' "$access_json")"
-user="$(jq -er '.accessDetails.username' "$access_json")"
-jq -er '.accessDetails.privateKey' "$access_json" >"$private_key"
-jq -er '.accessDetails.certKey' "$access_json" >"$certificate"
-jq -er --arg host "$host" \
-  '.accessDetails.hostKeys[] | "\($host) \(.algorithm) \(.publicKey)"' \
-  "$access_json" >"$known_hosts"
-[[ -s "$private_key" && -s "$certificate" && -s "$known_hosts" ]] ||
-  { echo incomplete_temporary_access >&2; exit 1; }
-chmod 600 "$private_key" "$certificate" "$known_hosts"
+cp "$WAW_DEPLOY_SSH_KEY_FILE" "$private_key"
+cp "$WAW_DEPLOY_KNOWN_HOSTS_FILE" "$known_hosts"
+chmod 600 "$private_key" "$known_hosts"
+ssh-keygen -y -f "$private_key" >/dev/null ||
+  { echo invalid_deploy_key >&2; exit 1; }
+ssh-keygen -F "$LIGHTSAIL_HOST" -f "$known_hosts" >/dev/null ||
+  { echo lightsail_host_key_missing >&2; exit 1; }
+host="$LIGHTSAIL_HOST"
+user="$LIGHTSAIL_USER"
 
 ssh_options=(
   -o BatchMode=yes
   -o IdentitiesOnly=yes
   -o StrictHostKeyChecking=yes
   -o "UserKnownHostsFile=$known_hosts"
-  -o "CertificateFile=$certificate"
   -o ConnectTimeout=15
+  -o ConnectionAttempts=1
   -i "$private_key"
 )
 

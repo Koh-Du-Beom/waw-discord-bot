@@ -6,7 +6,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: waw-production
@@ -23,19 +22,33 @@ jobs:
           persist-credentials: false
       - name: Validate deployment authority
         env:
-          AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          LIGHTSAIL_INSTANCE_NAME: ${{ vars.LIGHTSAIL_INSTANCE_NAME }}
+          LIGHTSAIL_HOST: ${{ vars.LIGHTSAIL_HOST }}
+          LIGHTSAIL_USER: ${{ vars.LIGHTSAIL_USER }}
         run: |
           test "$GITHUB_REF" = refs/heads/production
-          test -n "$AWS_DEPLOY_ROLE_ARN"
-          test -n "$LIGHTSAIL_INSTANCE_NAME"
-      - uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5
-        with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ap-northeast-2
-          role-session-name: waw-production-${{ github.run_id }}
+          test -n "$LIGHTSAIL_HOST"
+          test -n "$LIGHTSAIL_USER"
+      - name: Prepare SSH credentials
+        env:
+          LIGHTSAIL_DEPLOY_SSH_KEY: ${{ secrets.LIGHTSAIL_DEPLOY_SSH_KEY }}
+          LIGHTSAIL_SSH_KNOWN_HOSTS: ${{ secrets.LIGHTSAIL_SSH_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          test -n "$LIGHTSAIL_DEPLOY_SSH_KEY"
+          test -n "$LIGHTSAIL_SSH_KNOWN_HOSTS"
+          printf '%s\n' "$LIGHTSAIL_DEPLOY_SSH_KEY" > "$RUNNER_TEMP/waw-deploy-key"
+          printf '%s\n' "$LIGHTSAIL_SSH_KNOWN_HOSTS" > "$RUNNER_TEMP/waw-known-hosts"
+          chmod 600 "$RUNNER_TEMP/waw-deploy-key" "$RUNNER_TEMP/waw-known-hosts"
+          ssh-keygen -y -f "$RUNNER_TEMP/waw-deploy-key" >/dev/null
       - name: Deploy exact commit
         env:
-          LIGHTSAIL_INSTANCE_NAME: ${{ vars.LIGHTSAIL_INSTANCE_NAME }}
+          LIGHTSAIL_HOST: ${{ vars.LIGHTSAIL_HOST }}
+          LIGHTSAIL_USER: ${{ vars.LIGHTSAIL_USER }}
+          WAW_DEPLOY_SSH_KEY_FILE: ${{ runner.temp }}/waw-deploy-key
+          WAW_DEPLOY_KNOWN_HOSTS_FILE: ${{ runner.temp }}/waw-known-hosts
           WAW_RELEASE_COMMIT: ${{ github.sha }}
         run: bash scripts/deploy-production-via-lightsail.sh
+      - name: Remove SSH credentials
+        if: ${{ always() }}
+        run: rm -f -- "$RUNNER_TEMP/waw-deploy-key" "$RUNNER_TEMP/waw-known-hosts"

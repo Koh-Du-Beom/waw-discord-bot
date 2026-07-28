@@ -9,10 +9,13 @@
 
 ## Unreleased
 
-- Propose a protected `develop`/`production` promotion model and GitHub
-  Actions deployment to Lightsail using GitHub OIDC, an exact branch-bound AWS
-  role and temporary host-key-pinned Lightsail SSH access instead of long-lived
-  AWS or deploy-key secrets.
+- Replace the planned GitHub OIDC/AWS deployment control plane with an
+  owner-approved dedicated repository-secret SSH key and integrity-sensitive
+  pinned known-host secret; retain exact-commit delivery and rollback while
+  keeping external key installation and unprotected production activation
+  behind a separate gate.
+- Add a Linux deployment-controller fixture that exercises missing, empty,
+  symlink and malformed SSH credential rejection without opening a connection.
 - Add the approved CI and production workflows plus an allowlisted deployment
   controller that hashes the exact commit archive, pins temporary Lightsail SSH
   host keys, serializes activation, excludes migrations and restores the
