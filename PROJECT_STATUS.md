@@ -86,6 +86,23 @@ wrong client major, query failure/multiline/wrong version 거부를 통과했다
 credential, DB, daemon-reload, restart와 OpenAI는 사용하지 않았다. 다음
 gate는 exact production 교정 change set의 별도 owner 승인이다.
 
+구현 검토 중 첫 candidate `7fd13ed35ae7cff8c4ab9727ee0131a34b9373e3`
+의 Linux Gate A가 provider rollback fixture에서 실패했다. Fixture가 로그를
+비운 뒤 발생한 daemon-reload 1회를 3회로 잘못 기대했고 macOS 기본 Bash가
+마지막 false assertion을 후속 성공 echo 때문에 은폐한 것이 원인이었다.
+기대값만 1로 교정한 exact candidate는
+`78c8a1db6d96e7cb7cfa3d267ff4f5cfebab0fd5`, archive SHA-256
+`fdae4c072f0e4ceaec0e909d421f5981c35f330661bc06072dade6ed5af66dfb`,
+`656396` bytes다. 이 exact archive는 local Gate A와 CloudShell Linux Gate A를
+통과했다. Linux 결과는 Node `v24.18.0`, 전체 회귀
+`260 tests / 253 pass / 7 explicit skips / 0 fail`, typecheck, build,
+provider/schema fake fixtures, production asset test, production dependency
+audit, 8 migration byte 일치와 writable file `0`이다. CloudShell에 PostgreSQL
+도구가 없어 real-PostgreSQL fixture만 명시적으로 skip했으며 동일 fixture는
+local disposable PostgreSQL 17.10에서 통과했다. CloudShell/local transient는
+제거했다. Production host, credential, DB query, daemon-reload와 OpenAI는
+사용하지 않았다.
+
 OpenAI summary synthetic spike의 marker oracle 불일치를 수정했다. Adapter
 prompt와 합성 evaluator가 marker 원문 보존, 정확히 1회 출력, CORE→
 `coreDiscussion`, DECISION→`decisions`, ACTION→`actionItems`,
