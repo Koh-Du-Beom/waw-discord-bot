@@ -97,5 +97,5 @@ fi
 
 "$SCRIPT_DIR/manage-summary-provider-default-off.sh" rollback |
   grep -qx provider_default_off_already_absent
-[[ "$(grep -c '^daemon-reload$' "$LOG")" -eq 3 ]]
+[[ "$(grep -c '^daemon-reload$' "$LOG")" -eq 1 ]]
 echo summary_provider_default_off_fixture_passed
