@@ -13,8 +13,11 @@ count만 반환하며 각 실패 조건의 fake 회귀가 통과했다. 짧은 m
 전체 회귀는 `260 tests / 253 pass / 7 explicit external skips / 0 fail`이고
 typecheck, build, production dependency audit와 diff check가 통과했다. 실제
 OpenAI 호출, credential 사용, production mutation과 provider/quota/game
-observation 활성화는 수행하지 않았다. 새 immutable candidate와 exact archive를
-고정한 뒤 CloudShell Gate A가 다음 단계다.
+observation 활성화는 수행하지 않았다. 새 immutable candidate
+`f42e2b0a1f6066e3ffbec610a5322433987521ad`, exact archive SHA-256
+`962bc2949a4fea4317060ec942a16986454ff67ac0136ef0d3d0669fbefe513b`,
+`640107` bytes를 고정했으며 CloudShell Linux exact archive Gate A가 다음
+단계다.
 
 OpenAI summary adapter를 production 비활성 상태로 bot assembly에 조립했다.
 고정 snapshot `gpt-5.4-mini-2026-03-17`, Responses API `store:false`,
