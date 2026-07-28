@@ -140,6 +140,16 @@ driver treats `require` as certificate-chain verification and rejects the
 pooler's certificate chain. Never print the rendered connection string while
 validating these parameters.
 
+Do not use the `waw_bot` or `waw_web` application credential to read
+`app_schema_version`; the least-privilege migrations intentionally grant
+neither capability role that table. A release preflight that needs the
+canonical version must reuse the existing backup-role boundary, whose approved
+job already reads the version. Source its root-owned backup environment only
+inside the bounded root process, immediately unset AWS and non-PostgreSQL
+values, discard provider errors, execute the aggregate exactly once and emit
+only the numeric expected version/fixed stage labels. This does not authorize
+changing grants or retaining any credential value.
+
 Use `deploy/manage-production-release.sh stage` with the approved source archive
 SHA-256. `activate` changes only the immutable symlink; service restart and
 loopback `/health` verification remain explicit bounded runbook steps.

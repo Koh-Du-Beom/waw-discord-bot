@@ -25,6 +25,7 @@ mkdir -p "$ROOT/source/migrations"
 printf 'select 1;\n' >"$ROOT/source/migrations/0001_fixture.sql"
 tar -czf "$ROOT/source.tgz" -C "$ROOT/source" .
 source_sha="$(sha256sum "$ROOT/source.tgz" | awk '{print $1}')"
+umask 077
 PATH="$ROOT/bin:$PATH" \
   "$SCRIPT_DIR/manage-production-release.sh" stage 3333333 \
   "$ROOT/source.tgz" "$source_sha" |
@@ -33,6 +34,8 @@ PATH="$ROOT/bin:$PATH" \
 cmp -s "$release_root/3333333/migrations/0001_fixture.sql" \
   "$release_root/3333333/dist/migrations/0001_fixture.sql"
 [[ "$(stat -c '%A' "$release_root/3333333/dist/server/web/main.js")" != *w* ]]
+[[ "$(find "$release_root/3333333" -type d ! -perm -o+x | wc -l)" -eq 0 ]]
+[[ "$(find "$release_root/3333333" -type f ! -perm -o+r | wc -l)" -eq 0 ]]
 
 mkdir -p "$release_root/1111111" "$release_root/2222222"
 printf 'hash-one\n' >"$release_root/1111111/.waw-release-sha256"

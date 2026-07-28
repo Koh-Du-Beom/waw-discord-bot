@@ -78,8 +78,11 @@ if [[ "$ACTION" == stage ]]; then
   [[ -r "$root/dist/web/index.html" ]] ||
     { echo release_web_assets_missing >&2; exit 1; }
   printf '%s\n' "$expected_sha" >"$root/.waw-release-sha256"
+  chmod -R a+rX "$root"
   chmod -R a-w "$root"
+  chmod u+w "$root"
   mv "$root" "$release"
+  chmod a-w "$release"
   trap - EXIT
   [[ "$root" == "$temporary" ]] || rm -rf -- "$temporary"
   echo "production_release_staged release=$RELEASE_ID sha256=$expected_sha"

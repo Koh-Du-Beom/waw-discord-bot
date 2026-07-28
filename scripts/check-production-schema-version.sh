@@ -92,8 +92,10 @@ query = (
     if parsed.query
     else {}
 )
-allowed_query = {"sslmode", "target_session_attrs"}
+allowed_query = {"sslmode", "target_session_attrs", "uselibpqcompat"}
 if not set(query).issubset(allowed_query) or any(len(values) != 1 for values in query.values()):
+    raise SystemExit(23)
+if query.get("uselibpqcompat") not in (None, ["true"]):
     raise SystemExit(23)
 
 environment = os.environ.copy()
@@ -108,8 +110,13 @@ if parsed.port is not None:
     environment["PGPORT"] = str(parsed.port)
 if parsed.password is not None:
     environment["PGPASSWORD"] = urllib.parse.unquote(parsed.password)
-for key, values in query.items():
-    environment[{"sslmode": "PGSSLMODE", "target_session_attrs": "PGTARGETSESSIONATTRS"}[key]] = values[0]
+libpq_query_environment = {
+    "sslmode": "PGSSLMODE",
+    "target_session_attrs": "PGTARGETSESSIONATTRS",
+}
+for key, environment_key in libpq_query_environment.items():
+    if key in query:
+        environment[environment_key] = query[key][0]
 
 completed = subprocess.run(
     [

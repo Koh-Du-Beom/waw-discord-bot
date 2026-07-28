@@ -7,7 +7,7 @@ trap 'rm -rf -- "$ROOT"' EXIT
 BIN="$ROOT/bin"
 CREDENTIAL="$ROOT/etc/waw-credentials/bot-database-url"
 CALLS="$ROOT/psql.calls"
-SECRET='postgresql://synthetic-user:synthetic-password@invalid.example/synthetic'
+SECRET='postgresql://synthetic-user:synthetic-password@invalid.example/synthetic?sslmode=require&uselibpqcompat=true'
 mkdir -p "$BIN" "$(dirname -- "$CREDENTIAL")"
 
 cat >"$BIN/psql" <<'EOF'
@@ -62,6 +62,15 @@ EOF
 cmp -s "$ROOT/expected" "$ROOT/out"
 [[ ! -s "$ROOT/err" ]]
 ! grep -FRq -- "$SECRET" "$ROOT/out" "$ROOT/err" "$CALLS"
+[[ "$(wc -l <"$CALLS" | tr -d ' ')" -eq 1 ]]
+
+write_credential \
+  'postgresql://synthetic-user:synthetic-password@invalid.example/synthetic?sslmode=require&uselibpqcompat=false'
+if "$SCRIPT_DIR/check-production-schema-version.sh" >"$ROOT/out" 2>"$ROOT/err"; then
+  echo invalid_libpq_compat_value_was_accepted >&2
+  exit 1
+fi
+grep -qx 'SCHEMA_PREFLIGHT query=FAIL version=UNKNOWN' "$ROOT/out"
 [[ "$(wc -l <"$CALLS" | tr -d ' ')" -eq 1 ]]
 
 rm -f "$CREDENTIAL"

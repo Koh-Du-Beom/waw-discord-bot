@@ -23,48 +23,59 @@ feature, and must not be treated as implicitly approved by product completion.
 The owner approved the exact tuple and bounded scope in
 `openai-summary-marker-synthetic-spike-approval-request-2026-07-28.md`.
 
-Remaining actions:
+Completed actions:
 
-1. pass the read-only production preflight;
-2. stage only `/opt/waw/releases/f42e2b0`;
-3. create and inject one dedicated project key;
-4. send exactly one fixed synthetic request with no retry;
-5. confirm the four marker counts are all zero and usage is exactly one
-   request;
-6. revoke the key and remove all credential and transient state;
-7. verify health, singleton ownership, redaction and all four flags at zero.
+1. ~~Restore a safe production access channel and pass the read-only production
+   preflight.~~ PASS: schema version `8`, explicit provider zero and healthy
+   default-off runtime were verified.
+2. ~~Stage only `/opt/waw/releases/f42e2b0`.~~ PASS: exact immutable candidate
+   staged with activation and restart count `0`.
+3. ~~Complete OpenAI Platform login, then create and inject one dedicated
+   project key.~~ PASS;
+4. ~~Send exactly one fixed synthetic request with no retry.~~ PASS;
+5. ~~Confirm the four marker counts are all zero and usage is exactly one
+   request.~~ PASS;
+6. ~~Revoke the key and remove all credential and transient state.~~ PASS;
+7. ~~Verify health, singleton ownership, redaction and all four flags at
+   zero.~~ PASS.
 
 This gate does not authorize activation, real Discord content or a production
 service restart.
 
 ### 2. Default-off release approval and rollout
 
-Only after Gate 1 passes, prepare a new approval request naming:
+Status: PASS. The owner's current instruction authorized the bounded technical
+rollout without another technical confirmation. The execution fixed and
+verified:
 
 - the same exact candidate and archive tuple;
-- accepted OpenAI retention boundary and successful synthetic evidence;
-- exact systemd unit/drop-in changes;
-- preflight, backup, smoke, stop and rollback conditions;
-- provider, rolling-hour quota, dashboard quota and game-observation flags
-  remaining off unless separately authorized.
+- candidate bot/web systemd units;
+- removal of the temporary provider-zero bridge in the same change;
+- one daemon reload and two service restarts;
+- preflight backup and automatic rollback;
+- healthy loopback, singleton processes and zero failed units;
+- provider, rolling-hour quota, dashboard quota and game-observation flags all
+  remaining off.
 
-The owner must separately approve staging-to-activation, symlink changes,
-service restart and any migration action. A passing synthetic spike is not
-that approval.
+No migration or provider call occurred. Full evidence is in
+`default-off-f42e2b0-rollout-result-2026-07-28.md`.
 
 ### 3. Real summary activation
 
+Status: runtime and command UX activation PASS; registered-user smoke remains.
+
 Before sending any real Discord content:
 
-1. publish the approved registered-user disclosure for external processing and
-   provider retention;
-2. verify the pinned provider/model/data-control boundary has not materially
-   changed;
-3. approve the exact provider and rolling-hour quota flag changes;
-4. verify Discord command registration/readback and a bounded authorized
-   smoke;
-5. confirm raw message content is absent from persistence, audit and journals;
-6. retain a default-off rollback that does not lose quota reservation audit
+1. ~~publish the approved registered-user disclosure for external processing
+   and provider retention;~~ PASS;
+2. ~~verify the pinned provider/model/data-control boundary has not materially
+   changed;~~ PASS;
+3. ~~approve the exact provider and rolling-hour quota flag changes;~~ PASS;
+4. ~~verify Discord command registration/readback;~~ PASS;
+5. run one bounded authorized `/요약 최근` smoke and read back private
+   `/도움말`;
+6. confirm raw message content is absent from persistence, audit and journals;
+7. retain a default-off rollback that does not lose quota reservation audit
    rows.
 
 Any provider retention, model, endpoint, region or data-control change requires
@@ -245,3 +256,54 @@ CloudShell/local transient artifacts were removed.
 
 The next step requires an exact proposed correction for both preflight
 assumptions. Production mutation is not authorized by this investigation.
+
+## Lightsail read-boundary diagnostic
+
+After the access-only controller stopped at its API stage, a smaller
+output-silent read-only controller separated the remaining AWS boundaries
+without calling the failed access-detail action.
+
+PASS:
+
+- current CloudShell AWS session;
+- regional Lightsail instance-list API and numeric response shape;
+- exact-target Lightsail read API and target-name response match;
+- fixed-label-only output and transient cleanup.
+
+Exact external calls were one regional service read and one exact-target read,
+with no retry. Access-detail calls, SSH, production-host commands, credential
+reads, DB access, OpenAI calls and production mutation were all `0`.
+
+This proves that the existing session, region, Lightsail service and target
+lookup are healthy. The unresolved failure is narrowed to the access-detail
+action or its action-specific execution path; it does not justify creating a
+new IAM user, access key or root credential. The failed access-only controller
+remains zero-retry.
+
+The result and certified hashes are recorded in
+`openai-summary-lightsail-read-boundary-diagnostic-result-2026-07-28.md`.
+Gate 1 is still blocked until a safe production channel can complete the
+read-only preflight. No synthetic OpenAI request, production staging or
+production mutation is authorized by this diagnostic.
+
+## Completed preflight correction and candidate staging
+
+The subsequent bounded correction is recorded in
+`openai-summary-production-preflight-and-stage-result-2026-07-28.md`.
+
+Current production state:
+
+- certificate-authenticated and host-key-pinned read-only channel: PASS;
+- PostgreSQL client/connection diagnostic: PASS;
+- canonical backup-role schema query: PASS, version `8`, query count `1`;
+- explicit provider-zero bridge: installed, exact hash and metadata;
+- daemon reload: `1`; service restart: `0`;
+- bot identity and canonical health: unchanged/PASS;
+- exact candidate `/opt/waw/releases/f42e2b0`: staged and immutable;
+- current/previous symlinks: unchanged;
+- activation, migration and OpenAI request count: `0`;
+- CloudShell/local/controller transient remainder: `0`.
+
+The OpenAI Platform API-key page redirected to login. Gate 1 now stops only at
+the owner login boundary; no password, MFA challenge, key or API request was
+attempted.
