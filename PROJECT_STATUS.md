@@ -14,10 +14,14 @@ count만 반환하며 각 실패 조건의 fake 회귀가 통과했다. 짧은 m
 typecheck, build, production dependency audit와 diff check가 통과했다. 실제
 OpenAI 호출, credential 사용, production mutation과 provider/quota/game
 observation 활성화는 수행하지 않았다. 새 immutable candidate
-`f42e2b0a1f6066e3ffbec610a5322433987521ad`, exact archive SHA-256
+`f42e2b06b23695bee113091581aba635ec343494`, exact archive SHA-256
 `962bc2949a4fea4317060ec942a16986454ff67ac0136ef0d3d0669fbefe513b`,
-`640107` bytes를 고정했으며 CloudShell Linux exact archive Gate A가 다음
-단계다.
+`640107` bytes를 고정했다. CloudShell Amazon Linux에서 official Node
+`24.18.0` checksum, `247 tests / 240 pass / 7 explicit PostgreSQL-tool skips /
+0 fail`, typecheck/build/prune/audit, Linux fixture, compiled marker contract,
+8개 byte-identical migration, writable file `0`과 네 default-off flag `0`을
+재검증했다. 최종 home/tmp artifact는 모두 `0`이며 Gate A가 통과했다. 다음
+단계는 이 exact tuple을 명시한 별도 synthetic-only OpenAI spike 승인 요청이다.
 
 OpenAI summary adapter를 production 비활성 상태로 bot assembly에 조립했다.
 고정 snapshot `gpt-5.4-mini-2026-03-17`, Responses API `store:false`,
