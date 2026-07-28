@@ -14,6 +14,7 @@ test("CI has no deployment authority", () => {
   assert.doesNotMatch(ci, /aws-actions/u);
   assert.match(ci, /npm test/u);
   assert.match(ci, /npm run test:browser/u);
+  assert.match(ci, /playwright install --with-deps chromium/u);
 });
 
 test("production deployment is exact, serialized and branch-bound", () => {

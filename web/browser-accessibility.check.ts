@@ -6,15 +6,17 @@ import { chromium } from "playwright-core";
 
 import { buildBrowserFixtureServer } from "./browser-fixture-server.ts";
 
-const edgeExecutable = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+const edgeExecutable =
+  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 
 test("production SPA has no automatic axe violations and supports keyboard mutation", async () => {
   const app = buildBrowserFixtureServer();
   const address = await app.listen({ host: "127.0.0.1", port: 0 });
-  const browser = await chromium.launch({
-    executablePath: edgeExecutable,
-    headless: true,
-  });
+  const browser = await chromium.launch(
+    process.platform === "win32"
+      ? { executablePath: edgeExecutable, headless: true }
+      : { headless: true },
+  );
   try {
     const context = await browser.newContext({ reducedMotion: "reduce" });
     const page = await context.newPage();
