@@ -16,6 +16,9 @@ jobs:
     timeout-minutes: 5
     environment: production
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Prepare and validate SSH credentials
         env:
           LIGHTSAIL_HOST: ${{ vars.LIGHTSAIL_HOST }}
@@ -50,6 +53,22 @@ jobs:
             -i "$RUNNER_TEMP/waw-preflight-key" \
             "$LIGHTSAIL_USER@$LIGHTSAIL_HOST" true
           echo ssh_preflight_pass
+      - name: Verify PLAN-0012 production metadata without mutation
+        env:
+          LIGHTSAIL_HOST: ${{ vars.LIGHTSAIL_HOST }}
+          LIGHTSAIL_USER: ${{ vars.LIGHTSAIL_USER }}
+        run: |
+          set -Eeuo pipefail
+          ssh \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o "UserKnownHostsFile=$RUNNER_TEMP/waw-preflight-known-hosts" \
+            -o ConnectTimeout=15 \
+            -o ConnectionAttempts=1 \
+            -i "$RUNNER_TEMP/waw-preflight-key" \
+            "$LIGHTSAIL_USER@$LIGHTSAIL_HOST" \
+            'bash -s' < scripts/plan-0012-production-readonly-preflight.sh
       - name: Remove SSH credentials
         if: ${{ always() }}
         run: rm -f -- "$RUNNER_TEMP/waw-preflight-key" "$RUNNER_TEMP/waw-preflight-known-hosts"
