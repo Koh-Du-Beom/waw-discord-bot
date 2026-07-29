@@ -54,14 +54,14 @@ test("browser mutation default-denies before a session supplies CSRF", async () 
   );
 });
 
-test("command log pagination sends only the bounded cursor request", async () => {
+test("command log pagination sends only the opaque cursor", async () => {
   let requested = "";
   const api = createBrowserApi(async (input) => {
     requested = String(input);
     return Response.json({ entries: [] });
   });
 
-  await api.getCommandLog({ limit: 20, cursor: "opaque_cursor_0123456789" });
+  await api.getCommandLog({ cursor: "opaque_cursor_0123456789" });
 
-  assert.equal(requested, "/api/command-log?limit=20&cursor=opaque_cursor_0123456789");
+  assert.equal(requested, "/api/command-log?cursor=opaque_cursor_0123456789");
 });

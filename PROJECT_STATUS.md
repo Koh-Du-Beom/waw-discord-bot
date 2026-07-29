@@ -14,7 +14,7 @@ production ref는 exact candidate와 일치한다.
 2026-07-29 Owner 피드백에 따라 dashboard information architecture를 실제
 운영 작업 중심으로 재구성했다. Discord 연결 의미와 icon을 갖는 전용 로그인,
 서버·DB·backup·Riot pending count와 최근 명령 5개를 모은 dashboard, 별도 Riot
-승인·20개 cursor pagination 명령 로그·설정·운영 기록 tab을 구현했다. Summary
+승인·cursor pagination 명령 로그·설정·운영 기록 tab을 구현했다. Summary
 setting과 audited change history는 제품 정책상 삭제하지 않고 메인 scan path에서
 분리했다. 상태는 text와 green/yellow/red cue를 함께 사용한다. Tests 270개 중
 263 PASS·7 environment skip, typecheck/build/audit, desktop·360 px dashboard와

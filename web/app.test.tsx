@@ -69,6 +69,19 @@ test("renders the approved Direction A navigation shell", async () => {
   }
 });
 
+test("loads command logs without a numeric URL query", async () => {
+  let request: Parameters<DashboardApi["getCommandLog"]>[0];
+  render(<App api={apiFixture({
+    commandLog: async (input) => {
+      request = input;
+      return { entries: [] };
+    },
+  })} />);
+
+  await screen.findByRole("heading", { name: "대시보드" });
+  assert.equal(request, undefined);
+});
+
 test("exposes named landmarks and controls without relying on color alone", async () => {
   render(<App api={apiFixture()} />);
   await screen.findByRole("main");
@@ -220,6 +233,7 @@ function apiFixture(
     audit?: { events: AuditEventDto[] };
     riotRequests?: PendingRiotLinkRequestsDto;
     approveRiotRequest?: DashboardApi["approveRiotRequest"];
+    commandLog?: DashboardApi["getCommandLog"];
   } = {},
 ): DashboardApi {
   return {
@@ -243,8 +257,8 @@ function apiFixture(
     async getAudit() {
       return overrides.audit ?? emptyAuditFixture;
     },
-    async getCommandLog() {
-      return { entries: [] };
+    async getCommandLog(request) {
+      return overrides.commandLog?.(request) ?? { entries: [] };
     },
     async logout() {},
     async getRiotRequests() {

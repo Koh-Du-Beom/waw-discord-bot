@@ -189,7 +189,7 @@ function Dashboard({
     if (!commandLog.nextCursor) return;
     setLoadingCommands(true);
     try {
-      const next = await api.getCommandLog({ limit: 20, cursor: commandLog.nextCursor });
+      const next = await api.getCommandLog({ cursor: commandLog.nextCursor });
       setCommandHistory((pages) => [...pages, commandLog]);
       setCommandLog(next);
     } catch {
@@ -520,7 +520,7 @@ async function loadDashboard(api: DashboardApi): Promise<ViewState> {
       session.actor.tier === "administrator"
         ? api.getRiotRequests()
         : Promise.resolve({ requests: [] }),
-      api.getCommandLog({ limit: 20 }),
+      api.getCommandLog(),
     ]);
     return { kind: "ready", session, overview, settings, audit, riotRequests, commandLog };
   } catch (error) {
