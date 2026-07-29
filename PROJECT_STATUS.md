@@ -4,6 +4,14 @@
 
 ## 현재 단계
 
+2026-07-29 dashboard admin IPC 결과도 `discord.command` audit event를 사용해
+명령어 로그에 섞이던 원인을 확인했다. Audit 원본은 보존하되 사용자용 command
+log query에서 `channel_id='dashboard'`를 제외해 실제 Discord interaction만
+표시한다. Discord interaction의 guild display name을 기존
+`registered_discord_user`에 command audit와 같은 PostgreSQL statement로
+upsert하므로 다음 명령 실행부터 해당 사용자의 과거·현재 로그가 실제 서버
+닉네임으로 표시된다. 새 migration과 production mutation은 `0`이다.
+
 2026-07-29 Riot 연결 요청 목록에 bot의 기존 guild member cache에서 읽은 현재
 서버 display name을 표시하고, 조회할 수 없을 때만 Discord user ID로 fallback
 하도록 admin IPC allowlist DTO를 확장했다. Dashboard는 기존 audited 단건

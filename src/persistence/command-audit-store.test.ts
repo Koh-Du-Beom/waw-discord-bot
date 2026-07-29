@@ -18,6 +18,7 @@ test("persists only the command audit allowlist and excludes option/message valu
     correlationId: "correlation",
     occurredAt: new Date("2026-07-25T00:00:00Z"),
     actorId: "actor",
+    actorLabel: "서버 닉네임",
     guildId: "guild",
     channelId: "channel",
     commandName: "요약",
@@ -27,14 +28,16 @@ test("persists only the command audit allowlist and excludes option/message valu
   assert.deepEqual(calls[0]?.values, [
     "event",
     new Date("2026-07-25T00:00:00Z"),
+    "guild",
     "actor",
+    "서버 닉네임",
     "success",
     "completed",
     "correlation",
-    "guild",
     "channel",
     "요약",
   ]);
+  assert.match(calls[0]?.text ?? "", /on conflict \(guild_id, discord_user_id\) do update/);
   assert.equal(JSON.stringify(calls).includes("원문"), false);
   assert.equal(JSON.stringify(calls).includes("옵션값"), false);
 });

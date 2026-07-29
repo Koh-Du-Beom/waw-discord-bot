@@ -28,6 +28,7 @@ export type CommandAuditEvent = {
   correlationId: string;
   occurredAt: Date;
   actorId: string;
+  actorLabel?: string;
   guildId: string;
   channelId: string;
   commandName: KoreanCommandName;
@@ -43,6 +44,7 @@ export type CommandRequest = {
   eventId: string;
   correlationId: string;
   actorId: string;
+  actorLabel?: string;
   guildId: string;
   channelId: string;
   isThread: boolean;
@@ -91,6 +93,7 @@ export class KoreanCommandHandler {
         correlationId: request.correlationId,
         occurredAt: this.input.now(),
         actorId: request.actorId,
+        ...(request.actorLabel === undefined ? {} : { actorLabel: request.actorLabel }),
         guildId: request.guildId,
         channelId: request.channelId,
         commandName: request.commandName,

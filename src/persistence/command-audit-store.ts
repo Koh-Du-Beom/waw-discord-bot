@@ -19,19 +19,28 @@ export class PostgresCommandAuditSink implements CommandAuditSink {
   async append(event: CommandAuditEvent): Promise<void> {
     try {
       await this.database.query(
-        `insert into audit_event (
+        `with registered_user as (
+          insert into registered_discord_user (
+            guild_id, discord_user_id, display_label, created_at, updated_at
+          ) values ($3,$4,$5,$2,$2)
+          on conflict (guild_id, discord_user_id) do update
+            set display_label=excluded.display_label,
+                updated_at=excluded.updated_at
+        )
+        insert into audit_event (
           event_id, occurred_at, event_type, actor_id, outcome, reason_code,
           correlation_id, guild_id, channel_id, command_name
-        ) values ($1,$2,'discord.command',$3,$4,$5,$6,$7,$8,$9)
+        ) values ($1,$2,'discord.command',$4,$6,$7,$8,$3,$9,$10)
         on conflict do nothing`,
         [
           event.eventId,
           event.occurredAt,
+          event.guildId,
           event.actorId,
+          event.actorLabel ?? event.actorId,
           event.outcome,
           event.reasonCode,
           event.correlationId,
-          event.guildId,
           event.channelId,
           event.commandName,
         ],

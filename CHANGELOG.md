@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+- Limit the dashboard command log to commands invoked through Discord chat and
+  persist each command actor's current Discord server display name for the log.
 - Show the requesting Discord member's current server display name on pending
   Riot links, add audited bulk approve/reject controls, and lock decisions with
   an inline progress indicator while each request is in flight.

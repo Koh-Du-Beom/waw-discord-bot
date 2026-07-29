@@ -139,6 +139,7 @@ export class PostgresDashboardStore {
            left join registered_discord_user u
              on u.guild_id=a.guild_id and u.discord_user_id=a.actor_id
           where a.event_type='discord.command'
+            and a.channel_id <> 'dashboard'
             and ($1::timestamptz is null or (a.occurred_at,a.event_id)<($1,$2))
             and ($3::text is null or a.command_name=$3)
             and ($4::text is null or a.outcome=$4)

@@ -28,7 +28,8 @@ test("normalizes Korean Discord subcommands and replies in Korean without regist
   const interaction: DiscordChatInputInteraction = {
     id: "9001",
     commandName: "몰랭검거",
-    user: { id: "9002" },
+    user: { id: "9002", username: "계정명" },
+    member: { displayName: "서버 닉네임" },
     guildId: "9003",
     channelId: "9004",
     channel: { isThread: () => false },
@@ -45,6 +46,7 @@ test("normalizes Korean Discord subcommands and replies in Korean without regist
   };
   await listen(interaction);
   assert.equal(requests[0]?.commandName, "몰랭검거 현황");
+  assert.equal(requests[0]?.actorLabel, "서버 닉네임");
   assert.equal(requests[0]?.options["사용자"], "9005");
   assert.deepEqual(replies, [
     { content: "🚨 몰랭 현황을 확인했습니다.", ephemeral: true },

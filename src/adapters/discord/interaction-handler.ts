@@ -13,7 +13,8 @@ export type DiscordCommandOptions = {
 export type DiscordChatInputInteraction = {
   id: string;
   commandName: string;
-  user: { id: string };
+  user: { id: string; globalName?: string | null; username?: string };
+  member?: { displayName?: string } | null;
   guildId: string | null;
   channelId: string | null;
   channel: { isThread(): boolean } | null;
@@ -133,6 +134,7 @@ function request(
     eventId: `discord:${interaction.id}`,
     correlationId,
     actorId: interaction.user.id,
+    actorLabel: displayName(interaction),
     guildId,
     channelId,
     isThread: interaction.channel?.isThread() ?? false,
@@ -140,4 +142,13 @@ function request(
     options,
     signal: new AbortController().signal,
   };
+}
+
+function displayName(interaction: DiscordChatInputInteraction): string {
+  return (
+    interaction.member?.displayName ??
+    interaction.user.globalName ??
+    interaction.user.username ??
+    interaction.user.id
+  ).trim().slice(0, 80) || interaction.user.id;
 }

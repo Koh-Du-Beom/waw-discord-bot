@@ -128,6 +128,29 @@ test("administrator pre-dispatch audit stores only correlation metadata", async 
   ]);
 });
 
+test("command log includes only Discord chat commands and their stored nickname", async () => {
+  const calls: Call[] = [];
+  const pool = {
+    async query(text: string, values?: readonly unknown[]) {
+      calls.push({ text, ...(values === undefined ? {} : { values }) });
+      return result([{
+        occurred_at: new Date("2026-07-29T00:00:00.000Z"),
+        event_id: "discord:interaction-1",
+        command_name: "도움말",
+        display_label: "서버 닉네임",
+        outcome: "success",
+        reason_code: "completed",
+      }]);
+    },
+  } as unknown as Pool;
+
+  assert.equal(
+    (await new PostgresDashboardStore(pool).readCommandLog({})).entries[0]?.actorLabel,
+    "서버 닉네임",
+  );
+  assert.match(calls[0]?.text ?? "", /a\.channel_id <> 'dashboard'/);
+});
+
 function transactionClient(calls: Call[], updates: boolean): PoolClient {
   return {
     async query(text: string, values?: readonly unknown[]) {
