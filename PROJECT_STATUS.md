@@ -4,6 +4,16 @@
 
 ## 현재 단계
 
+2026-07-29 열린 Dashboard의 외부 Discord/Riot 변경이 initial load 이후 자동
+반영되지 않는 client query lifecycle 결함을 재현했다. `visibilitychange` 뒤에도
+active-link query가 initial 1회에서 증가하지 않았다. 짧은 polling은
+administrator pending-list IPC의 operation/result/audit를 매번 영구 기록하므로
+hidden·비활성 화면까지 polling하는 안과 새 SSE 경계를 제외했다. Riot tab이
+visible일 때만 60초 polling하고 tab 진입·15초 이상 지난 visible 복귀·명시적
+새로고침·mutation 종료에 active/pending snapshot을 single-flight로 함께
+재조회하는 안을 `ADR-0026` Proposed로 작성했다. Owner 승인 전 product code,
+migration, dependency와 production 변경은 `0`이다.
+
 2026-07-29 Discord/Riot 표시 이름 동기화 누락 결함을 기존 schema와 bot
 runtime 경계 안에서 수정했다. Discord `guildMemberUpdate`, startup member
 reconciliation, slash-command audit upsert와 guild member cache를 재사용하며
