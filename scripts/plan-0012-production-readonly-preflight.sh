@@ -43,7 +43,7 @@ backup_age=$((now_epoch - completed_epoch))
 [[ "$backup_age" -ge 0 && "$backup_age" -le 86400 ]] || fail backup_stale
 
 schema_output="$(sudo WAW_EXPECTED_SCHEMA_VERSION=8 \
-  bash "$current/scripts/check-production-schema-version.sh")" ||
+  bash "$current/scripts/check-production-schema-version-backup-role.sh")" ||
   fail schema_preflight
 grep -Fq 'SCHEMA_PREFLIGHT query=PASS version=8' <<<"$schema_output" ||
   fail schema_version
