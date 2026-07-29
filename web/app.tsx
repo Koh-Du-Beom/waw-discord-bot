@@ -4,6 +4,7 @@ import { SUMMARY_EXTERNAL_PROCESSING_NOTICE } from "../src/contracts/summary-dis
 import {
   DASHBOARD_API_PATHS,
   type ApiErrorCode,
+  type ActiveRiotLinksDto,
   type AuditEventsDto,
   type DashboardOverviewDto,
   type CommandLogPageDto,
@@ -13,6 +14,7 @@ import {
   type ApproveRiotLinkRequestDto,
   type DecideRiotLinkRequestDto,
   type RiotLinkDecisionResponseDto,
+  type RemoveRiotLinkRequestDto,
   type SessionDto,
   type UpdateLowRiskSettingsRequestDto,
 } from "../src/contracts/dashboard.ts";
@@ -21,6 +23,7 @@ export type DashboardApi = {
   getSession(): Promise<SessionDto | null>;
   logout(): Promise<void>;
   getOverview(): Promise<DashboardOverviewDto>;
+  getRiotLinks(): Promise<ActiveRiotLinksDto>;
   getSettings(): Promise<LowRiskSettingsDto>;
   updateSettings(request: UpdateLowRiskSettingsRequestDto): Promise<LowRiskSettingsDto>;
   getAudit(): Promise<AuditEventsDto>;
@@ -28,6 +31,7 @@ export type DashboardApi = {
   getRiotRequests(): Promise<PendingRiotLinkRequestsDto>;
   approveRiotRequest(request: ApproveRiotLinkRequestDto): Promise<RiotLinkDecisionResponseDto>;
   rejectRiotRequest(request: DecideRiotLinkRequestDto): Promise<RiotLinkDecisionResponseDto>;
+  removeRiotLink(request: RemoveRiotLinkRequestDto): Promise<RiotLinkDecisionResponseDto>;
 };
 
 type ViewState =
@@ -39,6 +43,7 @@ type ViewState =
       kind: "ready";
       session: SessionDto;
       overview: DashboardOverviewDto;
+      riotLinks: ActiveRiotLinksDto;
       settings: LowRiskSettingsDto;
       audit: AuditEventsDto;
       riotRequests: PendingRiotLinkRequestsDto;
@@ -115,6 +120,10 @@ function Dashboard({
   const [checked, setChecked] = useState(value.settings.summaryEnabled);
   const [audit, setAudit] = useState(value.audit);
   const [riotRequests, setRiotRequests] = useState(value.riotRequests);
+  const [riotLinks, setRiotLinks] = useState(value.riotLinks);
+  const [confirmingRiotLink, setConfirmingRiotLink] = useState<string>();
+  const [processingRiotLinks, setProcessingRiotLinks] = useState<Set<string>>(new Set());
+  const riotLinksInFlight = useRef(new Set<string>());
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<{ kind: "success" | "error"; message: string }>();
   const resultRef = useRef<HTMLParagraphElement>(null);
@@ -233,6 +242,38 @@ function Dashboard({
     }
   }
 
+  async function removeRiotLink(link: ActiveRiotLinksDto["links"][number]) {
+    if (riotLinksInFlight.current.has(link.linkId)) return;
+    riotLinksInFlight.current.add(link.linkId);
+    setProcessingRiotLinks((current) => new Set(current).add(link.linkId));
+    try {
+      const result = await api.removeRiotLink({
+        linkId: link.linkId,
+        expectedVersion: link.expectedVersion,
+        confirmation: true,
+      });
+      setRiotLinks((current) => ({
+        links: current.links.filter((item) => item.linkId !== link.linkId),
+      }));
+      setConfirmingRiotLink(undefined);
+      setResult({ kind: "success", message: result.message });
+    } catch (error) {
+      setResult({
+        kind: "error",
+        message: errorCode(error) === "conflict"
+          ? "계정 상태가 변경되었습니다. 목록을 새로 불러오세요."
+          : "Riot 계정 연결을 해제하지 못했습니다.",
+      });
+    } finally {
+      setProcessingRiotLinks((current) => {
+        const next = new Set(current);
+        next.delete(link.linkId);
+        return next;
+      });
+      riotLinksInFlight.current.delete(link.linkId);
+    }
+  }
+
   async function decideAllRiotRequests(decision: "approve" | "reject") {
     const requests = riotRequests.requests.filter(
       (request) => decision === "reject" || request.platformId === "KR",
@@ -300,7 +341,7 @@ function Dashboard({
         </div>
         <nav aria-label="Dashboard 주요 영역">
           <NavButton active={tab === "dashboard"} icon="⌂" label="대시보드" onClick={() => setTab("dashboard")} />
-          <NavButton active={tab === "riot"} count={riotRequests.requests.length} icon="R" label="Riot 계정 연결 요청" onClick={() => setTab("riot")} />
+          <NavButton active={tab === "riot"} count={riotRequests.requests.length} icon="R" label="Riot 계정" onClick={() => setTab("riot")} />
           <NavButton active={tab === "commands"} icon="≡" label="명령어 로그" onClick={() => setTab("commands")} />
           <NavButton active={tab === "settings"} icon="⚙" label="설정" onClick={() => setTab("settings")} />
           <NavButton active={tab === "operations"} icon="●" label="운영 기록" onClick={() => setTab("operations")} />
@@ -373,8 +414,27 @@ function Dashboard({
           {tab === "riot" && (
             <section className="panel" aria-labelledby="riot-title">
               <p className="eyebrow">관리자 승인</p>
-              <h2 id="riot-title">Riot 계정 연결 요청</h2>
-              <p className="notice">KR 계정만 승인할 수 있으며, 승인은 계정 소유권 인증이 아닙니다.</p>
+              <h2 id="riot-title">Riot 계정</h2>
+              <h3>연결된 계정</h3>
+              {riotLinks.links.length === 0 ? (
+                <p className="empty">연결된 Riot 계정이 없습니다.</p>
+              ) : (
+                <div className="table-scroll"><table><thead><tr><th>사용자</th><th>Riot ID</th>{value.session.actor.tier === "administrator" ? <th>관리</th> : null}<th>서버</th><th>연결 ID</th></tr></thead>
+                  <tbody>{riotLinks.links.map((link) => <tr key={link.linkId}>
+                    <td data-label="사용자">{link.requesterLabel}</td>
+                    <td data-label="Riot ID">{link.gameName}#{link.tagLine}{link.isPrimary ? " · 대표" : ""}</td>
+                    {value.session.actor.tier === "administrator" ? <td data-label="관리">
+                      {confirmingRiotLink === link.linkId ? <>
+                        <button type="button" disabled={processingRiotLinks.has(link.linkId)} onClick={() => void removeRiotLink(link)}>해제 확인</button>
+                        <button className="secondary" type="button" disabled={processingRiotLinks.has(link.linkId)} onClick={() => setConfirmingRiotLink(undefined)}>취소</button>
+                      </> : <button className="secondary" type="button" onClick={() => setConfirmingRiotLink(link.linkId)}>연결 해제</button>}
+                    </td> : null}
+                    <td data-label="서버">{link.platformId}</td>
+                    <td data-label="연결 ID"><code>{link.linkId}</code></td>
+                  </tr>)}</tbody></table></div>
+              )}
+              <h3>연결 요청</h3>
+              <p className="notice">KR 계정만 승인할 수 있습니다. 승인은 Riot ID의 존재를 확인하고 계정을 연결하는 절차입니다.</p>
               {value.session.actor.tier !== "administrator" ? (
                 <p className="empty">관리자만 연결 요청을 검토할 수 있습니다.</p>
               ) : riotRequests.requests.length === 0 ? (
@@ -610,7 +670,7 @@ function MetricCard({
 function tabTitle(tab: "dashboard" | "riot" | "commands" | "settings" | "operations") {
   return {
     dashboard: "대시보드",
-    riot: "Riot 계정 연결 요청",
+    riot: "Riot 계정",
     commands: "명령어 로그",
     settings: "설정",
     operations: "운영 기록",
@@ -621,8 +681,9 @@ async function loadDashboard(api: DashboardApi): Promise<ViewState> {
   try {
     const session = await api.getSession();
     if (!session) return { kind: "login" };
-    const [overview, settings, audit, riotRequests, commandLog] = await Promise.all([
+    const [overview, riotLinks, settings, audit, riotRequests, commandLog] = await Promise.all([
       api.getOverview(),
+      api.getRiotLinks(),
       api.getSettings(),
       api.getAudit(),
       session.actor.tier === "administrator"
@@ -630,7 +691,7 @@ async function loadDashboard(api: DashboardApi): Promise<ViewState> {
         : Promise.resolve({ requests: [] }),
       api.getCommandLog(),
     ]);
-    return { kind: "ready", session, overview, settings, audit, riotRequests, commandLog };
+    return { kind: "ready", session, overview, riotLinks, settings, audit, riotRequests, commandLog };
   } catch (error) {
     return errorCode(error) === "forbidden" ? { kind: "denied" } : { kind: "unavailable" };
   }

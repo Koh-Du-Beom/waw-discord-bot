@@ -1,5 +1,15 @@
 # 변경 이력
 
+- Dashboard 관리자가 활성 Riot 연결 하나를 2단계 확인 후 해제할 수 있도록
+  optimistic version, exact bot IPC, 원자 audit/result soft delete와 해제 후
+  늦은 observation 차단을 추가했다. Production migration과 배포는 아직
+  수행하지 않았다.
+
+- `/라이엇계정 목록`에서 시스템의 모든 활성 연결과 해제용 연결 ID를 조회하고,
+  `/몰랭검거 현황`에서 모든 등록 사용자의 확정 몰랭스택을 표로 조회할 수 있게
+  했다. Dashboard Riot 영역에는 연결 완료 계정 목록을 추가하고 혼동을 주던
+  소유권 미검증 라벨을 관리자 승인 연결 표현으로 정리했다.
+
 - PLAN-0008 production rollout을 위해 summary quota enforcement와 dashboard
   quota API/UI를 별도 exact-`1` feature gate로 분리하고 systemd 기본값을
   모두 `0`으로 고정. 비활성 상태에서는 quota API route를 등록하지 않고

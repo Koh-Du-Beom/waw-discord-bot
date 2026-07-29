@@ -26,6 +26,8 @@ test("creates an approval request without PUUID and labels pending and active li
         {
           kind: "active",
           linkId: "link",
+          discordUserId: "actor",
+          discordUserLabel: "요청자",
           gameName: "승인계정",
           tagLine: "KR2",
           platformId: "KR",
@@ -33,6 +35,19 @@ test("creates an approval request without PUUID and labels pending and active li
           isPrimary: true,
         },
       ];
+    },
+    async listAll() {
+      return [{
+        kind: "active",
+        linkId: "link",
+        discordUserId: "actor",
+        discordUserLabel: "요청자",
+        gameName: "승인계정",
+        tagLine: "KR2",
+        platformId: "KR",
+        verificationMethod: "admin_approved_unverified",
+        isPrimary: true,
+      }];
     },
     async unlinkWithAudit() {
       return "removed";
@@ -52,8 +67,8 @@ test("creates an approval request without PUUID and labels pending and active li
   assert.equal(requested[0]?.platformId, "KR");
   assert.equal(requested[0]?.tagLine, "KR1");
   const list = await executor.execute(request("라이엇계정 목록", {}));
-  assert.match(list, /승인 대기/);
-  assert.match(list, /소유권 미검증/);
+  assert.match(list, /요청자/);
+  assert.match(list, /연결 ID: `link`/);
 });
 
 test("accepts a display Riot ID as one option and rejects a login username", async () => {
@@ -64,6 +79,9 @@ test("accepts a display Riot ID as one option and rejects a login username", asy
       return "created";
     },
     async list() {
+      return [];
+    },
+    async listAll() {
       return [];
     },
     async unlinkWithAudit() {
@@ -97,6 +115,7 @@ test("explains that an already active Riot ID does not need another request", as
     {
       async requestLinkWithAudit() { return "already_linked"; },
       async list() { return []; },
+      async listAll() { return []; },
       async unlinkWithAudit() { return "removed"; },
     },
     () => new Date("2026-07-29T00:00:00Z"),
@@ -114,6 +133,7 @@ test("unlinks only through the caller-scoped store operation", async () => {
     {
       async requestLinkWithAudit() { return "created"; },
       async list() { return []; },
+      async listAll() { return []; },
       async unlinkWithAudit(input) {
         unlinkInput = input;
         return "removed";

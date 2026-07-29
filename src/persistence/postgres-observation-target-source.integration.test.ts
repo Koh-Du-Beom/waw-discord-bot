@@ -38,5 +38,6 @@ test("returns active links only from PostgreSQL", { skip: !enabled }, async () =
     discordUserId: "target-member",
     platformId: "KR",
     puuid: "target-active-puuid",
+    version: 0,
   }]);
 });

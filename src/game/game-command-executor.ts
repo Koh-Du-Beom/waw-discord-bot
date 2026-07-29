@@ -22,7 +22,13 @@ export type GameStatusItem = {
 
 export type GameCommandStore = IncidentMutationStore & {
   listStatus(discordUserId: string): Promise<readonly GameStatusItem[]>;
+  listStacks(): Promise<readonly GameStackItem[]>;
   findIncidentVersion(incidentId: string): Promise<number | undefined>;
+};
+
+export type GameStackItem = {
+  discordUserLabel: string;
+  stack: number;
 };
 
 export class GameCommandExecutor implements FeatureCommandExecutor {
@@ -53,7 +59,19 @@ export class GameCommandExecutor implements FeatureCommandExecutor {
   }
 
   private async status(request: CommandRequest): Promise<string> {
-    const target = request.options["사용자"] ?? request.actorId;
+    const target = request.options["사용자"];
+    if (target === undefined) {
+      const stacks = await this.store.listStacks();
+      if (stacks.length === 0) return "등록된 사용자가 없습니다.";
+      const nameWidth = Math.max(4, ...stacks.map((item) => item.discordUserLabel.length));
+      return [
+        "```",
+        `${"사용자".padEnd(nameWidth)} | 몰랭스택`,
+        `${"-".repeat(nameWidth)}-|---------`,
+        ...stacks.map((item) => `${item.discordUserLabel.padEnd(nameWidth)} | ${item.stack}`),
+        "```",
+      ].join("\n");
+    }
     const items = await this.store.listStatus(target);
     if (items.length === 0) return "표시할 게임 관측 기록이 없습니다.";
     return items

@@ -12,6 +12,7 @@ import type { AuthService, AuthServiceResponse } from "../auth/auth-service.ts";
 import {
   DASHBOARD_API_PATHS,
   type ApiErrorCode,
+  type ActiveRiotLinksDto,
   type AuditEventsDto,
   type CommandLogPageDto,
   type ListCommandLogRequestDto,
@@ -22,6 +23,7 @@ import {
   type ApproveRiotLinkRequestDto,
   type DecideRiotLinkRequestDto,
   type RiotLinkDecisionResponseDto,
+  type RemoveRiotLinkRequestDto,
   type UpdateLowRiskSettingsRequestDto,
 } from "../contracts/dashboard.ts";
 import type { AuthorizationTier } from "../contracts/local-command.ts";
@@ -38,6 +40,7 @@ const securityHeaders = {
 export type DashboardHttpPorts = {
   readDisplayName(): Promise<string>;
   readOverview(): Promise<DashboardOverviewDto>;
+  readActiveRiotLinks(): Promise<ActiveRiotLinksDto>;
   readSettings(): Promise<LowRiskSettingsDto>;
   updateSettings(
     input: {
@@ -65,6 +68,12 @@ export type DashboardHttpPorts = {
   }): Promise<RiotLinkDecisionResponseDto>;
   rejectRiotLink(input: {
     request: DecideRiotLinkRequestDto;
+    actorId: string;
+    authorizationTier: AuthorizationTier;
+    operationId: string;
+  }): Promise<RiotLinkDecisionResponseDto>;
+  removeRiotLink(input: {
+    request: RemoveRiotLinkRequestDto;
     actorId: string;
     authorizationTier: AuthorizationTier;
     operationId: string;
@@ -216,6 +225,32 @@ const overviewSchema = {
   },
 } as const;
 
+const activeRiotLinksSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["links"],
+  properties: {
+    links: {
+      type: "array",
+      maxItems: 500,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["linkId", "expectedVersion", "requesterLabel", "platformId", "gameName", "tagLine", "isPrimary"],
+        properties: {
+          linkId: { type: "string" },
+          expectedVersion: { type: "integer", minimum: 0 },
+          requesterLabel: { type: "string" },
+          platformId: { type: "string" },
+          gameName: { type: "string" },
+          tagLine: { type: "string" },
+          isPrimary: { type: "boolean" },
+        },
+      },
+    },
+  },
+} as const;
+
 const settingsSchema = {
   type: "object",
   additionalProperties: false,
@@ -330,6 +365,17 @@ const rejectRiotLinkSchema = {
   additionalProperties: false,
   required: ["requestId", "expectedVersion", "confirmation"],
   properties: riotDecisionBaseProperties,
+} as const;
+
+const removeRiotLinkSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["linkId", "expectedVersion", "confirmation"],
+  properties: {
+    linkId: { type: "string", minLength: 8, maxLength: 128 },
+    expectedVersion: { type: "integer", minimum: 0 },
+    confirmation: { type: "boolean", const: true },
+  },
 } as const;
 
 const riotDecisionResponseSchema = {
@@ -557,6 +603,17 @@ export function buildDashboardServer(
     },
     protectedRead(options.auth, options.ports.readOverview),
   );
+
+  app.get(
+    DASHBOARD_API_PATHS.riotLinks,
+    {
+      schema: {
+        querystring: emptyObjectSchema,
+        response: { 200: activeRiotLinksSchema, "4xx": errorSchema, "5xx": errorSchema },
+      },
+    },
+    protectedRead(options.auth, options.ports.readActiveRiotLinks),
+  );
   app.get(
     DASHBOARD_API_PATHS.settings,
     {
@@ -740,6 +797,47 @@ export function buildDashboardServer(
       }
       try {
         reply.send(await options.ports.rejectRiotLink({
+          request: request.body,
+          actorId: authorization.actorId,
+          authorizationTier: authorization.tier,
+          operationId: request.id,
+        }));
+      } catch (error) {
+        sendPortError(reply, error, request.id);
+      }
+    },
+  );
+  app.post<{ Body: RemoveRiotLinkRequestDto }>(
+    DASHBOARD_API_PATHS.riotRemove,
+    {
+      schema: {
+        querystring: emptyObjectSchema,
+        body: removeRiotLinkSchema,
+        response: {
+          200: riotDecisionResponseSchema,
+          409: errorSchema,
+          "4xx": errorSchema,
+          "5xx": errorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const authorization = await authorize(
+        options.auth,
+        request,
+        "high-risk",
+        request.body.confirmation,
+      );
+      if (!authorization.allowed) {
+        sendAuthorizationError(reply, authorization.response, request.id);
+        return;
+      }
+      if (authorization.tier !== "administrator") {
+        sendError(reply, 403, "forbidden", request.id);
+        return;
+      }
+      try {
+        reply.send(await options.ports.removeRiotLink({
           request: request.body,
           actorId: authorization.actorId,
           authorizationTier: authorization.tier,

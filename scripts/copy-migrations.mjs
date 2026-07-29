@@ -3,7 +3,7 @@ import path from "node:path";
 
 const sourceDirectory = path.resolve("migrations");
 const destinationDirectory = path.resolve("dist/migrations");
-const migrationPattern = /^000[1-9][0-9]*_[a-z0-9_]+\.sql$/;
+const migrationPattern = /^00[0-9]{2}_[a-z0-9_]+\.sql$/;
 
 const migrationFiles = (await readdir(sourceDirectory))
   .filter((name) => migrationPattern.test(name))

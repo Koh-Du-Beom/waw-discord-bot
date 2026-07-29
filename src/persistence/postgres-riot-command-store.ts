@@ -84,22 +84,30 @@ export class PostgresRiotCommandStore
     try {
       const active = await this.pool.query<{
         link_id: string;
+        discord_user_id: string;
+        display_label: string | null;
         game_name: string;
         tag_line: string;
         platform_id: string;
         verification_method: RiotLinkListItem["verificationMethod"];
         is_primary: boolean;
       }>(
-        `select link_id, game_name, tag_line, platform_id, verification_method, is_primary
-           from riot_account_link
-          where discord_user_id = $1 and removed_at is null
-          order by is_primary desc, created_at, link_id`,
+        `select link.link_id, link.discord_user_id, users.display_label,
+                link.game_name, link.tag_line, link.platform_id,
+                link.verification_method, link.is_primary
+           from riot_account_link link
+           left join registered_discord_user users
+             on users.discord_user_id = link.discord_user_id
+          where link.discord_user_id = $1 and link.removed_at is null
+          order by link.is_primary desc, link.created_at, link.link_id`,
         [input.discordUserId],
       );
       const items: (RiotLinkListItem | RiotPendingRequestItem)[] =
         active.rows.map((row) => ({
           kind: "active",
           linkId: row.link_id,
+          discordUserId: row.discord_user_id,
+          discordUserLabel: row.display_label ?? "서버 멤버",
           gameName: row.game_name,
           tagLine: row.tag_line,
           platformId: row.platform_id,
@@ -133,6 +141,44 @@ export class PostgresRiotCommandStore
     }
   }
 
+  async listAll(): Promise<readonly RiotLinkListItem[]> {
+    try {
+      const result = await this.pool.query<{
+        link_id: string;
+        discord_user_id: string;
+        display_label: string | null;
+        game_name: string;
+        tag_line: string;
+        platform_id: string;
+        verification_method: RiotLinkListItem["verificationMethod"];
+        is_primary: boolean;
+      }>(
+        `select link.link_id, link.discord_user_id, users.display_label,
+                link.game_name, link.tag_line, link.platform_id,
+                link.verification_method, link.is_primary
+           from riot_account_link link
+           left join registered_discord_user users
+             on users.discord_user_id = link.discord_user_id
+          where link.removed_at is null
+          order by coalesce(users.display_label, link.discord_user_id),
+                   link.is_primary desc, link.created_at, link.link_id`,
+      );
+      return result.rows.map((row) => ({
+        kind: "active",
+        linkId: row.link_id,
+        discordUserId: row.discord_user_id,
+        discordUserLabel: row.display_label ?? "서버 멤버",
+        gameName: row.game_name,
+        tagLine: row.tag_line,
+        platformId: row.platform_id,
+        verificationMethod: row.verification_method,
+        isPrimary: row.is_primary,
+      }));
+    } catch {
+      throw new PersistenceError("riot_link_list_failed");
+    }
+  }
+
   async unlinkWithAudit(
     input: Parameters<RiotCommandStore["unlinkWithAudit"]>[0],
   ): Promise<"removed" | "not_found" | "duplicate_operation"> {
@@ -142,7 +188,7 @@ export class PostgresRiotCommandStore
       }
       const removed = await client.query(
         `update riot_account_link
-            set removed_at = $3, is_primary = false
+            set removed_at = $3, is_primary = false, version = version + 1
           where link_id = $1 and discord_user_id = $2 and removed_at is null`,
         [input.linkId, input.discordUserId, input.removedAt],
       );
@@ -153,6 +199,64 @@ export class PostgresRiotCommandStore
         reasonCode: found ? "riot_link_removed" : "riot_link_not_found",
       });
       return found ? "removed" : "not_found";
+    });
+  }
+
+  async removeLinkWithAudit(input: {
+    operationId: string;
+    linkId: string;
+    expectedVersion: number;
+    administratorId: string;
+    removedAt: Date;
+    audit: CommandAuditEvent;
+  }): Promise<"removed" | "not_found" | "stale" | "duplicate_operation"> {
+    return this.transaction("riot_link_admin_unlink_failed", async (client) => {
+      if (!(await claimOperation(client, input.operationId, input.administratorId, input.removedAt))) {
+        return "duplicate_operation";
+      }
+      const found = await client.query<{ version: string; removed_at: Date | null }>(
+        `select version::text, removed_at
+           from riot_account_link
+          where link_id = $1
+          for update`,
+        [input.linkId],
+      );
+      const row = found.rows[0];
+      const result = !row || row.removed_at !== null
+        ? "not_found"
+        : Number(row.version) !== input.expectedVersion
+          ? "stale"
+          : "removed";
+      if (result === "removed") {
+        await client.query(
+          `update riot_account_link
+              set removed_at = $2, is_primary = false, version = version + 1
+            where link_id = $1 and version = $3 and removed_at is null`,
+          [input.linkId, input.removedAt, input.expectedVersion],
+        );
+      }
+      const reasonCode =
+        result === "removed"
+          ? "riot_link_removed"
+          : result === "stale"
+            ? "riot_link_stale"
+            : "riot_link_not_found";
+      await appendAudit(client, {
+        ...input.audit,
+        outcome: result === "removed" ? "success" : "failure",
+        reasonCode,
+      });
+      await appendAdminCommandResult(client, terminal(
+        { operationId: input.operationId, decidedAt: input.removedAt },
+        "riot_link_remove",
+        result === "removed" ? "success" : result === "stale" ? "conflict" : "failure",
+        result === "removed"
+          ? "completed"
+          : result === "stale"
+            ? "riot_link_stale"
+            : "riot_link_not_found",
+      ));
+      return result;
     });
   }
 
@@ -648,6 +752,8 @@ function adminCommandName(
       return "riot_link_request_approve";
     case "라이엇계정 거절":
       return "riot_link_request_reject";
+    case "라이엇계정 연결해제":
+      return "riot_link_remove";
     default:
       return "riot_link_request_list";
   }
@@ -664,6 +770,8 @@ function terminalReasonCode(reasonCode: string): AdminCommandReasonCode {
     "operation_unknown",
     "riot_link_request_stale",
     "riot_link_request_unavailable",
+    "riot_link_not_found",
+    "riot_link_stale",
     "riot_active_puuid_conflict",
     "invalid_puuid",
     "platform_mismatch",

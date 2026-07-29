@@ -19,6 +19,8 @@ export function buildBrowserFixtureServer({ authenticated = true } = {}) {
   app.get("/api/session", async (_request, reply) =>
     authenticated ? sessionFixture : reply.code(401).send());
   app.get("/api/overview", async () => healthyOverviewFixture);
+  app.get("/api/riot/links", async () => ({ links: [] }));
+  app.post("/api/riot/requests/list", async () => ({ requests: [] }));
   app.get("/api/settings/summary", async () => settings);
   app.get("/api/audit", async () => audit);
   app.get("/api/command-log", async () => ({

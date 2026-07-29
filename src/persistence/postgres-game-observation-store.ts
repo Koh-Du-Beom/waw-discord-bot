@@ -15,6 +15,17 @@ export class PostgresGameObservationStore implements GameObservationStore {
     const client = await this.pool.connect();
     try {
       await client.query("begin");
+      const activeLink = await client.query(
+        `select 1
+           from riot_account_link
+          where link_id = $1 and version = $2 and removed_at is null
+          for share`,
+        [input.linkId, input.linkVersion],
+      );
+      if (activeLink.rowCount !== 1) {
+        await client.query("rollback");
+        return "stale";
+      }
       await client.query(
         `insert into riot_game (
           game_key, platform_id, game_id, queue_id, started_at

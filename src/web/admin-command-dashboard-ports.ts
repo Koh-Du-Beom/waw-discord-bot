@@ -10,6 +10,7 @@ import type {
   DecideRiotLinkRequestDto,
   ListPendingRiotLinksRequestDto,
   PendingRiotLinkRequestsDto,
+  RemoveRiotLinkRequestDto,
   RiotLinkDecisionResponseDto,
 } from "../contracts/dashboard.ts";
 import { HttpPortError } from "../http/dashboard-server.ts";
@@ -121,6 +122,16 @@ export function createAdminCommandDashboardPorts(input: {
       });
       return decision(response, "거절했습니다.");
     },
+    async removeRiotLink(
+      context: DispatchInput & { request: RemoveRiotLinkRequestDto },
+    ): Promise<RiotLinkDecisionResponseDto> {
+      const response = await dispatch(context, "riot_link_remove", {
+        linkId: context.request.linkId,
+        expectedVersion: context.request.expectedVersion,
+        confirmation: true,
+      });
+      return decision(response, "연결을 해제했습니다.");
+    },
   };
 }
 
@@ -131,6 +142,7 @@ function decision(
   if (
     response.outcome === "success" &&
     (response.result.kind === "riot_link_decision" ||
+      response.result.kind === "riot_link_removal" ||
       (response.result.kind === "operation_status" &&
         response.result.status === "success"))
   ) {

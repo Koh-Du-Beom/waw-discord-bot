@@ -18,6 +18,7 @@ test("reads only active Riot link fields and injects the configured guild", asyn
             discord_user_id: "member",
             platform_id: "KR",
             puuid: "normalized-puuid",
+            version: "3",
           }],
           rowCount: 1,
         } as QueryResult<never>;
@@ -31,6 +32,7 @@ test("reads only active Riot link fields and injects the configured guild", asyn
     discordUserId: "member",
     platformId: "KR",
     puuid: "normalized-puuid",
+    version: 3,
   }]);
   assert.match(calls[0]!, /where removed_at is null/);
   assert.doesNotMatch(calls[0]!, /game_name|tag_line/);

@@ -66,7 +66,7 @@ test("renders the approved Direction A navigation shell", async () => {
   assert.ok(await screen.findByRole("complementary", { name: "대시보드 탐색" }));
   assert.ok(screen.getByText("관리 대시보드"));
   assert.equal(screen.queryByText("/몰랭검거"), null);
-  for (const name of ["대시보드", "Riot 계정 연결 요청", "명령어 로그", "설정", "운영 기록"]) {
+  for (const name of ["대시보드", "Riot 계정", "명령어 로그", "설정", "운영 기록"]) {
     assert.ok(screen.getByRole("button", { name }));
   }
 });
@@ -218,8 +218,8 @@ test("administrator can review a KR request and approve with a hidden PUUID", as
     },
   })} />);
 
-  fireEvent.click(await screen.findByRole("button", { name: /Riot 계정 연결 요청/ }));
-  await screen.findByRole("heading", { name: "Riot 계정 연결 요청", level: 1 });
+  fireEvent.click(await screen.findByRole("button", { name: /Riot 계정/ }));
+  await screen.findByRole("heading", { name: "Riot 계정", level: 1 });
   assert.equal(screen.getByText(/요청자 요청자/).textContent?.includes("요청자"), true);
   assert.equal(screen.queryByLabelText("검증할 PUUID"), null);
   const approve = screen.getByRole("button", { name: "검증 후 승인" });
@@ -257,7 +257,7 @@ test("administrator can reject a stale Riot request", async () => {
     },
   })} />);
 
-  fireEvent.click(await screen.findByRole("button", { name: /Riot 계정 연결 요청/ }));
+  fireEvent.click(await screen.findByRole("button", { name: /Riot 계정/ }));
   fireEvent.click(screen.getByRole("button", { name: "거절" }));
   await screen.findByText("Riot 계정 연결 요청을 거절했습니다.");
   assert.equal(rejected, true);
@@ -292,10 +292,48 @@ test("administrator can approve every eligible Riot request in one action", asyn
     },
   })} />);
 
-  fireEvent.click(await screen.findByRole("button", { name: /Riot 계정 연결 요청/ }));
+  fireEvent.click(await screen.findByRole("button", { name: /Riot 계정/ }));
   fireEvent.click(screen.getByRole("button", { name: "일괄 승인" }));
   await screen.findByText("2건을 일괄 승인했습니다.");
   assert.deepEqual(approved, ["request-bulk-1", "request-bulk-2"]);
+});
+
+test("administrator confirms and removes one active Riot link once", async () => {
+  let calls = 0;
+  render(<App api={apiFixture({
+    session: {
+      ...sessionFixture,
+      actor: { ...sessionFixture.actor, tier: "administrator" },
+    },
+    riotLinks: {
+      links: [{
+        linkId: "link:active0001",
+        expectedVersion: 2,
+        requesterLabel: "사용자",
+        platformId: "KR",
+        gameName: "계정",
+        tagLine: "KR1",
+        isPrimary: true,
+      }],
+    },
+    removeRiotLink: async (request) => {
+      calls += 1;
+      assert.deepEqual(request, {
+        linkId: "link:active0001",
+        expectedVersion: 2,
+        confirmation: true,
+      });
+      return { message: "연결을 해제했습니다." };
+    },
+  })} />);
+  fireEvent.click(await screen.findByRole("button", { name: /Riot 계정/ }));
+  fireEvent.click(screen.getByRole("button", { name: "연결 해제" }));
+  const confirm = screen.getByRole("button", { name: "해제 확인" });
+  fireEvent.click(confirm);
+  fireEvent.click(confirm);
+  await screen.findByText("연결을 해제했습니다.");
+  assert.equal(calls, 1);
+  assert.equal(screen.queryByText("계정#KR1 · 대표"), null);
 });
 
 function apiError(code: string): Error & { code: string } {
@@ -308,12 +346,14 @@ function apiFixture(
     sessionError?: Error;
     overview?: DashboardOverviewDto;
     overviewError?: Error;
+    riotLinks?: import("../src/contracts/dashboard.ts").ActiveRiotLinksDto;
     settings?: LowRiskSettingsDto;
     update?: DashboardApi["updateSettings"];
     audit?: { events: AuditEventDto[] };
     riotRequests?: PendingRiotLinkRequestsDto;
     approveRiotRequest?: DashboardApi["approveRiotRequest"];
     rejectRiotRequest?: DashboardApi["rejectRiotRequest"];
+    removeRiotLink?: DashboardApi["removeRiotLink"];
     commandLog?: DashboardApi["getCommandLog"];
   } = {},
 ): DashboardApi {
@@ -325,6 +365,9 @@ function apiFixture(
     async getOverview() {
       if (overrides.overviewError) throw overrides.overviewError;
       return overrides.overview ?? healthyOverviewFixture;
+    },
+    async getRiotLinks() {
+      return overrides.riotLinks ?? { links: [] };
     },
     async getSettings() {
       return overrides.settings ?? settingsFixture;
@@ -351,5 +394,8 @@ function apiFixture(
     rejectRiotRequest:
       overrides.rejectRiotRequest ??
       (async () => ({ message: "거절했습니다." })),
+    removeRiotLink:
+      overrides.removeRiotLink ??
+      (async () => ({ message: "연결을 해제했습니다." })),
   };
 }

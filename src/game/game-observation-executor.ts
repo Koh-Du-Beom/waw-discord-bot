@@ -8,6 +8,8 @@ import {
 } from "./observation-state.ts";
 
 export type NormalizedGameObservation = {
+  linkId: string;
+  linkVersion: number;
   platformId: string;
   gameId: string;
   queueId: number;
@@ -80,6 +82,7 @@ export class GameObservationExecutor {
 function validate(input: NormalizedGameObservation): void {
   if (
     input.platformId.trim().length === 0 ||
+    input.linkId.trim().length === 0 ||
     input.gameId.trim().length === 0 ||
     input.discordUserId.trim().length === 0 ||
     input.riot.evidenceCode.trim().length === 0 ||
@@ -89,6 +92,8 @@ function validate(input: NormalizedGameObservation): void {
   }
   if (
     !Number.isSafeInteger(input.queueId) ||
+    !Number.isSafeInteger(input.linkVersion) ||
+    input.linkVersion < 0 ||
     input.queueId <= 0 ||
     !Number.isSafeInteger(input.riot.generation) ||
     input.riot.generation < 0 ||

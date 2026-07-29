@@ -42,6 +42,9 @@ export function createProductionDashboardPorts(input: {
     async readOverview() {
       return readOverview(input);
     },
+    async readActiveRiotLinks() {
+      return store.readActiveRiotLinks();
+    },
     async readSettings() {
       return store.readSettings();
     },
@@ -64,6 +67,10 @@ export function createProductionDashboardPorts(input: {
     },
     async rejectRiotLink(request) {
       if (adminPorts) return adminPorts.rejectRiotLink(request);
+      throw new HttpPortError("unavailable", "riot_admin_ipc_unavailable");
+    },
+    async removeRiotLink(request) {
+      if (adminPorts) return adminPorts.removeRiotLink(request);
       throw new HttpPortError("unavailable", "riot_admin_ipc_unavailable");
     },
   };

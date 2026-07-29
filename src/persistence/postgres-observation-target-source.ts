@@ -11,6 +11,7 @@ type TargetRow = {
   discord_user_id: string;
   platform_id: string;
   puuid: string;
+  version: string;
 };
 
 export class PostgresObservationTargetSource implements ObservationTargetSource {
@@ -22,7 +23,7 @@ export class PostgresObservationTargetSource implements ObservationTargetSource 
   async listTargets(): Promise<readonly ObservedRiotLink[]> {
     try {
       const result = await this.pool.query<TargetRow>(
-        `select link_id, discord_user_id, platform_id, puuid
+        `select link_id, discord_user_id, platform_id, puuid, version::text
            from riot_account_link
           where removed_at is null
           order by link_id`,
@@ -33,6 +34,7 @@ export class PostgresObservationTargetSource implements ObservationTargetSource 
         discordUserId: row.discord_user_id,
         platformId: row.platform_id,
         puuid: row.puuid,
+        version: Number(row.version),
       }));
     } catch {
       throw new PersistenceError("observation_target_read_failed");

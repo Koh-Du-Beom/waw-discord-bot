@@ -4,6 +4,7 @@ import type { Pool, PoolClient } from "pg";
 
 import type {
   AuditEventsDto,
+  ActiveRiotLinksDto,
   CommandLogPageDto,
   ListCommandLogRequestDto,
   LowRiskSettingsDto,
@@ -48,6 +49,38 @@ export class PostgresDashboardStore {
       return mapSettings(row);
     } catch {
       throw new PersistenceError("dashboard_settings_read_failed");
+    }
+  }
+
+  async readActiveRiotLinks(): Promise<ActiveRiotLinksDto> {
+    try {
+      const result = await this.pool.query<{
+        link_id: string; display_label: string | null; platform_id: string;
+        game_name: string; tag_line: string; is_primary: boolean; version: string;
+      }>(
+        `select link.link_id, users.display_label, link.platform_id,
+                link.game_name, link.tag_line, link.is_primary,
+                link.version::text
+           from riot_account_link link
+           left join registered_discord_user users
+             on users.discord_user_id = link.discord_user_id
+          where link.removed_at is null
+          order by coalesce(users.display_label, link.discord_user_id),
+                   link.is_primary desc, link.created_at, link.link_id`,
+      );
+      return {
+        links: result.rows.map((row) => ({
+          linkId: row.link_id,
+          expectedVersion: Number(row.version),
+          requesterLabel: row.display_label ?? "서버 멤버",
+          platformId: row.platform_id,
+          gameName: row.game_name,
+          tagLine: row.tag_line,
+          isPrimary: row.is_primary,
+        })),
+      };
+    } catch {
+      throw new PersistenceError("dashboard_riot_links_read_failed");
     }
   }
 

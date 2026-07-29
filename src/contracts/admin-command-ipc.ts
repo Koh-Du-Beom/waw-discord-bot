@@ -6,6 +6,7 @@ export type AdminCommandName =
   | "riot_link_request_list"
   | "riot_link_request_approve"
   | "riot_link_request_reject"
+  | "riot_link_remove"
   | "operation_status";
 
 type RequestBase = {
@@ -35,6 +36,10 @@ export type AdminCommandRequest =
       payload: { requestId: string; expectedVersion: number };
     })
   | (RequestBase & {
+      command: "riot_link_remove";
+      payload: { linkId: string; expectedVersion: number; confirmation: true };
+    })
+  | (RequestBase & {
       command: "operation_status";
       payload: { operationId: string };
     });
@@ -49,6 +54,8 @@ export type AdminCommandReasonCode =
   | "operation_unknown"
   | "riot_link_request_stale"
   | "riot_link_request_unavailable"
+  | "riot_link_not_found"
+  | "riot_link_stale"
   | "riot_active_puuid_conflict"
   | "invalid_puuid"
   | "platform_mismatch"
@@ -83,6 +90,7 @@ export type AdminCommandResponse =
             kind: "riot_link_decision";
             status: "approved" | "rejected";
           }
+        | { kind: "riot_link_removal"; status: "removed" }
         | {
             kind: "operation_status";
             status: "success" | "denied" | "conflict" | "failure" | "unknown";
@@ -130,6 +138,8 @@ const reasonCodes = new Set<AdminCommandReasonCode>([
   "operation_unknown",
   "riot_link_request_stale",
   "riot_link_request_unavailable",
+  "riot_link_not_found",
+  "riot_link_stale",
   "riot_active_puuid_conflict",
   "invalid_puuid",
   "platform_mismatch",
@@ -287,6 +297,10 @@ function parsePayload(
       "command" | "payload"
     >
   | Pick<
+      Extract<AdminCommandRequest, { command: "riot_link_remove" }>,
+      "command" | "payload"
+    >
+  | Pick<
       Extract<AdminCommandRequest, { command: "operation_status" }>,
       "command" | "payload"
     >
@@ -340,6 +354,23 @@ function parsePayload(
           expectedVersion: value.expectedVersion,
         },
       };
+    case "riot_link_remove":
+      if (
+        !hasExactKeys(value, ["confirmation", "expectedVersion", "linkId"]) ||
+        value.confirmation !== true ||
+        !isPattern(value.linkId, entityIdPattern) ||
+        !isVersion(value.expectedVersion)
+      ) {
+        return undefined;
+      }
+      return {
+        command,
+        payload: {
+          linkId: value.linkId,
+          expectedVersion: value.expectedVersion,
+          confirmation: true,
+        },
+      };
     case "operation_status":
       if (
         !hasExactKeys(value, ["operationId"]) ||
@@ -360,6 +391,11 @@ function parseResult(
   if (value.kind === "riot_link_decision") {
     return hasExactKeys(value, ["kind", "status"]) &&
       (value.status === "approved" || value.status === "rejected")
+      ? { kind: value.kind, status: value.status }
+      : undefined;
+  }
+  if (value.kind === "riot_link_removal") {
+    return hasExactKeys(value, ["kind", "status"]) && value.status === "removed"
       ? { kind: value.kind, status: value.status }
       : undefined;
   }

@@ -59,6 +59,14 @@ export type AdminCommandApplicationStore = {
     decidedAt: Date;
     audit: CommandAuditEvent;
   }): Promise<"rejected" | "stale" | "request_unavailable" | "duplicate_operation">;
+  removeLinkWithAudit(input: {
+    operationId: string;
+    linkId: string;
+    expectedVersion: number;
+    administratorId: string;
+    removedAt: Date;
+    audit: CommandAuditEvent;
+  }): Promise<"removed" | "not_found" | "stale" | "duplicate_operation">;
   recordAdminAudit(
     event: CommandAuditEvent,
     commandName?: AdminCommandName,
@@ -116,6 +124,8 @@ export class AdminCommandApplication {
         return this.approve(request, receivedAt);
       case "riot_link_request_reject":
         return this.reject(request, receivedAt);
+      case "riot_link_remove":
+        return this.remove(request, receivedAt);
       case "operation_status":
         return this.operationStatus(request, receivedAt);
     }
@@ -289,6 +299,37 @@ export class AdminCommandApplication {
       },
     };
   }
+
+  private async remove(
+    request: Extract<AdminCommandRequest, { command: "riot_link_remove" }>,
+    occurredAt: Date,
+  ): Promise<AdminCommandResponse> {
+    const result = await this.input.store.removeLinkWithAudit({
+      operationId: request.operationId,
+      linkId: request.payload.linkId,
+      expectedVersion: request.payload.expectedVersion,
+      administratorId: request.actorId,
+      removedAt: occurredAt,
+      audit: audit(request, occurredAt, "success", "completed"),
+    });
+    if (result === "duplicate_operation") {
+      return terminalResponse(
+        request,
+        await this.input.store.findAdminCommandResult(request.operationId),
+      );
+    }
+    if (result === "removed") {
+      return {
+        ...responseBase(request),
+        outcome: "success",
+        reasonCode: "completed",
+        result: { kind: "riot_link_removal", status: "removed" },
+      };
+    }
+    return result === "stale"
+      ? failure(request, "conflict", "riot_link_stale")
+      : failure(request, "unavailable", "riot_link_not_found");
+  }
 }
 
 function terminalResponse(
@@ -343,7 +384,9 @@ function audit(
         : request.command === "riot_link_request_approve"
           ? "라이엇계정 승인"
           : request.command === "riot_link_request_reject"
-            ? "라이엇계정 거절"
+          ? "라이엇계정 거절"
+          : request.command === "riot_link_remove"
+            ? "라이엇계정 연결해제"
             : "라이엇계정 승인대기목록",
     outcome,
     reasonCode,

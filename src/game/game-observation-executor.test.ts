@@ -11,6 +11,8 @@ const startedAt = new Date("2026-07-25T00:00:00Z");
 
 function input(overrides: Record<string, unknown> = {}) {
   return {
+    linkId: "link:test",
+    linkVersion: 0,
     platformId: "KR",
     gameId: "game-1",
     queueId: 420,

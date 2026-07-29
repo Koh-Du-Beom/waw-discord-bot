@@ -67,6 +67,10 @@ function fakeStore(): AdminCommandApplicationStore & {
       store.calls.push("reject");
       return "rejected" as const;
     },
+    async removeLinkWithAudit() {
+      store.calls.push("remove");
+      return "removed" as const;
+    },
     async recordAdminAudit(event) {
       store.calls.push(`audit:${event.reasonCode}`);
     },
@@ -174,6 +178,20 @@ test("records validator unavailability without attempting approval", async () =>
     "findPending",
     "audit:validator_unavailable",
   ]);
+});
+
+test("removes an active link only after current administrator authorization", async () => {
+  const store = fakeStore();
+  const response = await applicationWith(store).execute(
+    request("riot_link_remove", {
+      linkId: "link:active0001",
+      expectedVersion: 4,
+      confirmation: true,
+    }),
+  );
+  assert.equal(response.outcome, "success");
+  assert.equal(response.result.kind, "riot_link_removal");
+  assert.deepEqual(store.calls, ["terminal", "remove"]);
 });
 
 function applicationWith(

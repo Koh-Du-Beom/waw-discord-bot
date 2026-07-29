@@ -80,6 +80,7 @@ function ports(overrides: Partial<DashboardHttpPorts> = {}): DashboardHttpPorts 
   return {
     readDisplayName: async () => "Fixture Operator",
     readOverview: async () => overview,
+    readActiveRiotLinks: async () => ({ links: [] }),
     readSettings: async () => settings,
     updateSettings: async () => ({
       kind: "updated",
@@ -90,6 +91,7 @@ function ports(overrides: Partial<DashboardHttpPorts> = {}): DashboardHttpPorts 
     listPendingRiotLinks: async () => ({ requests: [] }),
     approveRiotLink: async () => ({ message: "승인했습니다." }),
     rejectRiotLink: async () => ({ message: "거절했습니다." }),
+    removeRiotLink: async () => ({ message: "연결을 해제했습니다." }),
     ...overrides,
   };
 }
@@ -216,6 +218,10 @@ test("Riot administrator routes require current admin, CSRF, recent auth, confir
         portCalls.push(`reject:${input.request.expectedVersion}`);
         throw new HttpPortError("conflict", "riot_link_request_stale");
       },
+      async removeRiotLink(input) {
+        portCalls.push(`remove:${input.request.linkId}:${input.request.expectedVersion}`);
+        return { message: "연결을 해제했습니다." };
+      },
     },
   });
 
@@ -252,6 +258,17 @@ test("Riot administrator routes require current admin, CSRF, recent auth, confir
   });
   assert.equal(reject.statusCode, 409);
   assert.equal(reject.json().error.code, "conflict");
+  const remove = await app.inject({
+    method: "POST",
+    url: "/api/riot/links/remove",
+    headers: mutationHeaders,
+    payload: {
+      linkId: "link:active0001",
+      expectedVersion: 4,
+      confirmation: true,
+    },
+  });
+  assert.equal(remove.statusCode, 200);
   assert.deepEqual(
     authorizationCalls.map((call) => ({
       kind: call.kind,
@@ -262,9 +279,15 @@ test("Riot administrator routes require current admin, CSRF, recent auth, confir
       { kind: "mutation", confirmation: false, csrf: csrfToken },
       { kind: "high-risk", confirmation: true, csrf: csrfToken },
       { kind: "high-risk", confirmation: true, csrf: csrfToken },
+      { kind: "high-risk", confirmation: true, csrf: csrfToken },
     ],
   );
-  assert.deepEqual(portCalls, ["list:administrator", "approve:3", "reject:2"]);
+  assert.deepEqual(portCalls, [
+    "list:administrator",
+    "approve:3",
+    "reject:2",
+    "remove:link:active0001:4",
+  ]);
 
   const missingConfirmation = await app.inject({
     method: "POST",

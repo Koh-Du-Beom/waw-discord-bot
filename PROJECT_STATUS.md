@@ -4,6 +4,38 @@
 
 ## 현재 단계
 
+2026-07-29 PLAN-0012 Tasks 1~7 local/disposable 구현을 완료하고 Task 8
+production migration 직전에서 중단했다. Additive migrations `0009`와 `0010`,
+exact 관리자 remove IPC, current-role 선검사, row-lock/version soft delete,
+terminal result·감사 원자성, observation late-result guard, administrator-only
+HTTP와 2단계 확인 UI를 구현했다. 기존 Discord 본인 해제도 version을 증가시켜
+dashboard stale snapshot을 무효화한다. 독립 disposable PostgreSQL 17에서
+admin transaction, observation guard와 removed-target 제외가 PASS했다.
+Production credential, migration, 배포, service와 실제 Riot link mutation은
+`0`이며 Task 8은 별도 exact owner gate다.
+
+2026-07-29 Owner가 Dashboard 관리자의 활성 Riot 계정 단건 해제 제안안을
+승인해 ADR-0025를 Accepted로 전환했다. ADR-0017의 별도 Unix socket에 exact
+`riot_link_remove`를 추가하고 web recent OAuth·CSRF·명시적 확인, bot current
+administrator 재확인, additive link version/row lock, soft delete, operation
+result 재조정과 mutation·감사 원자 transaction을 유지한다. Hard delete,
+batch 해제, PUUID 자동 재할당, primary 자동 승격과 과거 관측 삭제는 제외한다.
+후속 `PLAN-0012-dashboard-riot-link-removal.md`는 migration/read model,
+IPC/bot transaction, observation race, HTTP/UI, disposable 통합과 별도
+production gate의 8개 task로 Draft 작성했다. Plan 승인 전 production code,
+migration·배포 변경은 `0`이다.
+
+2026-07-29 Discord `/라이엇계정 목록`의 사용자 생략 의미를 시스템 전체 활성
+계정 조회로 확장하고, 각 행에 본인 연결 해제에 필요한 연결 ID를 노출했다.
+`/몰랭검거 현황`은 사용자 생략 시 모든 등록 사용자를 포함해 `confirmed` 사건
+1건을 1스택으로 계산한 표를 반환하며, 사용자 지정 시 기존 상세 관측 조회를
+유지한다. Dashboard Riot 영역은 승인 대기 요청뿐 아니라 web read-only
+권한으로 활성 연결 계정 표를 함께 조회한다. 혼동을 일으키던 “소유권 미검증”
+UI 라벨은 “관리자 승인 연결”로 정리했으며 공식 Riot 인증과의 경계는 도움말에
+유지한다. Dashboard 직접 연결 해제 mutation은 기존 ADR-0017 IPC allowlist
+확장이 필요하므로 이번 범위에 포함하지 않았다. 새 migration과 production
+mutation은 `0`이다.
+
 2026-07-29 Owner가 Discord 사용자가 요청하고 관리자가 승인한 모든 활성 Riot
 계정을 자동 관측 대상으로 확정했다. 연결 요청 응답과 private 도움말에 Riot
 솔로랭크·Discord Go Live 자동 관측을 고지하고, 연결 해제를 후속 관측 제외

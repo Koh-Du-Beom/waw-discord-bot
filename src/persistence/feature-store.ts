@@ -220,6 +220,29 @@ export class PostgresFeatureStore
     });
   }
 
+  async listStacks(): Promise<readonly import("../game/game-command-executor.ts").GameStackItem[]> {
+    return this.run("game_stack_read_failed", async () => {
+      const result = await this.pool.query<{ display_label: string; stack: string }>(
+        `select users.display_label,
+                count(incident.incident_id) filter (
+                  where incident.status = 'confirmed'
+                )::text stack
+           from registered_discord_user users
+           left join game_incident incident
+             on incident.discord_user_id = users.discord_user_id
+          group by users.guild_id, users.discord_user_id, users.display_label
+          order by count(incident.incident_id) filter (
+                     where incident.status = 'confirmed'
+                   ) desc,
+                   users.display_label`,
+      );
+      return result.rows.map((row) => ({
+        discordUserLabel: row.display_label,
+        stack: Number(row.stack),
+      }));
+    });
+  }
+
   private async run<T>(reasonCode: string, action: () => Promise<T>): Promise<T> {
     try {
       return await action();

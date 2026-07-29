@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   DASHBOARD_API_PATHS,
   type CommandLogEntryDto,
+  type ActiveRiotLinkDto,
   type SessionDto,
   type UpdateLowRiskSettingsResponseDto,
 } from "./dashboard.ts";
@@ -21,8 +22,10 @@ test("dashboard API paths remain same-origin and canonical", () => {
     settings: "/api/settings/summary",
     audit: "/api/audit",
     riotRequests: "/api/riot/requests/list",
+    riotLinks: "/api/riot/links",
     riotApprove: "/api/riot/requests/approve",
     riotReject: "/api/riot/requests/reject",
+    riotRemove: "/api/riot/links/remove",
     commandLog: "/api/command-log",
   });
 
@@ -48,6 +51,26 @@ test("command-log DTO exposes only exact redacted keys", () => {
     "discordUserId", "guildId", "channelId", "eventId", "operationId",
     "correlationId", "puuid", "messageContent", "commandOptions",
   ]) {
+    assert.equal(rendered.includes(forbidden), false);
+  }
+});
+
+test("active Riot link DTO exposes a stale-safe version without sensitive identifiers", () => {
+  const link: ActiveRiotLinkDto = {
+    linkId: "link-synthetic",
+    expectedVersion: 3,
+    requesterLabel: "등록 사용자",
+    platformId: "KR",
+    gameName: "표시 이름",
+    tagLine: "KR1",
+    isPrimary: false,
+  };
+  assert.deepEqual(Object.keys(link).sort(), [
+    "expectedVersion", "gameName", "isPrimary", "linkId", "platformId",
+    "requesterLabel", "tagLine",
+  ]);
+  const rendered = JSON.stringify(link);
+  for (const forbidden of ["puuid", "discordUserId", "verificationMethod"]) {
     assert.equal(rendered.includes(forbidden), false);
   }
 });

@@ -18,6 +18,7 @@ const target: ObservedRiotLink = {
   discordUserId: "member",
   platformId: "KR",
   puuid: "synthetic-puuid",
+  version: 0,
 };
 const startedAt = new Date("2026-07-25T00:00:00Z");
 

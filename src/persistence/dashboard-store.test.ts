@@ -47,6 +47,41 @@ test("dashboard store reads settings and allowlisted audit DTOs", async () => {
   assert.deepEqual(calls[1]?.values, [50]);
 });
 
+test("dashboard store reads active Riot links with their optimistic version", async () => {
+  const calls: Call[] = [];
+  const pool = {
+    async query(text: string, values?: readonly unknown[]) {
+      calls.push({ text, ...(values === undefined ? {} : { values }) });
+      return result([{
+        link_id: "link-1",
+        display_label: "등록 사용자",
+        platform_id: "KR",
+        game_name: "표시 이름",
+        tag_line: "KR1",
+        is_primary: false,
+        version: "4",
+      }]);
+    },
+  } as unknown as Pool;
+
+  assert.deepEqual(
+    await new PostgresDashboardStore(pool).readActiveRiotLinks(),
+    {
+      links: [{
+        linkId: "link-1",
+        expectedVersion: 4,
+        requesterLabel: "등록 사용자",
+        platformId: "KR",
+        gameName: "표시 이름",
+        tagLine: "KR1",
+        isPrimary: false,
+      }],
+    },
+  );
+  assert.match(calls[0]?.text ?? "", /link\.version::text/);
+  assert.doesNotMatch(calls[0]?.text ?? "", /link\.puuid/);
+});
+
 test("dashboard setting update and audit commit in one transaction", async () => {
   const calls: Call[] = [];
   const client = transactionClient(calls, true);

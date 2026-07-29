@@ -162,6 +162,37 @@ test("reconciles duplicate operation through operation_status without repeating 
   ]);
 });
 
+test("dispatches an exact confirmed optimistic Riot link removal", async () => {
+  let captured: AdminCommandRequest | undefined;
+  const ports = createAdminCommandDashboardPorts({
+    guildId: "223456789012345678",
+    now: () => now,
+    generateId: ids(),
+    audit: { async append() {} },
+    transport: {
+      async execute(request) {
+        captured = request;
+        return success(request, { kind: "riot_link_removal", status: "removed" });
+      },
+    },
+  });
+  const result = await ports.removeRiotLink({
+    ...context,
+    request: {
+      linkId: "link:active0001",
+      expectedVersion: 7,
+      confirmation: true,
+    },
+  });
+  assert.equal(result.message, "연결을 해제했습니다.");
+  assert.equal(captured?.command, "riot_link_remove");
+  assert.deepEqual(captured?.payload, {
+    linkId: "link:active0001",
+    expectedVersion: 7,
+    confirmation: true,
+  });
+});
+
 function portsReturning(response: AdminCommandResponse) {
   return createAdminCommandDashboardPorts({
     guildId: "223456789012345678",

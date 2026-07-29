@@ -11,6 +11,7 @@ export type ObservedRiotLink = {
   discordUserId: string;
   platformId: string;
   puuid: string;
+  version: number;
 };
 
 export type ObservationTargetSource = {
@@ -131,6 +132,8 @@ export class GameObservationScheduler {
         key(target.guildId, target.discordUserId),
       );
       const result = await this.input.observations.execute({
+        linkId: target.linkId,
+        linkVersion: target.version,
         platformId: target.platformId,
         gameId: game.gameId,
         queueId: game.queueId,

@@ -16,6 +16,17 @@ before(async () => {
   if (!connectionString) return;
   pool = new Pool({ connectionString, max: 4 });
   await pool.query("select 1");
+  await pool.query(
+    `insert into riot_account_link (
+       link_id, discord_user_id, puuid, platform_id, game_name, tag_line,
+       verification_method, approved_by, created_at, version
+     ) values (
+       'observation-link','observation-member','observation-puuid','KR',
+       'Observation','KR1','admin_approved_unverified','administrator',now(),0
+     )
+     on conflict (link_id) do update
+       set removed_at = null, version = 0`,
+  );
   executor = new GameObservationExecutor(new PostgresGameObservationStore(pool));
 });
 
@@ -131,6 +142,28 @@ test(
       ).rows[0]?.comparison_state,
       "unknown",
     );
+
+    await pool.query(
+      `update riot_account_link
+          set removed_at = now(), is_primary = false, version = version + 1
+        where link_id = 'observation-link'`,
+    );
+    assert.equal(
+      await executor.execute(observation({
+        gameId: "late-after-removal",
+        riot: { state: "active", evidenceCode: "spectator_active", generation: 10 },
+        goLive: { state: "active", evidenceCode: "voice_state_event", generation: 10 },
+      })),
+      "stale",
+    );
+    assert.equal(
+      (
+        await pool.query(
+          "select 1 from riot_game where game_id = 'late-after-removal'",
+        )
+      ).rowCount,
+      0,
+    );
   },
 );
 
@@ -138,6 +171,8 @@ function observation(
   overrides: Partial<Parameters<GameObservationExecutor["execute"]>[0]> = {},
 ): Parameters<GameObservationExecutor["execute"]>[0] {
   return {
+    linkId: "observation-link",
+    linkVersion: 0,
     platformId: "KR",
     gameId: "observation-game",
     queueId: 420,

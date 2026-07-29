@@ -91,6 +91,20 @@ export type PendingRiotLinkRequestsDto = {
   nextCursor?: string;
 };
 
+export type ActiveRiotLinkDto = {
+  linkId: string;
+  expectedVersion: number;
+  requesterLabel: string;
+  platformId: string;
+  gameName: string;
+  tagLine: string;
+  isPrimary: boolean;
+};
+
+export type ActiveRiotLinksDto = {
+  links: ActiveRiotLinkDto[];
+};
+
 export type ListPendingRiotLinksRequestDto = {
   cursor?: string;
 };
@@ -102,6 +116,12 @@ export type DecideRiotLinkRequestDto = {
 };
 
 export type ApproveRiotLinkRequestDto = DecideRiotLinkRequestDto & {
+};
+
+export type RemoveRiotLinkRequestDto = {
+  linkId: string;
+  expectedVersion: number;
+  confirmation: true;
 };
 
 export type RiotLinkDecisionResponseDto = {
@@ -141,7 +161,9 @@ export const DASHBOARD_API_PATHS = {
   settings: "/api/settings/summary",
   audit: "/api/audit",
   riotRequests: "/api/riot/requests/list",
+  riotLinks: "/api/riot/links",
   riotApprove: "/api/riot/requests/approve",
   riotReject: "/api/riot/requests/reject",
+  riotRemove: "/api/riot/links/remove",
   commandLog: "/api/command-log",
 } as const;

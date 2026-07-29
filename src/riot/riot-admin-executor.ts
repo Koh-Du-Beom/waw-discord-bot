@@ -117,7 +117,7 @@ export class RiotAdminExecutor {
     });
     switch (result) {
       case "approved":
-        return "라이엇 계정 연결 요청을 승인했습니다. 소유권 미검증 상태로 표시됩니다.";
+        return "라이엇 계정 연결 요청을 승인했습니다. 관리자 승인 연결로 표시됩니다.";
       case "puuid_conflict":
         return "같은 PUUID가 이미 다른 활성 사용자에게 연결되어 승인하지 않았습니다.";
       case "stale":

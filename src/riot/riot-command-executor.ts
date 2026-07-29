@@ -8,6 +8,8 @@ import {
 export type RiotLinkListItem = {
   kind: "active";
   linkId: string;
+  discordUserId: string;
+  discordUserLabel: string;
   gameName: string;
   tagLine: string;
   platformId: string;
@@ -38,6 +40,7 @@ export type RiotCommandStore = {
     discordUserId: string;
     includePending: boolean;
   }): Promise<readonly (RiotLinkListItem | RiotPendingRequestItem)[]>;
+  listAll(): Promise<readonly RiotLinkListItem[]>;
   unlinkWithAudit(input: {
     operationId: string;
     linkId: string;
@@ -94,21 +97,17 @@ export class RiotCommandExecutor implements FeatureCommandExecutor {
   }
 
   private async list(request: CommandRequest): Promise<string> {
-    const target = request.options["사용자"] ?? request.actorId;
-    const items = await this.store.list({
-      discordUserId: target,
-      includePending: target === request.actorId,
-    });
+    const target = request.options["사용자"];
+    const items = target === undefined
+      ? await this.store.listAll()
+      : await this.store.list({ discordUserId: target, includePending: false });
     if (items.length === 0) return "표시할 라이엇 계정이나 승인 대기 요청이 없습니다.";
     return items
       .map((item) =>
         item.kind === "pending"
           ? `- ${item.gameName}#${item.tagLine} (${item.platformId}) · 승인 대기`
-          : `- ${item.gameName}#${item.tagLine} (${item.platformId}) · ${
-              item.verificationMethod === "rso_verified"
-                ? "RSO 인증"
-                : "관리자 승인·소유권 미검증"
-            }${item.isPrimary ? " · 대표" : ""}`,
+          : `- ${item.discordUserLabel} · ${item.gameName}#${item.tagLine} (${item.platformId})` +
+            ` · 연결 ID: \`${item.linkId}\`${item.isPrimary ? " · 대표" : ""}`,
       )
       .join("\n");
   }

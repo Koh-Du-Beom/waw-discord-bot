@@ -1,6 +1,7 @@
 import {
   DASHBOARD_API_PATHS,
   type ApiErrorDto,
+  type ActiveRiotLinksDto,
   type AuditEventsDto,
   type DashboardOverviewDto,
   type CommandLogPageDto,
@@ -10,6 +11,7 @@ import {
   type ApproveRiotLinkRequestDto,
   type DecideRiotLinkRequestDto,
   type RiotLinkDecisionResponseDto,
+  type RemoveRiotLinkRequestDto,
   type SessionDto,
   type UpdateLowRiskSettingsRequestDto,
   type UpdateLowRiskSettingsResponseDto,
@@ -53,6 +55,11 @@ export function createBrowserApi(fetcher: typeof fetch = fetch): DashboardApi {
     async getOverview() {
       return readJson<DashboardOverviewDto>(
         await fetcher(DASHBOARD_API_PATHS.overview, requestInit()),
+      );
+    },
+    async getRiotLinks() {
+      return readJson<ActiveRiotLinksDto>(
+        await fetcher(DASHBOARD_API_PATHS.riotLinks, requestInit()),
       );
     },
     async getSettings() {
@@ -104,6 +111,9 @@ export function createBrowserApi(fetcher: typeof fetch = fetch): DashboardApi {
     },
     async rejectRiotRequest(request: DecideRiotLinkRequestDto) {
       return mutate<RiotLinkDecisionResponseDto>(DASHBOARD_API_PATHS.riotReject, request);
+    },
+    async removeRiotLink(request: RemoveRiotLinkRequestDto) {
+      return mutate<RiotLinkDecisionResponseDto>(DASHBOARD_API_PATHS.riotRemove, request);
     },
   };
 

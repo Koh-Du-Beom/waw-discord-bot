@@ -34,6 +34,8 @@ const migrationFivePath = path.join(projectRoot, "migrations/0005_summary_riot_g
 const migrationSixPath = path.join(projectRoot, "migrations/0006_admin_command_result.sql");
 const migrationSevenPath = path.join(projectRoot, "migrations/0007_summary_daily_quota.sql");
 const migrationEightPath = path.join(projectRoot, "migrations/0008_summary_hourly_cooldown.sql");
+const migrationNinePath = path.join(projectRoot, "migrations/0009_riot_link_version.sql");
+const migrationTenPath = path.join(projectRoot, "migrations/0010_riot_link_removal_result.sql");
 const migrationOneSql = await readFile(migrationOnePath, "utf8");
 const migrationTwoSql = await readFile(migrationTwoPath, "utf8");
 const migrationThreeSql = await readFile(migrationThreePath, "utf8");
@@ -42,6 +44,8 @@ const migrationFiveSql = await readFile(migrationFivePath, "utf8");
 const migrationSixSql = await readFile(migrationSixPath, "utf8");
 const migrationSevenSql = await readFile(migrationSevenPath, "utf8");
 const migrationEightSql = await readFile(migrationEightPath, "utf8");
+const migrationNineSql = await readFile(migrationNinePath, "utf8");
+const migrationTenSql = await readFile(migrationTenPath, "utf8");
 
 let clusterDirectory = "";
 let socketDirectory = "";
@@ -138,6 +142,25 @@ test("applies migration transactionally, records version, and rejects reapplicat
     name: "summary_hourly_cooldown",
     sql: migrationEightSql,
   });
+  await adminPool.query(
+    `insert into riot_account_link (
+       link_id, discord_user_id, puuid, platform_id, game_name, tag_line,
+       verification_method, approved_by, created_at
+     ) values (
+       'pre-version-link','pre-version-member','pre-version-puuid','KR',
+       'name','KR1','admin_approved_unverified','admin',now()
+     )`,
+  );
+  await applyMigration(adminPool, {
+    version: 9,
+    name: "riot_link_version",
+    sql: migrationNineSql,
+  });
+  await applyMigration(adminPool, {
+    version: 10,
+    name: "riot_link_removal_result",
+    sql: migrationTenSql,
+  });
 
   const version = await adminPool.query<{ version: number }>(
     "select version from app_schema_version order by version",
@@ -151,7 +174,42 @@ test("applies migration transactionally, records version, and rejects reapplicat
     { version: 6 },
     { version: 7 },
     { version: 8 },
+    { version: 9 },
+    { version: 10 },
   ]);
+
+  const linkVersion = await adminPool.query<{
+    column_default: string | null;
+    is_nullable: string;
+  }>(
+    `select column_default, is_nullable
+       from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'riot_account_link'
+        and column_name = 'version'`,
+  );
+  assert.equal(linkVersion.rows[0]?.column_default, "0");
+  assert.equal(linkVersion.rows[0]?.is_nullable, "NO");
+  assert.equal(
+    (
+      await adminPool.query<{ version: string }>(
+        "select version::text from riot_account_link where link_id = 'pre-version-link'",
+      )
+    ).rows[0]?.version,
+    "0",
+  );
+  await assert.rejects(
+    adminPool.query(
+      `insert into riot_account_link (
+         link_id, discord_user_id, puuid, platform_id, game_name, tag_line,
+         verification_method, approved_by, created_at, version
+       ) values (
+         'negative-version-link','member','negative-version-puuid','KR',
+         'name','KR1','admin_approved_unverified','admin',now(),-1
+       )`,
+    ),
+    /check constraint/u,
+  );
 
   await assert.rejects(
     applyMigration(adminPool, {

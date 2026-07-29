@@ -52,6 +52,16 @@ const migrations = [
     name: "summary_hourly_cooldown",
     path: path.resolve(import.meta.dirname, "../../migrations/0008_summary_hourly_cooldown.sql"),
   },
+  {
+    version: 9,
+    name: "riot_link_version",
+    path: path.resolve(import.meta.dirname, "../../migrations/0009_riot_link_version.sql"),
+  },
+  {
+    version: 10,
+    name: "riot_link_removal_result",
+    path: path.resolve(import.meta.dirname, "../../migrations/0010_riot_link_removal_result.sql"),
+  },
 ] as const;
 
 async function main(): Promise<void> {

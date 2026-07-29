@@ -79,6 +79,32 @@ test("application persists pagination and every terminal decision atomically", {
   assert.equal(conflict.outcome, "conflict");
   assert.equal(conflict.reasonCode, "riot_active_puuid_conflict");
 
+  const removedRequest = command(
+    "riot_link_remove",
+    {
+      linkId: "link:admin-approve-operation",
+      expectedVersion: 0,
+      confirmation: true,
+    },
+    "admin-remove-operation",
+  );
+  const removed = await application.execute(removedRequest);
+  assert.equal(removed.outcome, "success");
+  assert.equal(removed.result.kind, "riot_link_removal");
+  const removedDuplicate = await application.execute(removedRequest);
+  assert.equal(removedDuplicate.outcome, "success");
+  assert.equal(removedDuplicate.result.kind, "operation_status");
+  assert.equal(
+    (
+      await pool.query<{ version: string }>(
+        `select version::text
+           from riot_account_link
+          where link_id = 'link:admin-approve-operation'`,
+      )
+    ).rows[0]?.version,
+    "1",
+  );
+
   const unavailable = await createApplication(true).execute(command(
     "riot_link_request_approve",
     approval("admin-request-03", 0, "admin-link-03", "B".repeat(64)),
@@ -91,11 +117,11 @@ test("application persists pagination and every terminal decision atomically", {
     `select operation_id from admin_command_result
       where operation_id in (
         'admin-list-operation-01','admin-list-operation-02',
-        'admin-stale-operation','admin-approve-operation',
+        'admin-stale-operation','admin-approve-operation','admin-remove-operation',
         'admin-conflict-operation','admin-validator-operation'
       )`,
   );
-  assert.equal(terminalRows.rowCount, 6);
+  assert.equal(terminalRows.rowCount, 7);
 
   await pool.query(`
     create function fail_task2_audit() returns trigger language plpgsql as $$
@@ -168,6 +194,10 @@ function createApplication(validatorUnavailable = false) {
       },
     },
     validator: {
+      async resolve() {
+        if (validatorUnavailable) throw new Error("validator unavailable");
+        return { kind: "valid" as const, normalizedPuuid: "A".repeat(64) };
+      },
       async validate(input) {
         if (validatorUnavailable) throw new Error("validator unavailable");
         return { kind: "valid", normalizedPuuid: input.puuid };

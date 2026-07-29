@@ -46,6 +46,9 @@ function store(
         observedAt: new Date("2026-07-25T00:00:00Z"),
       }];
     },
+    async listStacks() {
+      return [{ discordUserLabel: "사용자", stack: 2 }];
+    },
     async findIncidentVersion() {
       return 2;
     },
@@ -62,10 +65,22 @@ test("renders Riot and Go Live evidence separately in Korean", async () => {
     { async readCurrentAuthorization() { return { kind: "unauthorized" }; } },
     () => new Date(),
   );
-  const response = await executor.execute(request("몰랭검거 현황"));
+  const targetRequest = { ...request("몰랭검거 현황"), options: { 사용자: "actor" } };
+  const response = await executor.execute(targetRequest);
   assert.match(response, /Riot 활성/);
   assert.match(response, /Go Live 알 수 없음/);
   assert.match(response, /판정 알 수 없음/);
+});
+
+test("renders every registered user's confirmed incident stack as a table", async () => {
+  const executor = new GameCommandExecutor(
+    store(),
+    { async readCurrentAuthorization() { return { kind: "unauthorized" }; } },
+    () => new Date(),
+  );
+  const response = await executor.execute(request("몰랭검거 현황"));
+  assert.match(response, /사용자\s+\| 몰랭스택/);
+  assert.match(response, /사용자\s+\| 2/);
 });
 
 test("denies before incident reads and lets the command audit record the denial", async () => {

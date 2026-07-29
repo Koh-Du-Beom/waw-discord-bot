@@ -31,8 +31,13 @@ function base() {
   };
 }
 
-test("parses and serializes all four exact command payloads", () => {
+test("parses and serializes all five exact command payloads", () => {
   const wires = [
+    {
+      ...base(),
+      command: "riot_link_remove",
+      payload: { linkId: "link:active0001", expectedVersion: 3, confirmation: true },
+    },
     {
       ...base(),
       command: "riot_link_request_list",
@@ -102,6 +107,11 @@ test("rejects unknown, missing and command-specific payload fields", () => {
   assert.equal(parseAdminCommandRequest(JSON.stringify({
     ...valid,
     authorizationTier: "administrator",
+  })), undefined);
+  assert.equal(parseAdminCommandRequest(JSON.stringify({
+    ...base(),
+    command: "riot_link_remove",
+    payload: { linkId: "link:active0001", expectedVersion: 0, confirmation: false },
   })), undefined);
   assert.equal(parseAdminCommandRequest(JSON.stringify({
     ...valid,
@@ -179,6 +189,18 @@ test("parses only allowlisted response shapes and binds the request ID", () => {
     outcome: "conflict",
     reasonCode: "riot_link_request_stale",
   }), requestId)?.outcome, "conflict");
+  const removal: AdminCommandResponse = {
+    version: 1,
+    requestId,
+    operationId,
+    outcome: "success",
+    reasonCode: "completed",
+    result: { kind: "riot_link_removal", status: "removed" },
+  };
+  assert.deepEqual(
+    parseAdminCommandResponse(serializeAdminCommandResponse(removal), requestId),
+    removal,
+  );
 });
 
 test("never reflects PUUID, Riot ID or provider input in parser failures", () => {
