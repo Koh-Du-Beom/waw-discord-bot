@@ -4,6 +4,13 @@
 
 ## 현재 단계
 
+2026-07-29 exact `f1441b086dfb9fe7970ac51414fb71489abd702a`의 develop CI
+run `30416488101` 성공 후 production에 fast-forward 승격했다. Deploy production
+run `30416842303`은 59초 만에 PASS했고 release `f1441b086dfb`를 stage·activate한
+뒤 bounded readiness와 remote activation을 통과했다. 최종 canonical
+`https://waw.dubeom.com/health`는 `healthy`, rollback은 발생하지 않았으며
+production ref는 exact candidate와 일치한다.
+
 2026-07-29 Owner 피드백에 따라 dashboard information architecture를 실제
 운영 작업 중심으로 재구성했다. Discord 연결 의미와 icon을 갖는 전용 로그인,
 서버·DB·backup·Riot pending count와 최근 명령 5개를 모은 dashboard, 별도 Riot
