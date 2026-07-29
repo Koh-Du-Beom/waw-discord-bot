@@ -9,6 +9,10 @@
 
 ## Unreleased
 
+- Rework the dashboard around operational tasks: add a Discord-focused login,
+  status-colored server/database/backup cards, Riot request count and dedicated
+  review tab, a five-command overview, and cursor-paginated command-log detail;
+  move summary settings and audited changes out of the primary scan path.
 - Apply the approved Pretendard Direction A to the production React dashboard
   with `/몰랭검거` branding, dark operations styling, desktop sidebar and
   mobile-safe navigation while preserving the existing API and authorization

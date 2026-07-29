@@ -112,28 +112,39 @@ button:disabled {
   margin-top: 2.5rem;
 }
 
-.sidebar nav a {
+.sidebar nav button {
   display: grid;
-  grid-template-columns: 24px 1fr;
+  grid-template-columns: 24px 1fr auto;
+  width: 100%;
   min-height: 44px;
   align-items: center;
   border: 1px solid transparent;
   border-radius: 8px;
   padding: 0.65rem 0.85rem;
   color: #99a7ba;
+  background: transparent;
   font-weight: 750;
+  text-align: left;
   text-decoration: none;
 }
 
-.sidebar nav a:hover {
+.sidebar nav button:hover {
   color: #edf2f8;
   background: #121c2c;
 }
 
-.sidebar nav a.active {
+.sidebar nav button.active {
   color: #fff;
   border-color: #33445f;
   background: #1b2940;
+}
+
+.sidebar nav b {
+  border-radius: 999px;
+  padding: 0.08rem 0.45rem;
+  color: #111722;
+  background: #f0bd58;
+  font-size: 0.7rem;
 }
 
 .sidebar-account {
@@ -259,7 +270,7 @@ h2 {
 }
 
 .card-grid {
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   margin-bottom: 3rem;
 }
 
@@ -285,6 +296,36 @@ h2 {
 .metric-card strong {
   font-family: Pretendard, "Noto Sans KR", sans-serif;
   font-size: 1.6rem;
+}
+
+.metric-value {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.metric-value i {
+  width: 0.62rem;
+  height: 0.62rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.metric-value.connected,
+.metric-value.published {
+  color: #85d6a7;
+}
+
+.metric-value.degraded,
+.metric-value.unknown,
+.metric-value.attention {
+  color: #f8cf78;
+}
+
+.metric-value.unavailable,
+.metric-value.failed {
+  color: #ffaaa6;
 }
 
 .metric-card p {
@@ -424,6 +465,9 @@ h2 {
 }
 
 .wide-panel { margin-top: 1rem; }
+.text-button { margin-top: .75rem; border-color: transparent; color: #e5bd6c; background: transparent; }
+.section-description { color: #8492a6; }
+.pagination { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-top: 1px solid #28364b; padding: 1rem 0; color: #7f8da1; }
 .table-scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: .85rem; border-bottom: 1px solid #28364b; text-align: left; }
@@ -447,6 +491,67 @@ code { color: #edc878; font-weight: 800; }
   font-size: clamp(2rem, 7vw, 3.5rem);
 }
 
+.login-page {
+  display: grid;
+  width: 100%;
+  min-height: 100vh;
+  place-items: center;
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at 50% 15%, rgba(88, 101, 242, 0.2), transparent 32rem),
+    #0b111c;
+}
+
+.login-card {
+  width: min(440px, 100%);
+  border: 1px solid #303d55;
+  border-radius: 18px;
+  padding: clamp(2rem, 7vw, 3rem);
+  background: #111a28;
+  box-shadow: 0 28px 80px #0008;
+  text-align: center;
+}
+
+.login-card h1 {
+  margin-bottom: 1rem;
+  font-size: clamp(2rem, 8vw, 2.8rem);
+}
+
+.discord-mark {
+  display: grid;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1.5rem;
+  place-items: center;
+  border-radius: 22px;
+  color: #fff;
+  background: #5865f2;
+}
+
+.discord-mark svg {
+  width: 44px;
+  fill: currentColor;
+}
+
+.login-copy {
+  margin-bottom: 1.6rem;
+  color: #9ba9bc;
+  line-height: 1.65;
+}
+
+.discord-button {
+  width: 100%;
+  color: #fff;
+  border-color: #6974f4;
+  background: #5865f2;
+}
+
+.login-footnote {
+  margin: 1rem 0 0;
+  color: #9ba9bc;
+  font-size: 0.75rem;
+}
+
 @media (max-width: 720px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -455,6 +560,7 @@ code { color: #edc878; font-weight: 800; }
   .sidebar {
     position: static;
     width: 100%;
+    min-width: 0;
     height: auto;
     border-right: 0;
     border-bottom: 1px solid #263247;
@@ -463,11 +569,14 @@ code { color: #edc878; font-weight: 800; }
 
   .sidebar nav {
     display: flex;
+    width: 100%;
+    min-width: 0;
     overflow-x: auto;
     margin-top: 1rem;
   }
 
-  .sidebar nav a {
+  .sidebar nav button {
+    width: auto;
     flex: 0 0 auto;
   }
 
@@ -476,7 +585,14 @@ code { color: #edc878; font-weight: 800; }
   }
 
   .topbar {
+    align-items: flex-start;
+    flex-direction: column;
     padding: 1rem;
+  }
+
+  .operator-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .operator {
@@ -499,6 +615,10 @@ code { color: #edc878; font-weight: 800; }
   tr { padding: .75rem 0; border-bottom: 1px solid #28364b; }
   td { display: grid; grid-template-columns: 7rem 1fr; border: 0; padding: .35rem 0; }
   td::before { content: attr(data-label); color: #718097; font-weight: 700; }
+}
+
+@media (min-width: 721px) and (max-width: 1100px) {
+  .card-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (prefers-reduced-motion: reduce) {

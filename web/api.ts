@@ -4,6 +4,7 @@ import {
   type AuditEventsDto,
   type DashboardOverviewDto,
   type CommandLogPageDto,
+  type ListCommandLogRequestDto,
   type LowRiskSettingsDto,
   type PendingRiotLinkRequestsDto,
   type ApproveRiotLinkRequestDto,
@@ -83,9 +84,15 @@ export function createBrowserApi(fetcher: typeof fetch = fetch): DashboardApi {
         await fetcher(DASHBOARD_API_PATHS.audit, requestInit()),
       );
     },
-    async getCommandLog() {
+    async getCommandLog(request: ListCommandLogRequestDto = {}) {
+      const query = new URLSearchParams();
+      if (request.limit !== undefined) query.set("limit", String(request.limit));
+      if (request.cursor !== undefined) query.set("cursor", request.cursor);
       return readJson<CommandLogPageDto>(
-        await fetcher(DASHBOARD_API_PATHS.commandLog, requestInit()),
+        await fetcher(
+          `${DASHBOARD_API_PATHS.commandLog}${query.size ? `?${query}` : ""}`,
+          requestInit(),
+        ),
       );
     },
     async getRiotRequests() {

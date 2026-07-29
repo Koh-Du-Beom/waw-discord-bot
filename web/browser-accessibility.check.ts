@@ -22,7 +22,7 @@ test("production SPA has no automatic axe violations and supports keyboard mutat
     const context = await browser.newContext({ reducedMotion: "reduce" });
     const page = await context.newPage();
     await page.goto(address, { waitUntil: "networkidle" });
-    await page.getByRole("heading", { name: "운영 현황" }).waitFor();
+    await page.getByRole("heading", { name: "대시보드" }).waitFor();
 
     const accessibility = await new AxeBuilder({ page }).analyze();
     assert.deepEqual(
@@ -37,6 +37,7 @@ test("production SPA has no automatic axe violations and supports keyboard mutat
       [],
     );
 
+    await page.getByRole("button", { name: "설정" }).click();
     const checkbox = page.getByRole("checkbox", { name: "서버 요약 기능 사용" });
     await checkbox.focus();
     await page.keyboard.press("Space");
@@ -52,10 +53,8 @@ test("production SPA has no automatic axe violations and supports keyboard mutat
       await result.evaluate((element) => element === document.activeElement),
       true,
     );
-    assert.match(
-      (await page.getByRole("list", { name: "최근 감사 결과" }).textContent()) ?? "",
-      /성공/,
-    );
+    await page.getByRole("button", { name: "운영 기록" }).click();
+    assert.match((await page.getByText("서버 요약 설정 변경").textContent()) ?? "", /서버 요약/);
 
     await page.setViewportSize({ width: 360, height: 800 });
     assert.equal(
@@ -72,5 +71,25 @@ test("production SPA has no automatic axe violations and supports keyboard mutat
     } finally {
       await app.close();
     }
+  }
+});
+
+test("Discord login page has no automatic axe violations", async () => {
+  const app = buildBrowserFixtureServer({ authenticated: false });
+  let browser: Browser | undefined;
+  try {
+    const address = await app.listen({ host: "127.0.0.1", port: 0 });
+    browser = await chromium.launch({ headless: true });
+    const context = await browser.newContext({ viewport: { width: 360, height: 800 } });
+    const page = await context.newPage();
+    await page.goto(address, { waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "Discord 서버와 연결" }).waitFor();
+    assert.deepEqual(
+      (await new AxeBuilder({ page }).analyze()).violations.map((violation) => violation.id),
+      [],
+    );
+  } finally {
+    await browser?.close();
+    await app.close();
   }
 });

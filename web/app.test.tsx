@@ -47,9 +47,10 @@ test("shows a keyboard-accessible loading state and then healthy dashboard conte
   render(<App api={apiFixture()} />);
 
   assert.equal(screen.getByRole("status").textContent?.includes("불러오는 중"), true);
-  assert.equal((await screen.findByRole("heading", { name: "운영 현황" })).tagName, "H1");
+  assert.equal((await screen.findByRole("heading", { name: "대시보드" })).tagName, "H1");
   assert.match(screen.getByText("정상").textContent ?? "", /정상/);
   assert.equal(screen.getAllByText("연결됨").length, 2);
+  fireEvent.click(screen.getByRole("button", { name: "설정" }));
   assert.equal(screen.getByRole("checkbox", { name: "서버 요약 기능 사용" }).getAttribute("type"), "checkbox");
   assert.equal(screen.getByRole("button", { name: "설정 저장" }).getAttribute("type"), "submit");
   assert.equal(
@@ -63,8 +64,8 @@ test("renders the approved Direction A navigation shell", async () => {
 
   assert.ok(await screen.findByRole("complementary", { name: "대시보드 탐색" }));
   assert.ok(screen.getByText("/몰랭검거"));
-  for (const name of ["대시보드", "확인 필요", "명령어 로그", "운영 상태"]) {
-    assert.ok(screen.getByRole("link", { name }));
+  for (const name of ["대시보드", "Riot 계정 연결 요청", "명령어 로그", "설정", "운영 기록"]) {
+    assert.ok(screen.getByRole("button", { name }));
   }
 });
 
@@ -73,17 +74,18 @@ test("exposes named landmarks and controls without relying on color alone", asyn
   await screen.findByRole("main");
 
   assert.ok(screen.getByRole("status", { name: "전체 상태" }).textContent);
+  fireEvent.click(screen.getByRole("button", { name: "설정" }));
   assert.ok(screen.getByRole("checkbox", { name: "서버 요약 기능 사용" }));
   assert.ok(screen.getByRole("button", { name: "설정 저장" }));
   assert.ok(screen.getByRole("button", { name: "로그아웃" }));
-  assert.match(screen.getByText("게시 완료").textContent ?? "", /게시 완료/);
+  fireEvent.click(screen.getByRole("button", { name: "운영 기록" }));
   assert.match(screen.getByText("표시할 설정 변경 기록이 없습니다.").textContent ?? "", /없습니다/);
 });
 
 test("distinguishes login, denied, unavailable, and degraded states", async (t) => {
   await t.test("login", async () => {
     render(<App api={apiFixture({ session: null })} />);
-    const login = await screen.findByRole("link", { name: "Discord로 로그인" });
+    const login = await screen.findByRole("link", { name: "Discord로 계속하기" });
     assert.equal(login.getAttribute("href"), "/auth/login");
     cleanup();
   });
@@ -140,6 +142,8 @@ test("announces a successful setting mutation, refreshes audit, and moves focus"
   });
   render(<App api={api} />);
 
+  await screen.findByRole("heading", { name: "대시보드" });
+  fireEvent.click(screen.getByRole("button", { name: "설정" }));
   const checkbox = await screen.findByRole("checkbox", { name: "서버 요약 기능 사용" });
   fireEvent.click(checkbox);
   fireEvent.click(screen.getByRole("button", { name: "설정 저장" }));
@@ -148,6 +152,7 @@ test("announces a successful setting mutation, refreshes audit, and moves focus"
   assert.equal(result.textContent?.includes("저장했습니다"), true);
   assert.equal(dom.window.document.activeElement, result);
   assert.deepEqual(received, { summaryEnabled: false, expectedVersion: 4 });
+  fireEvent.click(screen.getByRole("button", { name: "운영 기록" }));
   assert.match(screen.getByRole("list", { name: "최근 감사 결과" }).textContent ?? "", /성공/);
 });
 
@@ -161,6 +166,7 @@ test("announces mutation failure without claiming success", async () => {
       })}
     />,
   );
+  fireEvent.click(await screen.findByRole("button", { name: "설정" }));
   fireEvent.click(await screen.findByRole("checkbox", { name: "서버 요약 기능 사용" }));
   fireEvent.click(screen.getByRole("button", { name: "설정 저장" }));
   const alert = await screen.findByRole("alert", { name: "저장 결과" });
@@ -191,7 +197,8 @@ test("administrator can review a KR request and approve with a hidden PUUID", as
     },
   })} />);
 
-  await screen.findByRole("heading", { name: "Riot 계정 연결 요청" });
+  fireEvent.click(await screen.findByRole("button", { name: /Riot 계정 연결 요청/ }));
+  await screen.findByRole("heading", { name: "Riot 계정 연결 요청", level: 1 });
   assert.equal(screen.queryByLabelText("검증할 PUUID"), null);
   fireEvent.click(screen.getByRole("button", { name: "검증 후 승인" }));
   await screen.findByText("Riot 계정 연결 요청을 승인했습니다.");

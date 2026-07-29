@@ -11,12 +11,13 @@ import {
   settingsFixture,
 } from "./fixtures.ts";
 
-export function buildBrowserFixtureServer() {
+export function buildBrowserFixtureServer({ authenticated = true } = {}) {
   const app = Fastify({ logger: false });
   let settings = settingsFixture;
   let audit = emptyAuditFixture;
 
-  app.get("/api/session", async () => sessionFixture);
+  app.get("/api/session", async (_request, reply) =>
+    authenticated ? sessionFixture : reply.code(401).send());
   app.get("/api/overview", async () => healthyOverviewFixture);
   app.get("/api/settings/summary", async () => settings);
   app.get("/api/audit", async () => audit);
