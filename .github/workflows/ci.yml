@@ -34,4 +34,5 @@ jobs:
       - run: bash deploy/test-production-release-manager.sh
       - run: bash scripts/test-deploy-production-via-lightsail.sh
       - run: bash scripts/test-wait-production-health.sh
+      - run: bash deploy/integration/postgres/test-data-reset.sh
       - run: git diff --check

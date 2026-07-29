@@ -9,6 +9,9 @@
 
 ## Unreleased
 
+- Add a fail-closed, schema-preserving production data reset SQL, a disposable
+  PostgreSQL 17 fixture, and an owner-gated backup/recovery checklist without
+  authorizing or executing a production reset.
 - Limit the dashboard command log to commands invoked through Discord chat and
   persist each command actor's current Discord server display name for the log.
 - Show the requesting Discord member's current server display name on pending

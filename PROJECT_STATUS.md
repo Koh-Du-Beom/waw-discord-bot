@@ -4,6 +4,17 @@
 
 ## 현재 단계
 
+2026-07-29 production data-only reset 준비물을 추가했다. Exact approval GUC와
+schema version `1..8` guard를 통과해야만 14개 명시적 application data table을
+`CASCADE` 없이 한 transaction에서 비우고 dashboard singleton을 `false:0`으로
+복원하며 commit 전 빈 상태를 검증한다. PostgreSQL 17 fixture는 모든 대상
+table을 seed하고 미승인 실행의 무변경 실패, 승인 실행, schema/RLS/policy/grant
+보존을 검증한다. Local disposable `initdb` 동등 실행은 PASS했고 Docker daemon이
+꺼져 있어 container wrapper의 local 실행은 불가했으므로 Ubuntu develop CI
+검증이 남았다. Backup restore, write quiescence, postcondition과 commit 후
+replacement-DB recovery를 분리한 production checklist를 작성했다. Production
+DB·host·backup·service mutation은 `0`이다.
+
 2026-07-29 dashboard admin IPC 결과도 `discord.command` audit event를 사용해
 명령어 로그에 섞이던 원인을 확인했다. Audit 원본은 보존하되 사용자용 command
 log query에서 `channel_id='dashboard'`를 제외해 실제 Discord interaction만
