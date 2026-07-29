@@ -1,6 +1,6 @@
 # PLAN-0012: 대시보드 Riot 계정 단건 연결 해제
 
-- Status: In Progress — Task 8 migrations `0009`/`0010` applied; release staged without activation
+- Status: In Progress — Task 8 release activated; owner UI verification remains
 - Date: 2026-07-29
 - Owner: 프로젝트 소유자
 - Related requirements: `FUN-005`, `FUN-015`, `FUN-018`, `OWN-015`, `SEC-001`~`SEC-010`
@@ -287,3 +287,12 @@ Local/disposable 구현과 production rollout을 분리한다. 이 Draft 계획�
   credential, SSH/CloudShell/local 임시 자료는 제거했다. Current
   `a2271329230b`, previous `930c22cb669d`, web/bot와 health는 그대로이며
   activation, restart, 배포와 실제 Riot link mutation은 `0`이다.
+
+- 2026-07-29 Task 8 activation: Staged checksum, current
+  `a2271329230b`, rollback `930c22cb669d`, migration ledger `9`/`10`을
+  재검증한 뒤 exact release `c7c5ad6`를 활성화했다. 첫 시도는 health helper의
+  실행 비트 가정으로 검증 단계에서 실패해 기존 release와 unit으로 자동
+  rollback했다. Helper를 `bash`로 명시 실행한 재시도는 PASS했으며 최종
+  current는 `c7c5ad6`, previous는 `a2271329230b`, bot/web 서비스와 canonical
+  health는 정상이다. Controller/SSH 임시 자료는 제거했다. 실제 Riot 계정
+  해제, 테스트 데이터 변경과 기능 smoke test는 수행하지 않았다.

@@ -1,9 +1,9 @@
 # PLAN-0012 production migration preflight
 
 - Date: 2026-07-29
-- Scope: Task 8 read-only preflight, restore gate and owner-approved migration
-- Status: MIGRATED — versions `9` and `10` applied; activation not performed
-- Production changes: additive migrations `0009` and `0010` only
+- Scope: Task 8 read-only preflight, restore gate, migration and release activation
+- Status: ACTIVATED — versions `9` and `10` applied; release `c7c5ad6` active
+- Production changes: additive migrations `0009`/`0010` and approved release activation
 
 ## Immutable release
 
@@ -127,9 +127,32 @@ Post-migration read-back verified:
 The first post-migration assertion counted `NOT VALID` constraints across every
 database schema and therefore stopped after the successful migrations. Its
 trap removed the credential. A fresh one-shot credential then performed a
-read-only application-schema check, which passed. No down SQL, ledger rewrite,
-manual schema correction, deployment, service activation or Riot link mutation
-occurred.
+read-only application-schema check, which passed. During this migration stage,
+no down SQL, ledger rewrite, manual schema correction, deployment, service
+activation or Riot link mutation occurred.
+
+## Owner-approved release activation
+
+Immediately before activation, the host reverified the staged release marker,
+current `a2271329230b`, rollback `930c22cb669d`, healthy loopback/canonical
+health and exact ledger versions/checksums `9` and `10`.
+
+The first activation attempt switched to `c7c5ad6` and restarted bot/web, but
+the verification controller invoked the readable health helper as an
+executable. The resulting permission error triggered the approved rollback.
+The release manager restored current `a2271329230b`, previous `930c22cb669d`
+and the prior unit files; bot/web returned active.
+
+The corrected controller invoked the reviewed helper through `bash`. The
+second preflight passed and activation completed:
+
+- current release: `c7c5ad6`;
+- previous release: `a2271329230b`;
+- bot and web services: active;
+- backup and monitoring timers: active;
+- loopback and canonical health: healthy;
+- controller, SSH and CloudShell temporary remainders: `0`;
+- Riot link mutation, test-data mutation and functional smoke tests: `0`.
 
 ## Verification
 
@@ -138,4 +161,5 @@ occurred.
 - Exact candidate `c7c5ad6a80788e9c756f9bdcc96998551a6622c2`
   develop CI run `30434745419`: success.
 - Production migration: versions `9` and `10` applied and read back.
-- Production deployment, activation, restart and real Riot link removal: `0`.
+- Production activation: release `c7c5ad6`; bot/web restarted and healthy.
+- Real Riot link removal, test-data mutation and functional smoke tests: `0`.

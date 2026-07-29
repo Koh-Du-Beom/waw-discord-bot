@@ -4,6 +4,14 @@
 
 ## 현재 단계
 
+2026-07-29 PLAN-0012 exact release `c7c5ad6` production activation을 완료했다.
+Staged checksum, current `a2271329230b`, rollback `930c22cb669d`, migration
+ledger `9`/`10`을 먼저 재검증했다. 첫 시도는 health helper 실행 비트 가정으로
+검증 단계에서 실패해 기존 release/unit으로 자동 rollback했다. `bash` 명시
+실행으로 수정한 재시도는 PASS했으며 최종 current `c7c5ad6`, previous
+`a2271329230b`, bot/web와 canonical health가 정상이다. 실제 Riot 계정 해제,
+테스트 데이터 변경과 기능 smoke test는 수행하지 않았다.
+
 2026-07-29 PLAN-0012 Task 8의 owner-approved production migration을 완료했다.
 Exact candidate `c7c5ad6a80788e9c756f9bdcc96998551a6622c2`를
 `/opt/waw/releases/c7c5ad6`에 activation 없이 stage하고 checksum이 고정된

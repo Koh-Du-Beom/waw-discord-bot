@@ -1,5 +1,11 @@
 # 변경 이력
 
+- PLAN-0012 staged release `c7c5ad6`를 production에 활성화했다. 첫 시도의
+  health helper 실행 비트 오류는 기존 release/unit으로 자동 rollback됐고,
+  `bash` 명시 실행 재시도 후 current `c7c5ad6`, previous `a2271329230b`,
+  bot/web와 canonical health를 확인했다. 실제 Riot 계정 해제, 테스트 데이터
+  변경과 기능 smoke test는 수행하지 않았다.
+
 - PLAN-0012 exact candidate `c7c5ad6a80788e9c756f9bdcc96998551a6622c2`를
   activation 없이 production에 stage하고 checksum 고정 migration `0009`,
   `0010`만 순서대로 적용했다. Ledger/schema read-back과 credential/임시 자료
