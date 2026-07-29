@@ -1,13 +1,21 @@
 # `d6a27c0` production 재배포 활성화 체크리스트
 
-- 상태: **STOPPED — rollback release 경계 확인·복구 필요**
+- 상태: **COMPLETE — production 재배포 PASS**
 - 후보 commit: `d6a27c0bef4aa74f689b48a3e67899d936a52fe1`
 - 예상 release: `d6a27c0bef4`
-- 현재 production ref: `464eb99542dfdc375cd75af1efcf29f1938e204e`
+- 현재 production ref: `d6a27c0bef4aa74f689b48a3e67899d936a52fe1`
 - develop CI: `30411214419` — `success`
 - 이전 실패 deploy: `30408412211`
 - 관찰된 host current: `bb53cf2`
 - 정식 도메인: `https://waw.dubeom.com`
+
+## 실행 결과 — 2026-07-29
+
+Bounded repair로 previous를 `f08089f`로 복구한 뒤 exact candidate를
+fast-forward 승격했다. Deploy production run `30414602637`은 release
+`d6a27c0bef4a`의 stage, activation, bounded readiness, remote activation과
+SSH credential cleanup을 모두 통과했다. 최종 canonical health는
+`{"status":"healthy"}`이며 rollback은 발생하지 않았다.
 
 이 문서는 기존
 `docs/operations/first-production-promotion-activation-checklist.md`의 재배포

@@ -4,6 +4,37 @@
 
 ## 현재 단계
 
+2026-07-29 Owner 승인 범위에서 `/opt/waw/previous`를 exact `f08089f`로
+same-filesystem atomic repair하고 current `bb53cf2`, service PID/start time,
+loopback/canonical health와 marker postcondition을 확인했다. Restart는 `0`이고
+repair cleanup은 PASS했다. 이어 exact `d6a27c0bef4aa74f689b48a3e67899d936a52fe1`을
+production에 fast-forward push했다. Deploy production run `30414602637`은
+57초 만에 PASS했고 release `d6a27c0bef4a`를 stage·activate한 뒤 bounded
+readiness와 remote activation을 통과했다. SSH credential cleanup과 canonical
+`https://waw.dubeom.com/health`의 `healthy`도 PASS했으며 rollback은 발생하지
+않았다.
+
+2026-07-29 Owner 승인 재시도에서 AWS 공식 `*-cert.pub` 형식으로 temporary
+Lightsail SSH certificate를 materialize해 Phase A read-only preflight를
+완료했다. Current와 previous는 모두 `bb53cf2`, original previous `f08089f`의
+directory와 두 immutable marker는 exact 일치해
+`REPAIR_REQUIRED_ELIGIBLE`이다. Gate 4 section 1·3~9는 service/timer,
+latest backup/monitor result, 22.4시간 backup freshness, loopback/canonical
+health, 33.7 GiB disk, 437 MiB available memory, listener/identity와
+credential metadata가 모두 PASS했다. 결과는 `mutation=0`, CloudShell
+cleanup PASS, exit `0`이다. Phase B previous-link repair는 별도 Owner 승인
+전까지 실행하지 않는다.
+
+2026-07-29 Owner가 production release-link Phase A read-only preflight 1회를
+승인했다. Root CloudShell에서 exact production instance의 temporary Lightsail
+SSH access material을 받아 private-key/certificate fingerprint와 pinned host
+key를 검증했지만, OpenSSH가 temporary certificate를 `error in libcrypto`로
+거부해 `Permission denied (publickey)`로 종료했다. Production SSH session과
+remote command는 성립하지 않아 release link read, Gate 4 read와 host
+mutation은 모두 `0`이다. CloudShell controller와 access material은 same-run
+제거됐고 exit는 `255`였다. 승인된 1회는 소비됐으므로 retry와 Phase B repair는
+새 Owner 승인 전까지 `STOPPED`다.
+
 2026-07-29 production release-link read-only preflight와 bounded repair 승인
 문서를 작성했다. Phase A는 exact current `bb53cf2`, original previous
 `f08089f`와 기존 marker SHA-256만 metadata로 확인하고 `NO_REPAIR`,

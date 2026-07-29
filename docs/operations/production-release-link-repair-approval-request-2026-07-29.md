@@ -1,6 +1,6 @@
 # Production release link read-only preflight와 bounded repair 승인 요청 — 2026-07-29
 
-- 상태: Owner 승인 요청 전 — 실행 미승인
+- 상태: Phase B PASS, production 재배포 PASS
 - 대상: production Lightsail `/opt/waw/current`, `/opt/waw/previous`
 - 관찰된 current: `bb53cf2`
 - 복구할 original previous: `f08089f`
@@ -12,6 +12,58 @@
 상태가 정확히 확인된 경우에만 original previous symlink 하나를 복구하기 위한
 승인 경계를 정의한다. 이 문서 자체는 SSH 접속이나 production mutation을
 승인하지 않는다.
+
+## Phase A 실행 결과 — 2026-07-29
+
+Owner가 재시도를 승인했고 AWS 공식 `*-cert.pub` certificate 형식으로 transport
+오류를 바로잡아 Phase A를 완료했다.
+
+- Current: `bb53cf2`
+- Previous: `bb53cf2`
+- Original previous directory/marker: exact `f08089f` PASS
+- 판정: `REPAIR_REQUIRED_ELIGIBLE`
+- Gate 4 section 1·3~9: PASS
+- Backup age: `80650`초
+- `/opt/waw`, `/tmp` available: 각각 `34762539008` bytes
+- Memory available: `448136` KiB
+- Production mutation: `0`
+- CloudShell controller/access remainder: `0`
+- Exit: `0`
+
+이 Phase A 완료 시점에는 Phase B를 실행하지 않았다. 이후 아래 별도 Owner
+승인으로 진행했다.
+
+## Phase B와 production 재배포 결과 — 2026-07-29
+
+Owner가 Phase B와 성공 시 exact `d6a27c0` production 재배포를 함께 승인했다.
+
+- Link repair: `PASS`
+- Repair postcondition: current `bb53cf2`, previous `f08089f`
+- Repair 중 service restart: `0`
+- Repair 후 loopback/canonical health: PASS
+- Production push: `464eb995` → `d6a27c0`
+- Deploy production run: `30414602637`, `success`
+- Activated release: `d6a27c0bef4a`
+- Remote activation/readiness: PASS
+- Final canonical health: `healthy`
+- Rollback: 발생하지 않음
+- SSH credential와 CloudShell temporary cleanup: PASS
+
+### 첫 transport 시도
+
+Owner 승인 후 root CloudShell에서 exact instance의 temporary Lightsail SSH
+access material을 받아 private-key/certificate fingerprint와 pinned host key를
+검증했다. OpenSSH가 temporary certificate를 `error in libcrypto`로 거부했고
+SSH는 `Permission denied (publickey)`와 exit `255`로 끝났다.
+
+- Production SSH session: `0`
+- Production remote command와 read: `0`
+- Host mutation: `0`
+- CloudShell controller/access remainder: `0`
+- 판정: `STOPPED_ACCESS`
+
+승인된 1회는 소비됐다. Phase A retry와 Phase B repair는 별도 Owner 승인 전까지
+실행하지 않는다.
 
 ## 고정된 release 증거
 
