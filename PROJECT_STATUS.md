@@ -4,6 +4,18 @@
 
 ## 현재 단계
 
+2026-07-29 Discord/Riot 표시 이름 동기화 누락 결함을 기존 schema와 bot
+runtime 경계 안에서 수정했다. Discord `guildMemberUpdate`, startup member
+reconciliation, slash-command audit upsert와 guild member cache를 재사용하며
+등록된 사용자의 DB label만 갱신한다. Riot active link는 bot-only Account-v1
+by-PUUID를 15분마다 최대 10건의 순차 배치로 순회하고, PUUID가 일치하며
+gameName/tagLine이 달라진 active row만 optimistic version과 함께 갱신한다.
+Provider 실패, stale/removed row와 같은 이름은 mutation하지 않는다. 새
+migration/dependency, web credential/API 권한과 production/user-data mutation은
+없다. Targeted unit `12/12`, 전체 test `268 pass / 8 external PostgreSQL skips /
+0 fail`, typecheck가 PASS했고 PostgreSQL 통합 추가 검증은 CI Linux fixture에
+남아 있다.
+
 2026-07-29 PLAN-0012 exact release `c7c5ad6` production activation을 완료했다.
 Staged checksum, current `a2271329230b`, rollback `930c22cb669d`, migration
 ledger `9`/`10`을 먼저 재검증했다. 첫 시도는 health helper 실행 비트 가정으로

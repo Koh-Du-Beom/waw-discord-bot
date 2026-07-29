@@ -1,5 +1,12 @@
 # 변경 이력
 
+- Discord server nickname changes now refresh the existing registered-user
+  label from `guildMemberUpdate` and startup member reconciliation while slash
+  command audit upsert remains the registration path. Active Riot links now
+  refresh mutable Riot ID display fields in bounded bot-side Account-v1
+  by-PUUID batches; PUUID/Discord IDs remain permanent, changed links increment
+  their optimistic version, and provider failures preserve existing state.
+
 - PLAN-0012 staged release `c7c5ad6`를 production에 활성화했다. 첫 시도의
   health helper 실행 비트 오류는 기존 release/unit으로 자동 rollback됐고,
   `bash` 명시 실행 재시도 후 current `c7c5ad6`, previous `a2271329230b`,

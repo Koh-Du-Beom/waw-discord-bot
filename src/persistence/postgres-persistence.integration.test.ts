@@ -14,6 +14,8 @@ import { hashOpaqueSessionId } from "./session-store.ts";
 import { PostgresFeatureStore } from "./feature-store.ts";
 import { RiotAccountLinkService } from "../riot/account-link.ts";
 import { PostgresRiotCommandStore } from "./postgres-riot-command-store.ts";
+import { PostgresDiscordMemberLabelStore } from "./discord-member-label-store.ts";
+import { PostgresRiotIdentityStore } from "./postgres-riot-identity-store.ts";
 import {
   applyMigration,
   applyPendingMigrations,
@@ -278,6 +280,67 @@ test("enforces Riot 1:N ownership and platform/game deduplication in PostgreSQL"
     ),
     /duplicate key/,
   );
+});
+
+test("refreshes mutable Discord and Riot display metadata without changing permanent identities", async () => {
+  await adminPool.query(
+    `insert into registered_discord_user (
+       guild_id, discord_user_id, display_label, created_at, updated_at
+     ) values ('guild', 'discord-1', '이전 닉네임', now(), now())
+     on conflict (guild_id, discord_user_id) do update
+       set display_label = excluded.display_label`,
+  );
+  const labels = new PostgresDiscordMemberLabelStore(adminPool);
+  await labels.refreshKnown([{
+    guildId: "guild",
+    discordUserId: "discord-1",
+    displayLabel: "최신 닉네임",
+  }], new Date("2026-07-29T00:00:00Z"));
+
+  const identities = new PostgresRiotIdentityStore(adminPool);
+  await identities.updateIdentity({
+    linkId: "pg-link-1",
+    puuid: "pg-puuid-1",
+    platformId: "KR",
+    version: 0,
+    gameName: "변경된 이름",
+    tagLine: "NEW",
+  });
+  await identities.updateIdentity({
+    linkId: "pg-link-1",
+    puuid: "pg-puuid-1",
+    platformId: "KR",
+    version: 0,
+    gameName: "오래된 쓰기",
+    tagLine: "OLD",
+  });
+
+  const result = await adminPool.query<{
+    discord_user_id: string;
+    puuid: string;
+    game_name: string;
+    tag_line: string;
+    version: string;
+    removed_at: Date | null;
+    display_label: string;
+  }>(
+    `select link.discord_user_id, link.puuid, link.game_name, link.tag_line,
+            link.version::text, link.removed_at, users.display_label
+       from riot_account_link link
+       join registered_discord_user users
+         on users.guild_id = 'guild'
+        and users.discord_user_id = link.discord_user_id
+      where link.link_id = 'pg-link-1'`,
+  );
+  assert.deepEqual(result.rows[0], {
+    discord_user_id: "discord-1",
+    puuid: "pg-puuid-1",
+    game_name: "변경된 이름",
+    tag_line: "NEW",
+    version: "1",
+    removed_at: null,
+    display_label: "최신 닉네임",
+  });
 });
 
 test("keeps Riot requests pending before approval and commits conflicts with audit atomically", async () => {
