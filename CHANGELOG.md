@@ -12,6 +12,8 @@
 - Disclose that administrator-approved active Riot links are automatically
   observed for ranked-solo and Discord Go Live state, with unlinking as the
   opt-out path.
+- Wait for current Gateway member reconciliation before attaching the initial
+  Go Live reconciliation, preventing duplicate full-member fetches at startup.
 - Validate production data-reset migration ledger rows with the deployed
   runner's accepted-checksum contract instead of raw file hashes, including the
   verified CRLF historical checksums for migrations `0003` and `0004`.

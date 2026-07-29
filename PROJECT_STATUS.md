@@ -14,6 +14,12 @@ feature flag나 process crash가 아니라 Discord member reconciliation의 최�
 시도와 1회 retry가 연속 실패했고, rollback 재시작은 즉시 connected 상태로
 복구됐다. 120초 readiness 안에서 15초 bounded attempt를 한 번 더 허용하도록
 retry delay를 `[2s, 5s]`로 확장하며 무제한 재시도는 도입하지 않는다.
+새 release에서도 활성화 시 같은 실패가 재현돼, `startBotProcess` 반환 직후
+Gateway member reconciliation이 아직 pending인데 voice adapter가 즉시 별도
+전체 member fetch를 시작하는 startup race를 root cause로 확인했다. Observation
+adapter는 Gateway reconciliation이 `current`가 될 때까지 최대 60초 bounded
+대기한 뒤 부착하도록 수정해 두 전체 조회가 겹치지 않게 하며, Resume 시 voice
+reconciliation 계약은 유지한다.
 
 2026-07-29 production data-only reset Gate 3의 migration 검증을 raw file
 SHA-256 일치가 아니라 exact deployed release의

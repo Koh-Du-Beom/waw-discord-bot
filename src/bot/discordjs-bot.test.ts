@@ -81,6 +81,7 @@ test("attaches and stops the gated observation lifecycle with a fake client", as
   const listeners = new Map<string, Set<(...arguments_: readonly unknown[]) => void>>();
   const calls: string[] = [];
   let intervalAction: (() => void) | undefined;
+  let sleeps = 0;
   const client: DiscordJsClientFacade = {
     on(event, listener) {
       const values = listeners.get(event) ?? new Set();
@@ -101,11 +102,18 @@ test("attaches and stops the gated observation lifecycle with a fake client", as
       release: async () => true,
     },
     client,
-    startClient: async () => {},
+    startClient: async () => {
+      queueMicrotask(() => {
+        for (const listener of listeners.get(Events.ClientReady) ?? []) listener();
+      });
+    },
     diagnostics: { subscribe: () => () => {} },
     reconcileMembers: async () => [],
     now: () => Date.parse("2026-07-25T00:00:00Z"),
-    sleep: async () => {},
+    sleep: async () => {
+      sleeps += 1;
+      await new Promise((resolve) => setImmediate(resolve));
+    },
     heartbeatStaleAfterMs: 100,
     reconnectDelaysMs: [0],
     shutdownTimeoutMs: 100,
@@ -153,6 +161,7 @@ test("attaches and stops the gated observation lifecycle with a fake client", as
     "tick",
     "voice:member:true",
   ]);
+  assert.ok(sleeps >= 1);
   await assembly.process.shutdown();
   assert.equal(calls.includes("interval-stopped"), true);
   assert.equal(listeners.get(Events.VoiceStateUpdate)?.size, 0);

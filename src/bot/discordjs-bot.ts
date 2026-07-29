@@ -94,6 +94,14 @@ export async function startDiscordJsBot(input: {
   if (process.exitCode !== undefined) {
     return { process, gateway };
   }
+  if (input.observations !== undefined) {
+    for (let attempt = 0; gateway.snapshot().reconciliation !== "current"; attempt += 1) {
+      if (attempt === 59) {
+        throw new Error("gateway reconciliation unavailable for observations");
+      }
+      await input.sleep(1_000);
+    }
+  }
   const commands =
     input.commands === undefined
       ? undefined
