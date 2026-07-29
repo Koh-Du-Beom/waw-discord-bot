@@ -82,7 +82,7 @@ test("secret-backed Lightsail SSH pins host keys and cleans temporary files", ()
 test("normal deployment excludes migrations and rolls back failed activation", () => {
   assert.doesNotMatch(local + remote, /run-migration/u);
   assert.match(remote, /trap rollback ERR/u);
-  assert.match(remote, /bash "\$manager" rollback/u);
+  assert.match(remote, /bash "\$manager" rollback "\$release_id" "\$previous_before"/u);
   assert.match(remote, /waw-backup\.timer/u);
   assert.match(remote, /waw-monitor\.timer/u);
   assert.match(remote, /"status":"healthy"/u);

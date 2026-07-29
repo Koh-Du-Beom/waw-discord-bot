@@ -108,5 +108,14 @@ fi
 previous_target="$(readlink -f "$PREVIOUS")"
 [[ "$previous_target" == "$RELEASE_ROOT/"* && -d "$previous_target" ]] ||
   { echo previous_release_invalid >&2; exit 1; }
+restore_previous="${3:-}"
+if [[ -n "$restore_previous" ]]; then
+  restore_previous="$(readlink -f -- "$restore_previous")"
+  [[ "$restore_previous" == "$RELEASE_ROOT/"* &&
+     -d "$restore_previous" &&
+     "$restore_previous" != "$previous_target" ]] ||
+    { echo previous_restore_target_invalid >&2; exit 1; }
+fi
 atomic_link "$CURRENT" "$previous_target"
+[[ -z "$restore_previous" ]] || atomic_link "$PREVIOUS" "$restore_previous"
 echo "production_release_rolled_back release=$(basename "$previous_target")"

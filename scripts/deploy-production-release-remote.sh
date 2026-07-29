@@ -37,7 +37,7 @@ cleanup() { rm -rf -- "$unit_backup"; }
 rollback() {
   local outcome=$?
   if [[ "$rollback_needed" == 1 ]]; then
-    bash "$manager" rollback "$release_id" || true
+    bash "$manager" rollback "$release_id" "$previous_before" || true
     install -m 644 "$unit_backup/waw-web.service" /etc/systemd/system/waw-web.service
     install -m 644 "$unit_backup/waw-bot.service" /etc/systemd/system/waw-bot.service
     systemctl daemon-reload || true

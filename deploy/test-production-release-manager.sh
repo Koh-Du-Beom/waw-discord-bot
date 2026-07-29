@@ -37,24 +37,36 @@ cmp -s "$release_root/3333333/migrations/0001_fixture.sql" \
 [[ "$(find "$release_root/3333333" -type d ! -perm -o+x | wc -l)" -eq 0 ]]
 [[ "$(find "$release_root/3333333" -type f ! -perm -o+r | wc -l)" -eq 0 ]]
 
-mkdir -p "$release_root/1111111" "$release_root/2222222"
+mkdir -p "$release_root/0000000" "$release_root/1111111" "$release_root/2222222"
+printf 'hash-zero\n' >"$release_root/0000000/.waw-release-sha256"
 printf 'hash-one\n' >"$release_root/1111111/.waw-release-sha256"
 printf 'hash-two\n' >"$release_root/2222222/.waw-release-sha256"
 
 "$SCRIPT_DIR/manage-production-release.sh" activate 1111111 |
   grep -qx 'production_release_activated release=1111111'
 [[ "$(readlink -f "$ROOT/opt/waw/current")" == "$release_root/1111111" ]]
+ln -s "$release_root/0000000" "$ROOT/opt/waw/previous"
 
 "$SCRIPT_DIR/manage-production-release.sh" activate 2222222 |
   grep -qx 'production_release_activated release=2222222'
 [[ "$(readlink -f "$ROOT/opt/waw/current")" == "$release_root/2222222" ]]
 [[ "$(readlink -f "$ROOT/opt/waw/previous")" == "$release_root/1111111" ]]
 
-"$SCRIPT_DIR/manage-production-release.sh" rollback 2222222 |
+mkdir -p "$ROOT/outside"
+if "$SCRIPT_DIR/manage-production-release.sh" \
+  rollback 2222222 "$ROOT/outside" >/dev/null 2>&1; then
+  echo outside_previous_restore_was_accepted >&2
+  exit 1
+fi
+[[ "$(readlink -f "$ROOT/opt/waw/current")" == "$release_root/2222222" ]]
+[[ "$(readlink -f "$ROOT/opt/waw/previous")" == "$release_root/1111111" ]]
+
+"$SCRIPT_DIR/manage-production-release.sh" \
+  rollback 2222222 "$release_root/0000000" |
   grep -qx 'production_release_rolled_back release=1111111'
 [[ "$(readlink -f "$ROOT/opt/waw/current")" == "$release_root/1111111" ]]
+[[ "$(readlink -f "$ROOT/opt/waw/previous")" == "$release_root/0000000" ]]
 
-mkdir -p "$ROOT/outside"
 ln -sfn "$ROOT/outside" "$ROOT/opt/waw/current"
 if "$SCRIPT_DIR/manage-production-release.sh" activate 2222222 >/dev/null 2>&1; then
   echo outside_current_was_accepted >&2

@@ -4,6 +4,27 @@
 
 ## 현재 단계
 
+2026-07-29 failed activation rollback이 current만 복구하고 previous를 덮인
+상태로 남기는 root cause를 수정했다. Release manager의 optional
+restore-previous target은 canonical release-root 내부의 존재하는 distinct
+directory만 mutation 전에 허용하며, GitHub remote controller는 preflight에서
+기록한 exact `previous_before`를 전달한다. Linux release-manager fixture는
+candidate activation 뒤 current와 previous가 모두 원래 값으로 복구되는 계약을
+검증하도록 확장했고 deployment contract `6/6`, readiness/controller fixture,
+Bash syntax와 diff check는 local PASS했다. Release-manager fixture는 GNU
+`stat -c`·`mv -T`가 없는 macOS에서 실행 불가해 새 develop Ubuntu CI 검증이
+남았다. Production push, workflow 실행, SSH와 host mutation은 `0`이다.
+
+2026-07-29 exact candidate `4041fc6468884fb697b92cf8794f0dacd8124e7f`의
+production 재배포 activation checklist를 작성했다. Develop CI run
+`30410513475`는 전체 PASS지만 첫 실패의 release manager가 activation에서
+previous를 당시 current `bb53cf2`로 덮은 뒤 rollback 시 current만 복구하므로
+host current와 previous가 같을 수 있다. 실제 previous는 실패 후 기록되지
+않았고 remote preflight는 두 release가 다르지 않으면
+`invalid_release_preflight`로 중단한다. 따라서 named human read-only 확인과
+distinct rollback target 복구 방식을 결정하기 전 상태를 `STOPPED`로
+판정했다. Production push, workflow 실행, SSH와 host mutation은 `0`이다.
+
 2026-07-29 최초 production CD 실패의 activation 직후 단일 health probe를
 기존 운영 패턴과 같은 bounded readiness probe로 교체했다. Candidate release
 안의 helper가 loopback `/health`를 5초 간격으로 최대 12회 확인하며, healthy면

@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+- Restore both current and the pre-activation previous release links when a
+  GitHub Actions deployment rolls back after activation.
 - Replace the planned GitHub OIDC/AWS deployment control plane with an
   owner-approved dedicated repository-secret SSH key and integrity-sensitive
   pinned known-host secret; retain exact-commit delivery and rollback while
