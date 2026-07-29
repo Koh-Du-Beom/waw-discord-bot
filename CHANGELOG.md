@@ -9,6 +9,9 @@
 
 ## Unreleased
 
+- Polish the initial loading and login experience with a reduced-motion-safe
+  spinner, a wider operations sidebar, clearer management-dashboard branding,
+  and a single-line responsive Discord connection heading.
 - Rework the dashboard around operational tasks: add a Discord-focused login,
   status-colored server/database/backup cards, Riot request count and dedicated
   review tab, a five-command overview, and cursor-paginated command-log detail;

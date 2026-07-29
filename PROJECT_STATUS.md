@@ -4,6 +4,14 @@
 
 ## 현재 단계
 
+2026-07-29 production UI 피드백에 따라 initial dashboard load에 reduced-motion
+safe spinner를 추가하고 sidebar를 270 px로 넓혔다. Sidebar와 topbar의
+`/몰랭검거` 문구는 제거하고 `관리 대시보드`를 primary brand로 정리했다.
+Discord login card는 desktop width를 넓히고 responsive no-wrap title로
+불필요한 한 글자 줄바꿈을 제거했다. UI/typecheck/build와 dashboard/login
+Chromium accessibility·360 px overflow 검증이 PASS했다. Production push와
+배포는 `0`이다.
+
 2026-07-29 exact `f1441b086dfb9fe7970ac51414fb71489abd702a`의 develop CI
 run `30416488101` 성공 후 production에 fast-forward 승격했다. Deploy production
 run `30416842303`은 59초 만에 PASS했고 release `f1441b086dfb`를 stage·activate한

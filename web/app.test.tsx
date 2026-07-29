@@ -47,6 +47,7 @@ test("shows a keyboard-accessible loading state and then healthy dashboard conte
   render(<App api={apiFixture()} />);
 
   assert.equal(screen.getByRole("status").textContent?.includes("불러오는 중"), true);
+  assert.ok(screen.getByRole("progressbar", { name: "데이터 불러오는 중" }));
   assert.equal((await screen.findByRole("heading", { name: "대시보드" })).tagName, "H1");
   assert.match(screen.getByText("정상").textContent ?? "", /정상/);
   assert.equal(screen.getAllByText("연결됨").length, 2);
@@ -63,7 +64,8 @@ test("renders the approved Direction A navigation shell", async () => {
   render(<App api={apiFixture()} />);
 
   assert.ok(await screen.findByRole("complementary", { name: "대시보드 탐색" }));
-  assert.ok(screen.getByText("/몰랭검거"));
+  assert.ok(screen.getByText("관리 대시보드"));
+  assert.equal(screen.queryByText("/몰랭검거"), null);
   for (const name of ["대시보드", "Riot 계정 연결 요청", "명령어 로그", "설정", "운영 기록"]) {
     assert.ok(screen.getByRole("button", { name }));
   }

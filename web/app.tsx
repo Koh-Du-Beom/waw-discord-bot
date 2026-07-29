@@ -59,7 +59,11 @@ export function App({ api }: { api: DashboardApi }) {
   }, [api, retryKey]);
 
   if (state.kind === "loading") {
-    return <StatePanel role="status" title="Dashboard를 불러오는 중" detail="잠시만 기다려 주세요." />;
+    return (
+      <StatePanel role="status" title="Dashboard를 불러오는 중" detail="잠시만 기다려 주세요.">
+        <span className="loading-spinner" role="progressbar" aria-label="데이터 불러오는 중" />
+      </StatePanel>
+    );
   }
   if (state.kind === "login") {
     return <LoginPanel />;
@@ -211,8 +215,8 @@ function Dashboard({
       <aside className="sidebar" aria-label="대시보드 탐색">
         <div className="brand">
           <span>WAW DISCORD BOT</span>
-          <strong>/몰랭검거</strong>
-          <small>관리 대시보드</small>
+          <strong>관리 대시보드</strong>
+          <small>SERVER OPERATIONS</small>
         </div>
         <nav aria-label="Dashboard 주요 영역">
           <NavButton active={tab === "dashboard"} icon="⌂" label="대시보드" onClick={() => setTab("dashboard")} />
@@ -233,7 +237,7 @@ function Dashboard({
       <div className="workspace">
         <header className="topbar">
           <div>
-            <p>몰랭검거 관리 대시보드</p>
+            <p>WAW 관리 대시보드</p>
             <h1>{tabTitle(tab)}</h1>
           </div>
           <div className="operator-actions">

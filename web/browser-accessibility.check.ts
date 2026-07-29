@@ -83,7 +83,13 @@ test("Discord login page has no automatic axe violations", async () => {
     const context = await browser.newContext({ viewport: { width: 360, height: 800 } });
     const page = await context.newPage();
     await page.goto(address, { waitUntil: "networkidle" });
-    await page.getByRole("heading", { name: "Discord 서버와 연결" }).waitFor();
+    const title = page.getByRole("heading", { name: "Discord 서버와 연결" });
+    await title.waitFor();
+    assert.equal(await title.evaluate((element) => getComputedStyle(element).whiteSpace), "nowrap");
+    assert.equal(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      true,
+    );
     assert.deepEqual(
       (await new AxeBuilder({ page }).analyze()).violations.map((violation) => violation.id),
       [],
