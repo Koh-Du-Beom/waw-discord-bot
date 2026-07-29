@@ -92,6 +92,22 @@ test("accepts a display Riot ID as one option and rejects a login username", asy
   );
 });
 
+test("explains that an already active Riot ID does not need another request", async () => {
+  const executor = new RiotCommandExecutor(
+    {
+      async requestLinkWithAudit() { return "already_linked"; },
+      async list() { return []; },
+      async unlinkWithAudit() { return "removed"; },
+    },
+    () => new Date("2026-07-29T00:00:00Z"),
+  );
+
+  assert.match(
+    await executor.execute(request("라이엇계정 연결", { 계정: "고두범#KR1" })),
+    /이미 연결/,
+  );
+});
+
 test("unlinks only through the caller-scoped store operation", async () => {
   let unlinkInput: Parameters<RiotCommandStore["unlinkWithAudit"]>[0] | undefined;
   const executor = new RiotCommandExecutor(

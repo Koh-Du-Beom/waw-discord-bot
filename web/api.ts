@@ -8,6 +8,7 @@ import {
   type LowRiskSettingsDto,
   type PendingRiotLinkRequestsDto,
   type ApproveRiotLinkRequestDto,
+  type DecideRiotLinkRequestDto,
   type RiotLinkDecisionResponseDto,
   type SessionDto,
   type UpdateLowRiskSettingsRequestDto,
@@ -100,6 +101,9 @@ export function createBrowserApi(fetcher: typeof fetch = fetch): DashboardApi {
     },
     async approveRiotRequest(request: ApproveRiotLinkRequestDto) {
       return mutate<RiotLinkDecisionResponseDto>(DASHBOARD_API_PATHS.riotApprove, request);
+    },
+    async rejectRiotRequest(request: DecideRiotLinkRequestDto) {
+      return mutate<RiotLinkDecisionResponseDto>(DASHBOARD_API_PATHS.riotReject, request);
     },
   };
 

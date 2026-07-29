@@ -33,7 +33,7 @@ export type RiotCommandStore = {
     tagLine: string;
     requestedAt: Date;
     audit: CommandAuditEvent;
-  }): Promise<"created" | "already_pending" | "duplicate_operation">;
+  }): Promise<"created" | "already_linked" | "already_pending" | "duplicate_operation">;
   list(input: {
     discordUserId: string;
     includePending: boolean;
@@ -84,6 +84,9 @@ export class RiotCommandExecutor implements FeatureCommandExecutor {
     });
     if (result === "created") {
       return "라이엇 계정 연결 요청을 등록했습니다. 관리자 승인 전까지 `승인 대기`로 표시됩니다.";
+    }
+    if (result === "already_linked") {
+      return "같은 라이엇 계정이 이미 연결되어 있어 새 승인 요청을 만들지 않았습니다.";
     }
     return result === "already_pending"
       ? "같은 라이엇 계정의 관리자 승인 요청이 이미 대기 중입니다."

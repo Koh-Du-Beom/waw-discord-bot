@@ -220,6 +220,36 @@ test("administrator can review a KR request and approve with a hidden PUUID", as
   assert.equal(approved, true);
 });
 
+test("administrator can reject a stale Riot request", async () => {
+  let rejected = false;
+  render(<App api={apiFixture({
+    session: {
+      ...sessionFixture,
+      actor: { ...sessionFixture.actor, tier: "administrator" },
+    },
+    riotRequests: {
+      requests: [{
+        requestId: "request-stale",
+        discordUserId: "discord-synthetic",
+        platformId: "KR",
+        gameName: "이미연결됨",
+        tagLine: "KR1",
+        requestedAt: "2026-07-29T00:00:00.000Z",
+        version: 1,
+      }],
+    },
+    rejectRiotRequest: async () => {
+      rejected = true;
+      return { message: "거절했습니다." };
+    },
+  })} />);
+
+  fireEvent.click(await screen.findByRole("button", { name: /Riot 계정 연결 요청/ }));
+  fireEvent.click(screen.getByRole("button", { name: "거절" }));
+  await screen.findByText("Riot 계정 연결 요청을 거절했습니다.");
+  assert.equal(rejected, true);
+});
+
 function apiError(code: string): Error & { code: string } {
   return Object.assign(new Error(code), { code });
 }
@@ -235,6 +265,7 @@ function apiFixture(
     audit?: { events: AuditEventDto[] };
     riotRequests?: PendingRiotLinkRequestsDto;
     approveRiotRequest?: DashboardApi["approveRiotRequest"];
+    rejectRiotRequest?: DashboardApi["rejectRiotRequest"];
     commandLog?: DashboardApi["getCommandLog"];
   } = {},
 ): DashboardApi {
@@ -269,5 +300,8 @@ function apiFixture(
     approveRiotRequest:
       overrides.approveRiotRequest ??
       (async () => ({ message: "승인했습니다." })),
+    rejectRiotRequest:
+      overrides.rejectRiotRequest ??
+      (async () => ({ message: "거절했습니다." })),
   };
 }

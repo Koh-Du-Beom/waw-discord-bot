@@ -11,6 +11,7 @@ import {
   type LowRiskSettingsDto,
   type PendingRiotLinkRequestsDto,
   type ApproveRiotLinkRequestDto,
+  type DecideRiotLinkRequestDto,
   type RiotLinkDecisionResponseDto,
   type SessionDto,
   type UpdateLowRiskSettingsRequestDto,
@@ -26,6 +27,7 @@ export type DashboardApi = {
   getCommandLog(request?: ListCommandLogRequestDto): Promise<CommandLogPageDto>;
   getRiotRequests(): Promise<PendingRiotLinkRequestsDto>;
   approveRiotRequest(request: ApproveRiotLinkRequestDto): Promise<RiotLinkDecisionResponseDto>;
+  rejectRiotRequest(request: DecideRiotLinkRequestDto): Promise<RiotLinkDecisionResponseDto>;
 };
 
 type ViewState =
@@ -189,6 +191,24 @@ function Dashboard({
     }
   }
 
+  async function rejectRiotRequest(
+    request: PendingRiotLinkRequestsDto["requests"][number],
+  ) {
+    setResult(undefined);
+    try {
+      await api.rejectRiotRequest({
+        requestId: request.requestId,
+        expectedVersion: request.version,
+        confirmation: true,
+      });
+      setResult({ kind: "success", message: "Riot 계정 연결 요청을 거절했습니다." });
+      setRiotRequests(await api.getRiotRequests().catch(() => ({ requests: [] })));
+    } catch {
+      setResult({ kind: "error", message: "Riot 계정 연결 요청을 거절하지 못했습니다." });
+      setRiotRequests(await api.getRiotRequests().catch(() => riotRequests));
+    }
+  }
+
   async function nextCommandPage() {
     if (!commandLog.nextCursor) return;
     setLoadingCommands(true);
@@ -308,6 +328,7 @@ function Dashboard({
                         <span>{request.platformId} · {formatDate(request.requestedAt)}</span>
                       </div>
                       <form onSubmit={(event) => void approveRiotRequest(event, request)}>
+                        <button className="secondary" type="button" onClick={() => void rejectRiotRequest(request)}>거절</button>
                         <button type="submit" disabled={request.platformId !== "KR"}>검증 후 승인</button>
                       </form>
                     </li>

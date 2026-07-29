@@ -484,18 +484,20 @@ code { color: #edc878; font-weight: 800; }
 
 .state-panel {
   width: min(580px, 100%);
+  text-align: center;
 }
 
 .state-panel h1 {
   margin-bottom: 1.25rem;
-  font-size: clamp(2rem, 7vw, 3.5rem);
+  font-size: clamp(1.55rem, 5vw, 2.2rem);
+  line-height: 1.2;
 }
 
 .loading-spinner {
   display: block;
   width: 42px;
   height: 42px;
-  margin-top: 1.5rem;
+  margin: 1.5rem auto 0;
   border: 4px solid #334158;
   border-top-color: #f0bd58;
   border-radius: 50%;

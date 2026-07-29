@@ -4,6 +4,16 @@
 
 ## 현재 단계
 
+2026-07-29 loading state의 oversized heading을 줄이고 panel text와 spinner를
+중앙 정렬했다. Riot 목록에서 같은 사용자·platform·Riot ID의 active link와
+pending request가 함께 보이는 원인은 request 생성이 active identity를 확인하지
+않는 데 있었다. Transaction 안에서 case-insensitive active identity를 먼저
+확인해 새 pending을 만들지 않고 audited `riot_link_already_active`로 종료하도록
+수정했다. 기존 stale pending은 자동 DB mutation하지 않으며 dashboard의 기존
+reject API를 `거절` 버튼으로 노출해 current authorization·CSRF·recent auth·audit
+경계에서 정리할 수 있게 했다. Unit/UI/disposable PostgreSQL 검증은 PASS했고
+production data mutation은 `0`이다.
+
 2026-07-29 production UI 피드백에 따라 initial dashboard load에 reduced-motion
 safe spinner를 추가하고 sidebar를 270 px로 넓혔다. Sidebar와 topbar의
 `/몰랭검거` 문구는 제거하고 `관리 대시보드`를 primary brand로 정리했다.

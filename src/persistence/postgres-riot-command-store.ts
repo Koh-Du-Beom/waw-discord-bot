@@ -27,10 +27,29 @@ export class PostgresRiotCommandStore
 
   async requestLinkWithAudit(
     input: Parameters<RiotCommandStore["requestLinkWithAudit"]>[0],
-  ): Promise<"created" | "already_pending" | "duplicate_operation"> {
+  ): Promise<"created" | "already_linked" | "already_pending" | "duplicate_operation"> {
     return this.transaction("riot_link_request_failed", async (client) => {
       if (!(await claimOperation(client, input.operationId, input.discordUserId, input.requestedAt))) {
         return "duplicate_operation";
+      }
+      const active = await client.query(
+        `select 1
+           from riot_account_link
+          where discord_user_id = $1
+            and lower(platform_id) = lower($2)
+            and lower(game_name) = lower($3)
+            and lower(tag_line) = lower($4)
+            and removed_at is null
+          limit 1`,
+        [input.discordUserId, input.platformId, input.gameName, input.tagLine],
+      );
+      if (active.rowCount === 1) {
+        await appendAudit(client, {
+          ...input.audit,
+          outcome: "failure",
+          reasonCode: "riot_link_already_active",
+        });
+        return "already_linked";
       }
       const inserted = await client.query(
         `insert into riot_account_link_request (

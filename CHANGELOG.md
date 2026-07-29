@@ -9,6 +9,9 @@
 
 ## Unreleased
 
+- Center and reduce the dashboard loading state, prevent a user from opening a
+  second pending request for an already active Riot ID, and expose the existing
+  audited dashboard rejection path so stale requests can be closed safely.
 - Polish the initial loading and login experience with a reduced-motion-safe
   spinner, a wider operations sidebar, clearer management-dashboard branding,
   and a single-line responsive Discord connection heading.

@@ -264,6 +264,10 @@ test("keeps Riot requests pending before approval and commits conflicts with aud
     }),
     "approved",
   );
+  assert.equal(
+    await request("riot-request-op-active", "riot-request-active", "첫계정"),
+    "already_linked",
+  );
   assert.equal(await request("riot-request-op-2", "riot-request-2", "둘째계정"), "created");
   assert.equal(
     await store.approveRequestWithAudit({
