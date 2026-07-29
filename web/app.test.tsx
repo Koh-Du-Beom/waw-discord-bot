@@ -58,6 +58,16 @@ test("shows a keyboard-accessible loading state and then healthy dashboard conte
   );
 });
 
+test("renders the approved Direction A navigation shell", async () => {
+  render(<App api={apiFixture()} />);
+
+  assert.ok(await screen.findByRole("complementary", { name: "대시보드 탐색" }));
+  assert.ok(screen.getByText("/몰랭검거"));
+  for (const name of ["대시보드", "확인 필요", "명령어 로그", "운영 상태"]) {
+    assert.ok(screen.getByRole("link", { name }));
+  }
+});
+
 test("exposes named landmarks and controls without relying on color alone", async () => {
   render(<App api={apiFixture()} />);
   await screen.findByRole("main");

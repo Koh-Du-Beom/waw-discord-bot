@@ -56,6 +56,16 @@ test("production SPA has no automatic axe violations and supports keyboard mutat
       (await page.getByRole("list", { name: "최근 감사 결과" }).textContent()) ?? "",
       /성공/,
     );
+
+    await page.setViewportSize({ width: 360, height: 800 });
+    assert.equal(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      true,
+    );
+    assert.deepEqual(
+      (await new AxeBuilder({ page }).analyze()).violations.map((violation) => violation.id),
+      [],
+    );
   } finally {
     try {
       await browser?.close();

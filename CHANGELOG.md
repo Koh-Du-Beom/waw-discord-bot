@@ -9,6 +9,10 @@
 
 ## Unreleased
 
+- Apply the approved Pretendard Direction A to the production React dashboard
+  with `/몰랭검거` branding, dark operations styling, desktop sidebar and
+  mobile-safe navigation while preserving the existing API and authorization
+  contracts.
 - Restore both current and the pre-activation previous release links when a
   GitHub Actions deployment rolls back after activation.
 - Replace the planned GitHub OIDC/AWS deployment control plane with an

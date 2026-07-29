@@ -4,6 +4,14 @@
 
 ## 현재 단계
 
+2026-07-29 승인된 Pretendard Direction A를 현재 React SPA에 구현했다. 기존
+인증·권한·CSRF·Riot 승인·설정·감사·명령 로그 API 계약은 변경하지 않고,
+`/몰랭검거` 브랜드, desktop sidebar, mobile horizontal navigation, dark
+operations palette와 labelled mobile table을 production web source에
+적용했다. Superseded된 daily quota UI는 복구하지 않았다. UI test 11개,
+typecheck, web build와 desktop/360 px Chromium axe·overflow 검증이 PASS했다.
+Production push와 배포는 `0`이다.
+
 2026-07-29 Owner 승인 범위에서 `/opt/waw/previous`를 exact `f08089f`로
 same-filesystem atomic repair하고 current `bb53cf2`, service PID/start time,
 loopback/canonical health와 marker postcondition을 확인했다. Restart는 `0`이고

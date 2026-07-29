@@ -187,35 +187,49 @@ function Dashboard({
   }
 
   return (
-    <div className="shell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">WAW 운영 dashboard</p>
-          <h1>운영 현황</h1>
+    <div className="app-shell">
+      <aside className="sidebar" aria-label="대시보드 탐색">
+        <div className="brand">
+          <span>WAW DISCORD BOT</span>
+          <strong>/몰랭검거</strong>
+          <small>관리 대시보드</small>
         </div>
-        <div className="operator-actions">
-          <p className="operator">
-            <span>{value.session.actor.displayName}</span>
-            <span>{value.session.actor.tier === "administrator" ? "관리자" : "운영자"}</span>
-          </p>
-          <button type="button" className="secondary" disabled={loggingOut} onClick={() => void logout()}>
-            {loggingOut ? "로그아웃 중…" : "로그아웃"}
-          </button>
-        </div>
-      </header>
-
-      <main>
-        <nav className="section-nav" aria-label="Dashboard 주요 영역">
-          <a href="#attention">확인 필요</a>
-          <a href="#commands">명령 기록</a>
+        <nav aria-label="Dashboard 주요 영역">
+          <a className="active" href="#dashboard" aria-current="page"><span aria-hidden="true">⌂</span>대시보드</a>
+          <a href="#attention"><span aria-hidden="true">!</span>확인 필요</a>
+          <a href="#commands"><span aria-hidden="true">≡</span>명령어 로그</a>
+          <a href="#operations"><span aria-hidden="true">●</span>운영 상태</a>
         </nav>
-        <section aria-labelledby="health-title">
+        <div className="sidebar-account">
+          <span className="avatar" aria-hidden="true">{value.session.actor.displayName.slice(0, 1)}</span>
+          <div>
+            <strong>{value.session.actor.displayName}</strong>
+            <small>{value.session.actor.tier === "administrator" ? "관리자" : "운영자"}</small>
+          </div>
+        </div>
+      </aside>
+
+      <div className="workspace">
+        <header className="topbar">
+          <div>
+            <p>몰랭검거 관리 대시보드</p>
+            <h1>운영 현황</h1>
+          </div>
+          <div className="operator-actions">
+            <HealthBadge status={value.overview.health.status} />
+            <button type="button" className="secondary" disabled={loggingOut} onClick={() => void logout()}>
+              {loggingOut ? "로그아웃 중…" : "로그아웃"}
+            </button>
+          </div>
+        </header>
+
+        <main id="dashboard">
+        <section id="operations" aria-labelledby="health-title">
           <div className="section-heading">
             <div>
               <p className="eyebrow">실시간 상태</p>
               <h2 id="health-title">시스템 상태</h2>
             </div>
-            <HealthBadge status={value.overview.health.status} />
           </div>
           {value.overview.health.status !== "healthy" && (
             <p className="notice" role="status">
@@ -327,7 +341,8 @@ function Dashboard({
           )}
         </section>
 
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
