@@ -4,6 +4,26 @@
 
 ## 현재 단계
 
+2026-07-29 production release-link read-only preflight와 bounded repair 승인
+문서를 작성했다. Phase A는 exact current `bb53cf2`, original previous
+`f08089f`와 기존 marker SHA-256만 metadata로 확인하고 `NO_REPAIR`,
+`REPAIR_REQUIRED_ELIGIBLE` 또는 `STOPPED`로 fail-closed 판정한다. Phase B는
+별도 Owner 승인 뒤 eligible 상태에서 `/opt/waw/previous` 하나만
+same-filesystem atomic replace하며 current, service, credential, DB와 release
+directory를 변경하지 않는다. Postcondition 실패 시 previous만 pre-state로 한
+번 복구하고 retry 없이 중단한다. Production push, workflow 실행, SSH와 host
+mutation은 `0`이다.
+
+2026-07-29 exact candidate `d6a27c0bef4aa74f689b48a3e67899d936a52fe1`의
+production 재배포 activation checklist로 갱신했다. Develop Ubuntu CI run
+`30411214419`에서 test, typecheck, build, browser, audit와 Linux
+release-manager/application/controller/readiness fixture가 모두 PASS했다.
+Candidate는 future failed activation에서 original current와 previous를 모두
+복구하지만 첫 실패가 이미 남긴 host의 potentially-equal release link는
+preflight 전에 자동 수정하지 않는다. Named human read-only 확인과 필요한
+exact rollback target의 별도 bounded repair 승인 전 상태는 계속 `STOPPED`다.
+Production push, workflow 실행, SSH와 host mutation은 `0`이다.
+
 2026-07-29 failed activation rollback이 current만 복구하고 previous를 덮인
 상태로 남기는 root cause를 수정했다. Release manager의 optional
 restore-previous target은 canonical release-root 내부의 존재하는 distinct

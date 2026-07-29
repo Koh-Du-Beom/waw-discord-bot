@@ -1,10 +1,10 @@
-# `4041fc6` production 재배포 활성화 체크리스트
+# `d6a27c0` production 재배포 활성화 체크리스트
 
 - 상태: **STOPPED — rollback release 경계 확인·복구 필요**
-- 후보 commit: `4041fc6468884fb697b92cf8794f0dacd8124e7f`
-- 예상 release: `4041fc646888`
+- 후보 commit: `d6a27c0bef4aa74f689b48a3e67899d936a52fe1`
+- 예상 release: `d6a27c0bef4`
 - 현재 production ref: `464eb99542dfdc375cd75af1efcf29f1938e204e`
-- develop CI: `30410513475` — `success`
+- develop CI: `30411214419` — `success`
 - 이전 실패 deploy: `30408412211`
 - 관찰된 host current: `bb53cf2`
 - 정식 도메인: `https://waw.dubeom.com`
@@ -28,16 +28,19 @@ current와 previous가 모두 `bb53cf2`일 수 있다.
 ## Gate R0 — 정확한 후보와 범위
 
 - [x] `origin/develop`은 정확히
-      `4041fc6468884fb697b92cf8794f0dacd8124e7f`다.
+      `d6a27c0bef4aa74f689b48a3e67899d936a52fe1`다.
 - [x] `origin/production`은 정확히
       `464eb99542dfdc375cd75af1efcf29f1938e204e`다.
-- [x] 승격 diff는 실패 결과 문서, Gate 4 읽기 전용 문서, bounded readiness
-      helper와 fixture뿐이다.
+- [x] 승격 diff는 실패 결과와 Gate 4/checklist 문서, bounded readiness,
+      current/previous rollback 복구와 관련 fixture뿐이다.
 - [x] Migration, credential, feature flag, provider, DNS/firewall와 journald
       변경은 없다.
-- [x] 후보의 CI run `30410513475`에서 test, typecheck, build, browser,
+- [x] 후보의 CI run `30411214419`에서 test, typecheck, build, browser,
       dependency audit, application/release/controller/readiness fixture와 diff
       check가 모두 통과했다.
+- [x] Linux release-manager fixture가 invalid restore target을 mutation 전에
+      거부하고 failed activation 뒤 original current와 previous를 모두
+      복구했다.
 - [ ] Owner가 정확한 후보, 유지보수 시간, 실행자, 별도 rollback 담당자와
       보호되지 않은 production branch 위험을 새로 승인한다.
 
@@ -57,9 +60,12 @@ Named human operator가 기존 Gate 4 읽기 전용 명령으로 다음만 확�
       `/opt/waw`, `/tmp` 여유만 metadata로 기록한다. 삭제하지 않는다.
 
 Current와 previous가 같다면 즉흥적으로 symlink를 바꾸거나 workflow를
-재실행하지 않는다. Controller가 rollback 시 이전 previous까지 복구하도록
-수정·fixture 검증한 새 candidate를 만들거나, 별도 Owner 승인 아래 정확한
-rollback target을 복구하는 bounded host 절차를 먼저 결정해야 한다.
+재실행하지 않는다. 새 candidate는 future rollback의 previous 복구를
+검증했지만 현재 host 상태를 preflight 전에 자동 수정하지 않는다. 별도 Owner
+승인 아래 정확한 rollback target을 복구하는 bounded host 절차를 먼저
+결정해야 한다. Read-only 확인과 repair 승인 경계는
+`docs/operations/production-release-link-repair-approval-request-2026-07-29.md`
+를 따른다.
 
 ## Gate R2 — 시한성 readiness 재확인
 
@@ -99,19 +105,12 @@ Gate R0~R3가 모두 통과한 뒤에만 Owner가 이 정확한 한 번의 정�
 ## 성공 판정
 
 - Workflow 결론이 `success`다.
-- Current는 `4041fc646888`, previous는 배포 전 current이며 서로 다르다.
+- Current는 `d6a27c0bef4`, previous는 배포 전 current이며 서로 다르다.
 - Web/bot singleton, loopback/canonical health, backup/monitor와 journald가
   정상이다.
 - Migration, credential, feature activation, provider call, DNS/firewall,
   journald vacuum과 controlled failure injection은 각각 `0`이다.
 - Secret, Discord 메시지, session 또는 provider payload는 기록하지 않는다.
 
-Gate R1의 distinct release 경계가 확인되기 전 상태는 `READY`가 아니라
-`STOPPED`다.
-
-## 후속 수정 상태
-
-Rollback이 preflight에서 기록한 original previous까지 복구하도록 local
-controller와 Linux fixture를 수정했다. 이 수정은 `4041fc6`에 포함되지 않으므로
-`4041fc6` 자체의 `STOPPED` 판정을 바꾸지 않는다. 새 commit과 develop CI가
-통과하면 그 exact SHA로 checklist를 다시 작성한다.
+Gate R1의 distinct release 경계가 확인되고 필요한 bounded repair가 별도
+승인·검증되기 전 상태는 `READY`가 아니라 `STOPPED`다.
