@@ -1,18 +1,17 @@
 # PLAN-0012 production migration preflight
 
 - Date: 2026-07-29
-- Scope: Task 8 read-only preflight and migration preparation
-- Status: READY for exact migration approval — stopped before migration execution
-- Production changes: none
+- Scope: Task 8 read-only preflight, restore gate and owner-approved migration
+- Status: MIGRATED — versions `9` and `10` applied; activation not performed
+- Production changes: additive migrations `0009` and `0010` only
 
 ## Immutable release
 
-The reviewed candidate before this evidence-only documentation commit was
-`7bfb686a076edf6024134bd660d14b0b57aff3bc`. Its reproducible source archive
-was 804,367 bytes with SHA-256
-`c1bc35f980a854702dffd2f8fee05c9a9ac485ee6d0eef67850645154b72367b`.
-The final candidate must be regenerated from the documentation commit and pass
-CI before migration approval.
+The reviewed and executed candidate was
+`c7c5ad6a80788e9c756f9bdcc96998551a6622c2`. Its reproducible source archive
+was 806,944 bytes with SHA-256
+`717d0bd3f1cbca0861f0406098bff102e8db1db49496b8651e9eccec2025eaf6`.
+Develop CI run `30434745419` passed before migration approval.
 
 The release preparation review found and corrected two `000*.sql` globs that
 excluded migration `0010` from the production release-manager asset check and
@@ -96,13 +95,47 @@ restore gate then verified this exact latest ciphertext:
 - final temporary reader, CloudShell Task 8 and local restore remainders were
   all `0`.
 
-The backup gate is PASS. Migration `0009` and `0010` remain unapplied and now
-require a new exact execution approval.
+The backup gate is PASS.
+
+## Owner-approved migration execution
+
+The owner approved exact candidate
+`c7c5ad6a80788e9c756f9bdcc96998551a6622c2`, archive SHA-256
+`717d0bd3f1cbca0861f0406098bff102e8db1db49496b8651e9eccec2025eaf6`,
+and the fixed `0009`/`0010` checksums above. The archive was verified again in
+CloudShell at 806,944 bytes and staged as `/opt/waw/releases/c7c5ad6` without
+activation.
+
+The exact staged runner applied pending migrations in order:
+
+- `migration_applied version=9`
+- `migration_applied version=10`
+
+Post-migration read-back verified:
+
+- ledger versions `9` and `10`, names and both approved checksums: PASS;
+- `app_schema_version` maximum: `10`;
+- `riot_account_link.version`: `bigint`, not null, default `0`;
+- invalid constraints in the application `public` schema: `0`;
+- current release remained `a2271329230b`;
+- previous release remained `930c22cb669d`;
+- web/bot services and loopback health remained active/healthy;
+- service activation and restart count: `0`;
+- one-shot migration credential remainder: `0`;
+- CloudShell and local candidate/controller temporary remainder: `0`.
+
+The first post-migration assertion counted `NOT VALID` constraints across every
+database schema and therefore stopped after the successful migrations. Its
+trap removed the credential. A fresh one-shot credential then performed a
+read-only application-schema check, which passed. No down SQL, ledger rewrite,
+manual schema correction, deployment, service activation or Riot link mutation
+occurred.
 
 ## Verification
 
 - Final local unit suite with short macOS socket path: `274` pass, `0` fail,
   `7` skip.
-- Candidate `7bfb686a076edf6024134bd660d14b0b57aff3bc` develop CI:
-  success.
-- Production mutation, migration, deployment and real Riot link removal: `0`.
+- Exact candidate `c7c5ad6a80788e9c756f9bdcc96998551a6622c2`
+  develop CI run `30434745419`: success.
+- Production migration: versions `9` and `10` applied and read back.
+- Production deployment, activation, restart and real Riot link removal: `0`.

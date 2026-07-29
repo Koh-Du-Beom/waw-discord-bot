@@ -1,6 +1,6 @@
 # PLAN-0012: 대시보드 Riot 계정 단건 연결 해제
 
-- Status: In Progress — Task 8 preflight/restore PASS; stopped before exact production migration approval
+- Status: In Progress — Task 8 migrations `0009`/`0010` applied; release staged without activation
 - Date: 2026-07-29
 - Owner: 프로젝트 소유자
 - Related requirements: `FUN-005`, `FUN-015`, `FUN-018`, `OWN-015`, `SEC-001`~`SEC-010`
@@ -275,3 +275,15 @@ Local/disposable 구현과 production rollout을 분리한다. 이 Draft 계획�
   PostgreSQL 17 DB에서 admin transaction, observation late-result guard,
   removed-target 제외 통합 시험을 통과했다. Production credential, migration,
   service, 배포와 실제 계정 mutation은 `0`이며 다음 단계는 Task 8 owner gate다.
+
+- 2026-07-29 Task 8 migration stage: Owner가 exact candidate
+  `c7c5ad6a80788e9c756f9bdcc96998551a6622c2`, archive SHA-256
+  `717d0bd3f1cbca0861f0406098bff102e8db1db49496b8651e9eccec2025eaf6`,
+  migration `0009`/`0010` checksum을 승인했다. Candidate를
+  `/opt/waw/releases/c7c5ad6`에 activation 없이 stage하고 정상 runner로
+  pending version `9`, `10`만 순서대로 적용했다. Ledger의 이름/checksum,
+  `app_schema_version=10`, `riot_account_link.version` bigint/default
+  `0`/not-null, public invalid constraint `0`을 read-back했다. One-shot
+  credential, SSH/CloudShell/local 임시 자료는 제거했다. Current
+  `a2271329230b`, previous `930c22cb669d`, web/bot와 health는 그대로이며
+  activation, restart, 배포와 실제 Riot link mutation은 `0`이다.

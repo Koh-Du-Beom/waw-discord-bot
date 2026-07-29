@@ -1,10 +1,16 @@
 # 변경 이력
 
+- PLAN-0012 exact candidate `c7c5ad6a80788e9c756f9bdcc96998551a6622c2`를
+  activation 없이 production에 stage하고 checksum 고정 migration `0009`,
+  `0010`만 순서대로 적용했다. Ledger/schema read-back과 credential/임시 자료
+  정리를 완료했으며 current/previous release, 서비스와 health는 불변이다.
+  배포, activation, restart와 실제 Riot link mutation은 수행하지 않았다.
+
 - Latest production backup의 exact archive/manifest만 허용하는 temporary
   reader와 owner-custodied offline identity로 PostgreSQL 17 empty-target
   restore를 검증했다. Schema `8`, row count `0`, invalid constraint/FK `0`을
   확인하고 reader credential, CloudShell/local input과 disposable target을
-  모두 정리했으며 migration은 실행하지 않았다.
+  모두 정리했으며 이 restore gate 단계에서는 migration을 실행하지 않았다.
 
 - PLAN-0012 production read-only preflight에서 immutable current/rollback,
   schema ledger `1..8`, pending migration checksum, services/health와 fresh

@@ -4,6 +4,15 @@
 
 ## 현재 단계
 
+2026-07-29 PLAN-0012 Task 8의 owner-approved production migration을 완료했다.
+Exact candidate `c7c5ad6a80788e9c756f9bdcc96998551a6622c2`를
+`/opt/waw/releases/c7c5ad6`에 activation 없이 stage하고 checksum이 고정된
+`0009`, `0010`만 정상 runner로 순서대로 적용했다. Ledger version/name/checksum,
+schema version `10`, `riot_account_link.version` 계약과 public invalid constraint
+`0`을 read-back했다. One-shot credential과 CloudShell/local/SSH 임시 자료는
+제거됐다. Current `a2271329230b`, previous `930c22cb669d`, web/bot/health는
+불변이며 배포, activation, restart와 실제 Riot link mutation은 `0`이다.
+
 2026-07-29 PLAN-0012 latest production backup exact-object restore gate가
 PASS했다. Temporary reader는 exact archive/manifest Get만 허용했고 다른 Get,
 Put, Delete와 IAM access는 거부됐다. Ciphertext byte/hash가 manifest와
@@ -11,8 +20,8 @@ Put, Delete와 IAM access는 거부됐다. Ciphertext byte/hash가 manifest와
 빈 PostgreSQL 17 target에 restore했다. Schema `8`, row count `0`, invalid
 constraint/FK `0`, elapsed `25`초를 확인했다. Reader user/key/policy,
 CloudShell/local input, disposable container와 임시 directory 잔여는 모두
-`0`이다. Migration `0009`/`0010`은 아직 미적용이며 exact 실행 승인 직전에서
-중단했다.
+`0`이다. 이 증적 이후 별도 exact owner 승인으로 migration `0009`/`0010`을
+적용했다.
 
 2026-07-29 PLAN-0012 Task 8 production read-only preflight에서 current release
 `a2271329230b`, rollback `930c22cb669d`, schema/ledger `1..8`, healthy services,
@@ -22,8 +31,9 @@ canonical health와 24시간 이내 backup publication marker를 확인했다. P
 ciphertext의 empty-target restore는 후속 owner-approved gate로 분리했다.
 Production migration, 배포와 실제 계정 mutation은 `0`이다.
 
-2026-07-29 PLAN-0012 Tasks 1~7 local/disposable 구현을 완료하고 Task 8
-production migration 직전에서 중단했다. Additive migrations `0009`와 `0010`,
+2026-07-29 PLAN-0012 Tasks 1~7 local/disposable 구현을 완료하고 당시 Task 8
+production migration 직전에서 중단했다. 이후 별도 exact owner 승인으로
+migration을 적용했다. Additive migrations `0009`와 `0010`,
 exact 관리자 remove IPC, current-role 선검사, row-lock/version soft delete,
 terminal result·감사 원자성, observation late-result guard, administrator-only
 HTTP와 2단계 확인 UI를 구현했다. 기존 Discord 본인 해제도 version을 증가시켜
