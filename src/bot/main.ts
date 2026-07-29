@@ -9,6 +9,10 @@ import {
   type DiscordHistoryChannel,
 } from "../adapters/discord/conversation-history.ts";
 import { createDiscordInteractionHandler } from "../adapters/discord/interaction-handler.ts";
+import {
+  attachDiscordMemberLabelSync,
+  refreshReconciledMemberLabels,
+} from "../adapters/discord/member-label-sync.ts";
 import { createDiscordVoiceSource } from "../adapters/discord/voice-observation-adapter.ts";
 import {
   createMemberRoleIpcServer,
@@ -30,6 +34,7 @@ import {
   readSystemdCredential,
 } from "../persistence/database-credential.ts";
 import { PostgresCommandAuditSink } from "../persistence/command-audit-store.ts";
+import { PostgresDiscordMemberLabelStore } from "../persistence/discord-member-label-store.ts";
 import { PostgresSummaryQuotaStore } from "../persistence/postgres-summary-quota-store.ts";
 import { OpenAiConversationSummarizer } from "../summary/openai-conversation-summarizer.ts";
 import { summaryProviderEnabled } from "../summary/provider-feature.ts";
@@ -38,9 +43,11 @@ import { PostgresFeatureStore } from "../persistence/feature-store.ts";
 import { PostgresGameObservationStore } from "../persistence/postgres-game-observation-store.ts";
 import { PostgresObservationTargetSource } from "../persistence/postgres-observation-target-source.ts";
 import { PostgresRiotCommandStore } from "../persistence/postgres-riot-command-store.ts";
+import { PostgresRiotIdentityStore } from "../persistence/postgres-riot-identity-store.ts";
 import { RiotCommandExecutor } from "../riot/riot-command-executor.ts";
 import { RiotSpectatorObserver } from "../riot/riot-game-observer.ts";
 import { RiotPuuidValidator } from "../riot/riot-puuid-validator.ts";
+import { RiotIdentityRefreshScheduler } from "../riot/riot-identity-refresh.ts";
 import { DUPLICATE_BOT_EXIT_CODE } from "./bot-entrypoint.ts";
 import {
   parseBotAuthorizationConfiguration,
@@ -122,6 +129,13 @@ const readCurrentAuthorization = async (input: {
 };
 const featureStore = new PostgresFeatureStore(pool);
 const riotStore = new PostgresRiotCommandStore(pool);
+const memberLabelStore = new PostgresDiscordMemberLabelStore(pool);
+const riotIdentityReader = new RiotPuuidValidator(riotApiKey);
+const riotIdentityRefresh = new RiotIdentityRefreshScheduler({
+  source: new PostgresRiotIdentityStore(pool),
+  identities: riotIdentityReader,
+  batchSize: 10,
+});
 const commandHandler = new KoreanCommandHandler({
   history: createDiscordConversationHistoryReader({
     async resolve(channelId) {
@@ -204,6 +218,13 @@ const reconcileMembers = async () => {
     reportFailure("gateway_member_reconciliation_failed");
     throw new Error("gateway member reconciliation failed");
   }
+  await refreshReconciledMemberLabels({
+    guildId: guild.id,
+    members: members.values(),
+    observedAt: new Date(),
+    refreshKnown: (values, observedAt) =>
+      memberLabelStore.refreshKnown(values, observedAt),
+  });
   return members
     .map((member) => {
       const authorizationTier = resolveMemberAuthorization({
@@ -218,6 +239,21 @@ const reconcileMembers = async () => {
     })
     .filter((value) => value !== undefined);
 };
+const memberLabelSync = attachDiscordMemberLabelSync({
+  source: client,
+  allowedGuildId: authorizationConfiguration.allowedGuildId,
+  refreshKnown: (members, observedAt) =>
+    memberLabelStore.refreshKnown(members, observedAt),
+  now: () => new Date(),
+  reportFailure: () => {
+    process.stderr.write(
+      `${JSON.stringify({
+        event_type: "discord.member_label_refresh",
+        reason_code: "discord_member_label_refresh_failed",
+      })}\n`,
+    );
+  },
+});
 const assembly = await startDiscordJsBot({
   ownerId: `pid-${process.pid}`,
   lease: new FileSingletonLease("/run/waw-bot/singleton", process.pid),
@@ -254,6 +290,7 @@ const assembly = await startDiscordJsBot({
       }),
 });
 if (assembly.process.exitCode === DUPLICATE_BOT_EXIT_CODE) {
+  await memberLabelSync.detach();
   await pool.end();
   process.exitCode = DUPLICATE_BOT_EXIT_CODE;
 } else {
@@ -266,7 +303,7 @@ if (assembly.process.exitCode === DUPLICATE_BOT_EXIT_CODE) {
   await ipc.listen();
   const adminApplication = new AdminCommandApplication({
     authorization: { readCurrentAuthorization },
-    validator: new RiotPuuidValidator(riotApiKey),
+    validator: riotIdentityReader,
     store: riotStore,
     displayName: async (discordUserId) => {
       const guild = await client.guilds.fetch(
@@ -305,12 +342,34 @@ if (assembly.process.exitCode === DUPLICATE_BOT_EXIT_CODE) {
   let lastGatewayDiagnostic: string | undefined;
   await publishHealth(healthPath);
   const healthTimer = setInterval(() => void publishHealth(healthPath), 15_000);
+  const identityRefreshTimer = setInterval(() => {
+    void riotIdentityRefresh.tick().catch(() => {
+      process.stderr.write(
+        `${JSON.stringify({
+          event_type: "riot.identity_refresh",
+          reason_code: "riot_identity_refresh_failed",
+        })}\n`,
+      );
+    });
+  }, 15 * 60_000);
+  identityRefreshTimer.unref();
+  void riotIdentityRefresh.tick().catch(() => {
+    process.stderr.write(
+      `${JSON.stringify({
+        event_type: "riot.identity_refresh",
+        reason_code: "riot_identity_refresh_failed",
+      })}\n`,
+    );
+  });
 
   let stopping = false;
   const stop = async (): Promise<void> => {
     if (stopping) return;
     stopping = true;
     clearInterval(healthTimer);
+    clearInterval(identityRefreshTimer);
+    await memberLabelSync.detach();
+    await riotIdentityRefresh.whenIdle().catch(() => undefined);
     await shutdownBotFeatures({
       ...(adminIpc === undefined ? {} : { adminCommand: adminIpc }),
       memberRole: ipc,
