@@ -4,6 +4,17 @@
 
 ## 현재 단계
 
+2026-07-29 Owner가 Discord 사용자가 요청하고 관리자가 승인한 모든 활성 Riot
+계정을 자동 관측 대상으로 확정했다. 연결 요청 응답과 private 도움말에 Riot
+솔로랭크·Discord Go Live 자동 관측을 고지하고, 연결 해제를 후속 관측 제외
+경로로 유지한다. 기존 active-link scheduler를 재사용하며 production flag는
+bounded propagation spike 통과 전까지 별도 gate로 유지한다.
+Production 임시 활성화 2회는 모두 fail-closed rollback됐다. 두 실행 모두
+feature flag나 process crash가 아니라 Discord member reconciliation의 최초
+시도와 1회 retry가 연속 실패했고, rollback 재시작은 즉시 connected 상태로
+복구됐다. 120초 readiness 안에서 15초 bounded attempt를 한 번 더 허용하도록
+retry delay를 `[2s, 5s]`로 확장하며 무제한 재시도는 도입하지 않는다.
+
 2026-07-29 production data-only reset Gate 3의 migration 검증을 raw file
 SHA-256 일치가 아니라 exact deployed release의
 `acceptedMigrationChecksums(sql, version)` 계약으로 명확히 했다. Production

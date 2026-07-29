@@ -170,3 +170,7 @@ external approvals and operational constraints are known.
 - Owner amendment: On 2026-07-25, approved Korean Discord command identifiers
   and the `/몰랭검거 현황|정정|취소` naming in place of the original English
   command identifiers. Internal identifiers remain English.
+- Owner amendment: On 2026-07-29, approved every active Riot account requested
+  by its Discord member and approved by an administrator as an automatic
+  observation target. The request response and private help disclose the
+  observation, and unlinking removes the account from future scheduler targets.

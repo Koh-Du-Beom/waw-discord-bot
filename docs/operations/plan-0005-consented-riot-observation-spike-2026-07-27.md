@@ -1,7 +1,7 @@
 # PLAN-0005 consented Riot observation spike — 2026-07-27
 
 - Status: Ready for separate production approval
-- Scope: one owner-approved Discord member and linked KR Riot account
+- Scope: all active administrator-approved KR Riot links
 - Default release state: `WAW_GAME_OBSERVATION_ENABLED=0`
 - Quota changes: none
 
@@ -23,10 +23,10 @@ not authorize automatic punishment or public use.
 ## Preconditions
 
 - Obtain fresh owner approval naming the exact candidate and time window.
-- Confirm the participant consents to observation of the named linked account
-  and Discord Go Live state.
+- Confirm every target is an active link that its Discord member requested and
+  an administrator approved under the product policy.
 - Confirm the active release marker matches the approved archive.
-- Confirm migration `0007`, healthy bot/web services, one active linked target,
+- Confirm migration `0007`, healthy bot/web services, at least one active KR target,
   and a readable bot-only `riot-api-key` credential without printing values.
 - Confirm the exact candidate unit remains default-off and quota flags are `0`.
 - Preserve the active release and unit/drop-in files as rollback evidence.
@@ -40,8 +40,8 @@ default-off flags do not match.
    `WAW_GAME_OBSERVATION_ENABLED=1`; do not edit the immutable release.
 2. Reload systemd and restart only `waw-bot`.
 3. Require Gateway connected and canonical health healthy before observation.
-4. Start one consented ranked-solo queue `420` game. Record only non-identifying
-   timestamps and fixed outcome codes.
+4. Start a ranked-solo queue `420` game on one active target. Record only
+   non-identifying timestamps and fixed outcome codes.
 5. Observe once without Go Live during the five-minute grace, then start Go
    Live and verify separate Riot `active` and Discord `active` evidence.
 6. Stop Go Live for less than two minutes and restore it to exercise the

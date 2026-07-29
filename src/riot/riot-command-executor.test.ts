@@ -46,7 +46,7 @@ test("creates an approval request without PUUID and labels pending and active li
     await executor.execute(request("라이엇계정 연결", {
       계정: "대기계정#kr1",
     })),
-    /관리자 승인/,
+    /승인된 활성 계정은 .*자동 관측/,
   );
   assert.equal("puuid" in requested[0]!, false);
   assert.equal(requested[0]?.platformId, "KR");

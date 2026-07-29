@@ -83,7 +83,7 @@ export class RiotCommandExecutor implements FeatureCommandExecutor {
       audit: audit(request, occurredAt, "success", "riot_link_requested"),
     });
     if (result === "created") {
-      return "라이엇 계정 연결 요청을 등록했습니다. 관리자 승인 전까지 `승인 대기`로 표시됩니다.";
+      return "라이엇 계정 연결 요청을 등록했습니다. 관리자 승인 전까지 `승인 대기`로 표시되며, 승인된 활성 계정은 몰랭 검거를 위해 자동 관측됩니다.";
     }
     if (result === "already_linked") {
       return "같은 라이엇 계정이 이미 연결되어 있어 새 승인 요청을 만들지 않았습니다.";
