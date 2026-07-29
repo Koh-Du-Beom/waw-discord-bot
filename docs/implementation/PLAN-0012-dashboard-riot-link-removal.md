@@ -1,6 +1,6 @@
 # PLAN-0012: 대시보드 Riot 계정 단건 연결 해제
 
-- Status: In Progress — Tasks 1~7 local/disposable complete; stopped before Task 8 production migration owner gate
+- Status: In Progress — Task 8 read-only preflight complete; blocked before migration on fresh-backup restore evidence
 - Date: 2026-07-29
 - Owner: 프로젝트 소유자
 - Related requirements: `FUN-005`, `FUN-015`, `FUN-018`, `OWN-015`, `SEC-001`~`SEC-010`

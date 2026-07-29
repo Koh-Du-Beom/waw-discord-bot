@@ -4,6 +4,15 @@
 
 ## 현재 단계
 
+2026-07-29 PLAN-0012 Task 8 production read-only preflight에서 current release
+`a2271329230b`, rollback `930c22cb669d`, schema/ledger `1..8`, healthy services,
+canonical health와 24시간 이내 backup publication marker를 확인했다. Pending
+`0009`/`0010` checksum도 고정했다. Release 검증과 admin IPC fixture가
+`000*.sql` glob으로 `0010`을 제외하던 결함은 `00*.sql`로 수정했다. 다만 최신
+ciphertext 자체의 empty-target restore 증거는 없고 offline identity는 host에
+존재하지 않으므로 migration 직전에서 차단했다. Production migration, 배포와
+실제 계정 mutation은 `0`이다.
+
 2026-07-29 PLAN-0012 Tasks 1~7 local/disposable 구현을 완료하고 Task 8
 production migration 직전에서 중단했다. Additive migrations `0009`와 `0010`,
 exact 관리자 remove IPC, current-role 선검사, row-lock/version soft delete,

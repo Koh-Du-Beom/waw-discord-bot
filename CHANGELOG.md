@@ -1,5 +1,11 @@
 # 변경 이력
 
+- PLAN-0012 production read-only preflight에서 immutable current/rollback,
+  schema ledger `1..8`, pending migration checksum, services/health와 fresh
+  backup publication을 검증했다. Production release와 admin IPC fixtures가
+  migration `0010`을 누락하던 glob을 수정했으며, 최신 ciphertext의 별도 restore
+  evidence가 없어 migration 실행 전 차단했다.
+
 - Dashboard 관리자가 활성 Riot 연결 하나를 2단계 확인 후 해제할 수 있도록
   optimistic version, exact bot IPC, 원자 audit/result soft delete와 해제 후
   늦은 observation 차단을 추가했다. Production migration과 배포는 아직
