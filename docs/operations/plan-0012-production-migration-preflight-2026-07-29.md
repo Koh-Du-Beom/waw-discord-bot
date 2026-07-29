@@ -2,7 +2,7 @@
 
 - Date: 2026-07-29
 - Scope: Task 8 read-only preflight and migration preparation
-- Status: BLOCKED before migration — fresh backup restore evidence required
+- Status: READY for exact migration approval — stopped before migration execution
 - Production changes: none
 
 ## Immutable release
@@ -77,14 +77,27 @@ The latest publication marker is healthy and less than 24 hours old:
 - expected invariant `constraints_valid`.
 
 `published` proves the publication pipeline's dump, encryption, upload,
-uploaded byte/hash match and local cleanup contract. It does not prove that
-this exact latest ciphertext has passed an empty-target restore rehearsal.
-That separate evidence was not available during this read-only preflight, and
-the offline `age` identity is deliberately absent from the production host.
+uploaded byte/hash match and local cleanup contract. The separately approved
+restore gate then verified this exact latest ciphertext:
 
-Therefore migration `0009` and `0010` must not run yet. The owner must provide
-or execute the approved exact-object restore-verification gate, record only its
-non-secret result, and then issue a new exact migration approval.
+- a temporary reader allowed Get only for the exact archive and manifest;
+- another-object Get, Put, Delete and IAM access were denied;
+- downloaded ciphertext byte count and SHA-256 matched the manifest;
+- a generated wrong identity was rejected;
+- the passphrase-encrypted offline owner identity was used only on the owner
+  Mac and was neither copied nor exposed;
+- `pg_restore --exit-on-error` completed against an empty disposable
+  PostgreSQL 17 target;
+- restored schema version was `8`, expected row count was `0`, invalid
+  constraints were `0`, and invalid foreign keys were `0`;
+- restore verification completed in `25` seconds;
+- temporary reader user/key/policy, CloudShell inputs/scripts, local encrypted
+  input, disposable container and temporary restore directory were removed;
+- final temporary reader, CloudShell Task 8 and local restore remainders were
+  all `0`.
+
+The backup gate is PASS. Migration `0009` and `0010` remain unapplied and now
+require a new exact execution approval.
 
 ## Verification
 
@@ -93,4 +106,3 @@ non-secret result, and then issue a new exact migration approval.
 - Candidate `7bfb686a076edf6024134bd660d14b0b57aff3bc` develop CI:
   success.
 - Production mutation, migration, deployment and real Riot link removal: `0`.
-

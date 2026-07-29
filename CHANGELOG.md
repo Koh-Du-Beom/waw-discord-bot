@@ -1,5 +1,11 @@
 # 변경 이력
 
+- Latest production backup의 exact archive/manifest만 허용하는 temporary
+  reader와 owner-custodied offline identity로 PostgreSQL 17 empty-target
+  restore를 검증했다. Schema `8`, row count `0`, invalid constraint/FK `0`을
+  확인하고 reader credential, CloudShell/local input과 disposable target을
+  모두 정리했으며 migration은 실행하지 않았다.
+
 - PLAN-0012 production read-only preflight에서 immutable current/rollback,
   schema ledger `1..8`, pending migration checksum, services/health와 fresh
   backup publication을 검증했다. Production release와 admin IPC fixtures가

@@ -4,14 +4,23 @@
 
 ## 현재 단계
 
+2026-07-29 PLAN-0012 latest production backup exact-object restore gate가
+PASS했다. Temporary reader는 exact archive/manifest Get만 허용했고 다른 Get,
+Put, Delete와 IAM access는 거부됐다. Ciphertext byte/hash가 manifest와
+일치했으며 wrong identity 거부 뒤 owner Mac의 offline encrypted identity로
+빈 PostgreSQL 17 target에 restore했다. Schema `8`, row count `0`, invalid
+constraint/FK `0`, elapsed `25`초를 확인했다. Reader user/key/policy,
+CloudShell/local input, disposable container와 임시 directory 잔여는 모두
+`0`이다. Migration `0009`/`0010`은 아직 미적용이며 exact 실행 승인 직전에서
+중단했다.
+
 2026-07-29 PLAN-0012 Task 8 production read-only preflight에서 current release
 `a2271329230b`, rollback `930c22cb669d`, schema/ledger `1..8`, healthy services,
 canonical health와 24시간 이내 backup publication marker를 확인했다. Pending
 `0009`/`0010` checksum도 고정했다. Release 검증과 admin IPC fixture가
 `000*.sql` glob으로 `0010`을 제외하던 결함은 `00*.sql`로 수정했다. 다만 최신
-ciphertext 자체의 empty-target restore 증거는 없고 offline identity는 host에
-존재하지 않으므로 migration 직전에서 차단했다. Production migration, 배포와
-실제 계정 mutation은 `0`이다.
+ciphertext의 empty-target restore는 후속 owner-approved gate로 분리했다.
+Production migration, 배포와 실제 계정 mutation은 `0`이다.
 
 2026-07-29 PLAN-0012 Tasks 1~7 local/disposable 구현을 완료하고 Task 8
 production migration 직전에서 중단했다. Additive migrations `0009`와 `0010`,
