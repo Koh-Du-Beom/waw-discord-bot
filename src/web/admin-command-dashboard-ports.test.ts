@@ -36,6 +36,7 @@ test("audits before dispatch and maps a bounded page without reflecting approval
           requests: [{
             requestId: "riot-request-0001",
             discordUserId: "323456789012345678",
+            requesterLabel: "요청자",
             platformId: "KR",
             gameName: "Summoner",
             tagLine: "KR1",

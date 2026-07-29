@@ -74,6 +74,7 @@ export class AdminCommandApplication {
       authorization: CurrentAuthorizationReader;
       validator: PuuidValidationPort;
       store: AdminCommandApplicationStore;
+      displayName?: (discordUserId: string) => Promise<string | undefined>;
       now: () => Date;
     },
   ) {}
@@ -156,7 +157,9 @@ export class AdminCommandApplication {
       reasonCode: "completed",
       result: {
         kind: "riot_link_request_page",
-        requests: page.requests.map(mapPending),
+        requests: await Promise.all(page.requests.map(async (item) =>
+          mapPending(item, await this.input.displayName?.(item.discordUserId))
+        )),
         ...(page.nextRequestId === undefined
           ? {}
           : { nextCursor: encodeCursor(page.nextRequestId) }),
@@ -347,10 +350,14 @@ function audit(
   };
 }
 
-function mapPending(item: PendingRiotLinkRequest): PendingRiotLinkIpcItem {
+function mapPending(
+  item: PendingRiotLinkRequest,
+  displayName?: string,
+): PendingRiotLinkIpcItem {
   return {
     requestId: item.requestId,
     discordUserId: item.discordUserId,
+    requesterLabel: displayName?.trim().slice(0, 80) || item.discordUserId,
     platformId: item.platformId,
     gameName: item.gameName,
     tagLine: item.tagLine,

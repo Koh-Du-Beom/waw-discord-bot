@@ -193,6 +193,25 @@ main {
   gap: 1rem;
 }
 
+.bulk-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  margin: 1rem 0;
+}
+
+.button-spinner {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-right: 0.45rem;
+  vertical-align: -0.1rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
 .topbar {
   min-height: 92px;
   border-bottom: 1px solid #263247;

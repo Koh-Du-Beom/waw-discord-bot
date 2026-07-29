@@ -122,6 +122,7 @@ test("uses an opaque cursor for bounded pending-request pagination", async () =>
   );
   assert.equal(first.outcome, "success");
   assert.equal(first.result.kind, "riot_link_request_page");
+  assert.equal(first.result.requests[0]?.requesterLabel, "서버 닉네임");
   assert.ok(first.result.nextCursor);
 
   await application.execute(
@@ -190,6 +191,7 @@ function applicationWith(
     },
     validator: { validate },
     store,
+    displayName: async () => "서버 닉네임",
     now: () => now,
   });
 }

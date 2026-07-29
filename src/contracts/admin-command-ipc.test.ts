@@ -150,6 +150,7 @@ test("parses only allowlisted response shapes and binds the request ID", () => {
       requests: [{
         requestId: "request:pending1",
         discordUserId: actorId,
+        requesterLabel: "서버 닉네임",
         platformId: "KR",
         gameName: "게임이름",
         tagLine: "KR1",

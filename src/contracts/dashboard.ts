@@ -78,6 +78,7 @@ export type UpdateLowRiskSettingsResponseDto = {
 export type PendingRiotLinkRequestDto = {
   requestId: string;
   discordUserId: string;
+  requesterLabel: string;
   platformId: string;
   gameName: string;
   tagLine: string;

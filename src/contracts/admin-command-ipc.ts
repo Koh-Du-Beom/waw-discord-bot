@@ -58,6 +58,7 @@ export type AdminCommandReasonCode =
 export type PendingRiotLinkIpcItem = {
   requestId: string;
   discordUserId: string;
+  requesterLabel: string;
   platformId: string;
   gameName: string;
   tagLine: string;
@@ -410,12 +411,16 @@ function parsePendingItem(value: unknown): PendingRiotLinkIpcItem | undefined {
       "gameName",
       "platformId",
       "requestId",
+      "requesterLabel",
       "requestedAt",
       "tagLine",
       "version",
     ]) ||
     !isPattern(value.requestId, entityIdPattern) ||
     !isPattern(value.discordUserId, snowflakePattern) ||
+    typeof value.requesterLabel !== "string" ||
+    value.requesterLabel.length < 1 ||
+    value.requesterLabel.length > 80 ||
     !isPattern(value.platformId, platformPattern) ||
     typeof value.gameName !== "string" ||
     value.gameName.length < 1 ||

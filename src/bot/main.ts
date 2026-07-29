@@ -268,6 +268,12 @@ if (assembly.process.exitCode === DUPLICATE_BOT_EXIT_CODE) {
     authorization: { readCurrentAuthorization },
     validator: new RiotPuuidValidator(riotApiKey),
     store: riotStore,
+    displayName: async (discordUserId) => {
+      const guild = await client.guilds.fetch(
+        authorizationConfiguration.allowedGuildId,
+      );
+      return guild.members.cache.get(discordUserId)?.displayName;
+    },
     now: () => new Date(),
   });
   const adminIpc = await startAdminCommandServerFeature({

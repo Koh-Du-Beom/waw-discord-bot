@@ -123,6 +123,10 @@ function Dashboard({
   const [commandLog, setCommandLog] = useState(value.commandLog);
   const [commandHistory, setCommandHistory] = useState<CommandLogPageDto[]>([]);
   const [loadingCommands, setLoadingCommands] = useState(false);
+  const [processingRiotRequests, setProcessingRiotRequests] = useState<Set<string>>(
+    new Set(),
+  );
+  const riotRequestsInFlight = useRef(new Set<string>());
 
   useEffect(() => {
     if (result) resultRef.current?.focus();
@@ -168,6 +172,9 @@ function Dashboard({
     request: PendingRiotLinkRequestsDto["requests"][number],
   ) {
     event.preventDefault();
+    if (riotRequestsInFlight.current.has(request.requestId)) return;
+    riotRequestsInFlight.current.add(request.requestId);
+    setProcessingRiotRequests((current) => new Set(current).add(request.requestId));
     setResult(undefined);
     try {
       await api.approveRiotRequest({
@@ -188,12 +195,22 @@ function Dashboard({
             : "Riot 계정 연결 요청을 승인하지 못했습니다.",
       });
       setRiotRequests(await api.getRiotRequests().catch(() => riotRequests));
+    } finally {
+      setProcessingRiotRequests((current) => {
+        const next = new Set(current);
+        next.delete(request.requestId);
+        return next;
+      });
+      riotRequestsInFlight.current.delete(request.requestId);
     }
   }
 
   async function rejectRiotRequest(
     request: PendingRiotLinkRequestsDto["requests"][number],
   ) {
+    if (riotRequestsInFlight.current.has(request.requestId)) return;
+    riotRequestsInFlight.current.add(request.requestId);
+    setProcessingRiotRequests((current) => new Set(current).add(request.requestId));
     setResult(undefined);
     try {
       await api.rejectRiotRequest({
@@ -206,6 +223,49 @@ function Dashboard({
     } catch {
       setResult({ kind: "error", message: "Riot 계정 연결 요청을 거절하지 못했습니다." });
       setRiotRequests(await api.getRiotRequests().catch(() => riotRequests));
+    } finally {
+      setProcessingRiotRequests((current) => {
+        const next = new Set(current);
+        next.delete(request.requestId);
+        return next;
+      });
+      riotRequestsInFlight.current.delete(request.requestId);
+    }
+  }
+
+  async function decideAllRiotRequests(decision: "approve" | "reject") {
+    const requests = riotRequests.requests.filter(
+      (request) => decision === "reject" || request.platformId === "KR",
+    );
+    if (requests.length === 0 || riotRequestsInFlight.current.size > 0) return;
+    riotRequestsInFlight.current = new Set(requests.map((request) => request.requestId));
+    setProcessingRiotRequests(new Set(requests.map((request) => request.requestId)));
+    setResult(undefined);
+    let completed = 0;
+    try {
+      for (const request of requests) {
+        const payload = {
+          requestId: request.requestId,
+          expectedVersion: request.version,
+          confirmation: true as const,
+        };
+        if (decision === "approve") await api.approveRiotRequest(payload);
+        else await api.rejectRiotRequest(payload);
+        completed += 1;
+      }
+      setResult({
+        kind: "success",
+        message: `${completed}건을 일괄 ${decision === "approve" ? "승인" : "반려"}했습니다.`,
+      });
+    } catch {
+      setResult({
+        kind: "error",
+        message: `${completed}건 처리 후 중단되었습니다. 목록을 확인해 다시 시도하세요.`,
+      });
+    } finally {
+      setRiotRequests(await api.getRiotRequests().catch(() => riotRequests));
+      setProcessingRiotRequests(new Set());
+      riotRequestsInFlight.current.clear();
     }
   }
 
@@ -320,20 +380,43 @@ function Dashboard({
               ) : riotRequests.requests.length === 0 ? (
                 <p className="empty">승인 대기 중인 요청이 없습니다.</p>
               ) : (
+                <>
+                <div className="bulk-actions">
+                  <button
+                    type="button"
+                    disabled={processingRiotRequests.size > 0 || !riotRequests.requests.some((request) => request.platformId === "KR")}
+                    onClick={() => void decideAllRiotRequests("approve")}
+                  >
+                    {processingRiotRequests.size > 0 && <span className="button-spinner" aria-hidden="true" />}
+                    {processingRiotRequests.size > 0 ? "처리 중…" : "일괄 승인"}
+                  </button>
+                  <button
+                    className="secondary"
+                    type="button"
+                    disabled={processingRiotRequests.size > 0}
+                    onClick={() => void decideAllRiotRequests("reject")}
+                  >
+                    일괄 반려
+                  </button>
+                </div>
                 <ul className="riot-list" aria-label="Riot 계정 연결 승인 대기 목록">
                   {riotRequests.requests.map((request) => (
                     <li key={request.requestId}>
                       <div>
                         <strong>{request.gameName}#{request.tagLine}</strong>
-                        <span>{request.platformId} · {formatDate(request.requestedAt)}</span>
+                        <span>요청자 {request.requesterLabel} · {request.platformId} · {formatDate(request.requestedAt)}</span>
                       </div>
                       <form onSubmit={(event) => void approveRiotRequest(event, request)}>
-                        <button className="secondary" type="button" onClick={() => void rejectRiotRequest(request)}>거절</button>
-                        <button type="submit" disabled={request.platformId !== "KR"}>검증 후 승인</button>
+                        <button className="secondary" type="button" disabled={processingRiotRequests.has(request.requestId)} onClick={() => void rejectRiotRequest(request)}>거절</button>
+                        <button type="submit" disabled={request.platformId !== "KR" || processingRiotRequests.has(request.requestId)}>
+                          {processingRiotRequests.has(request.requestId) && <span className="button-spinner" aria-hidden="true" />}
+                          {processingRiotRequests.has(request.requestId) ? "처리 중…" : "검증 후 승인"}
+                        </button>
                       </form>
                     </li>
                   ))}
                 </ul>
+                </>
               )}
             </section>
           )}

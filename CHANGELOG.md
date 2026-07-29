@@ -9,6 +9,9 @@
 
 ## Unreleased
 
+- Show the requesting Discord member's current server display name on pending
+  Riot links, add audited bulk approve/reject controls, and lock decisions with
+  an inline progress indicator while each request is in flight.
 - Center and reduce the dashboard loading state, prevent a user from opening a
   second pending request for an already active Riot ID, and expose the existing
   audited dashboard rejection path so stale requests can be closed safely.

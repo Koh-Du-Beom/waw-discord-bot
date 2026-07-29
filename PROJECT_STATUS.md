@@ -4,6 +4,13 @@
 
 ## 현재 단계
 
+2026-07-29 Riot 연결 요청 목록에 bot의 기존 guild member cache에서 읽은 현재
+서버 display name을 표시하고, 조회할 수 없을 때만 Discord user ID로 fallback
+하도록 admin IPC allowlist DTO를 확장했다. Dashboard는 기존 audited 단건
+approve/reject API를 순차 재사용하는 일괄 승인·반려를 제공하며, 단건·일괄 처리
+중 대상 버튼을 spinner와 함께 비활성화하고 synchronous in-flight guard로
+연속 클릭의 이중 요청을 차단한다. 새 migration과 production mutation은 `0`이다.
+
 2026-07-29 loading state의 oversized heading을 줄이고 panel text와 spinner를
 중앙 정렬했다. Riot 목록에서 같은 사용자·platform·Riot ID의 active link와
 pending request가 함께 보이는 원인은 request 생성이 active identity를 확인하지

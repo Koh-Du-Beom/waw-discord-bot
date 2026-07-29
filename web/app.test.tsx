@@ -189,7 +189,11 @@ test("announces mutation failure without claiming success", async () => {
 });
 
 test("administrator can review a KR request and approve with a hidden PUUID", async () => {
-  let approved = false;
+  let approved = 0;
+  let finishApproval!: () => void;
+  const approval = new Promise<void>((resolve) => {
+    finishApproval = resolve;
+  });
   render(<App api={apiFixture({
     session: {
       ...sessionFixture,
@@ -199,6 +203,7 @@ test("administrator can review a KR request and approve with a hidden PUUID", as
       requests: [{
         requestId: "request-synthetic",
         discordUserId: "discord-synthetic",
+        requesterLabel: "요청자",
         platformId: "KR",
         gameName: "테스트계정",
         tagLine: "KR1",
@@ -207,17 +212,24 @@ test("administrator can review a KR request and approve with a hidden PUUID", as
       }],
     },
     approveRiotRequest: async (request) => {
-      approved = request.confirmation;
+      if (request.confirmation) approved += 1;
+      await approval;
       return { message: "승인했습니다." };
     },
   })} />);
 
   fireEvent.click(await screen.findByRole("button", { name: /Riot 계정 연결 요청/ }));
   await screen.findByRole("heading", { name: "Riot 계정 연결 요청", level: 1 });
+  assert.equal(screen.getByText(/요청자 요청자/).textContent?.includes("요청자"), true);
   assert.equal(screen.queryByLabelText("검증할 PUUID"), null);
-  fireEvent.click(screen.getByRole("button", { name: "검증 후 승인" }));
+  const approve = screen.getByRole("button", { name: "검증 후 승인" });
+  fireEvent.click(approve);
+  fireEvent.click(approve);
+  assert.equal(screen.getAllByRole("button", { name: "처리 중…" }).length, 2);
+  assert.equal(approved, 1);
+  finishApproval();
   await screen.findByText("Riot 계정 연결 요청을 승인했습니다.");
-  assert.equal(approved, true);
+  assert.equal(approved, 1);
 });
 
 test("administrator can reject a stale Riot request", async () => {
@@ -231,6 +243,7 @@ test("administrator can reject a stale Riot request", async () => {
       requests: [{
         requestId: "request-stale",
         discordUserId: "discord-synthetic",
+        requesterLabel: "요청자",
         platformId: "KR",
         gameName: "이미연결됨",
         tagLine: "KR1",
@@ -248,6 +261,41 @@ test("administrator can reject a stale Riot request", async () => {
   fireEvent.click(screen.getByRole("button", { name: "거절" }));
   await screen.findByText("Riot 계정 연결 요청을 거절했습니다.");
   assert.equal(rejected, true);
+});
+
+test("administrator can approve every eligible Riot request in one action", async () => {
+  const approved: string[] = [];
+  const first = {
+    requestId: "request-bulk-1",
+    discordUserId: "discord-one",
+    requesterLabel: "첫 요청자",
+    platformId: "KR",
+    gameName: "첫계정",
+    tagLine: "KR1",
+    requestedAt: "2026-07-29T00:00:00.000Z",
+    version: 1,
+  };
+  render(<App api={apiFixture({
+    session: {
+      ...sessionFixture,
+      actor: { ...sessionFixture.actor, tier: "administrator" },
+    },
+    riotRequests: {
+      requests: [
+        first,
+        { ...first, requestId: "request-bulk-2", requesterLabel: "둘째 요청자" },
+      ],
+    },
+    approveRiotRequest: async (request) => {
+      approved.push(request.requestId);
+      return { message: "승인했습니다." };
+    },
+  })} />);
+
+  fireEvent.click(await screen.findByRole("button", { name: /Riot 계정 연결 요청/ }));
+  fireEvent.click(screen.getByRole("button", { name: "일괄 승인" }));
+  await screen.findByText("2건을 일괄 승인했습니다.");
+  assert.deepEqual(approved, ["request-bulk-1", "request-bulk-2"]);
 });
 
 function apiError(code: string): Error & { code: string } {

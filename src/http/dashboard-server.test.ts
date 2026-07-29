@@ -199,6 +199,7 @@ test("Riot administrator routes require current admin, CSRF, recent auth, confir
           requests: [{
             requestId: "request-1",
             discordUserId: "member-1",
+            requesterLabel: "요청자",
             platformId: "KR",
             gameName: "계정",
             tagLine: "KR1",
