@@ -9,6 +9,9 @@
 
 ## Unreleased
 
+- Validate production data-reset migration ledger rows with the deployed
+  runner's accepted-checksum contract instead of raw file hashes, including the
+  verified CRLF historical checksums for migrations `0003` and `0004`.
 - Add a fail-closed, schema-preserving production data reset SQL, a disposable
   PostgreSQL 17 fixture, and an owner-gated backup/recovery checklist without
   authorizing or executing a production reset.

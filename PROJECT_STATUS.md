@@ -4,6 +4,13 @@
 
 ## 현재 단계
 
+2026-07-29 production data-only reset Gate 3의 migration 검증을 raw file
+SHA-256 일치가 아니라 exact deployed release의
+`acceptedMigrationChecksums(sql, version)` 계약으로 명확히 했다. Production
+ledger 0003·0004 값은 현재 SQL의 정확한 CRLF rendering SHA-256이며, Git
+이력상 적용 이후 SQL 내용 변경이 없어 정상 historical checksum으로
+문서화했다. Ledger rewrite, production DB·host mutation은 `0`이다.
+
 2026-07-29 production data-only reset 준비물을 추가했다. Exact approval GUC와
 schema version `1..8` guard를 통과해야만 14개 명시적 application data table을
 `CASCADE` 없이 한 transaction에서 비우고 dashboard singleton을 `false:0`으로

@@ -106,14 +106,36 @@ Do not continue with a merely `published` archive; restore evidence must pass.
 - [ ] Record counts of public tables, constraints, indexes, RLS-enabled tables,
       policies and `waw_web`/`waw_bot` grants.
 - [ ] Confirm `dashboard_setting` has exactly one singleton row.
-- [ ] Confirm no migration is pending and the migration ledger hashes match the
-      deployed release.
+- [ ] Read each migration version and ledger checksum without updating the
+      ledger. Confirm no migration is pending.
+- [ ] For every version, load the matching SQL from the exact deployed release
+      and require
+      `acceptedMigrationChecksums(sql, version).has(ledgerChecksum)` to be
+      `true`. Do not compare the ledger only with raw `sha256sum` output.
 - [ ] Confirm database capacity, active connections, canonical health and
       current/previous release metadata.
 - [ ] Confirm the reset SQL contains no `drop`, `cascade`, role/grant, schema,
       credential or provider statement.
 
-Stop on unexpected versions, schema objects, grants, connections or counts.
+The runner canonicalizes line endings to LF for new checksums and accepts only
+the canonical LF checksum, the exact CRLF rendering of otherwise identical SQL,
+and any version-bound historical exception implemented by the runner. In
+particular, the production ledger values below are valid representations of
+the unchanged migrations:
+
+| Version | Canonical LF SHA-256 | Accepted production ledger SHA-256 |
+| --- | --- | --- |
+| `3` | `7c807c9113524103eed0314565ac6263facc49098e1d0c5eedf13038ddb97a5f` | `f7f94d1f2c5b4d5f39fd763f36f7b7d8819462f818d37052bf51507058edc184` |
+| `4` | `9142361bec0d953f14e8cd835cec5a5fb77c66bfbb80c859b7afdcd23ccc7b45` | `a48187b28dc3726726e5bef174a6e9b01a33ba7779c75ad93c68b0e3485e6419` |
+
+For both rows, the ledger value is exactly the SHA-256 of the current migration
+text rendered with CRLF line endings. Git history shows no SQL-content change
+between the versions first applied to production and the current files.
+Therefore these values are historical checksums, not migration drift. Do not
+rewrite them to the canonical values.
+
+Stop if any ledger value is outside the runner's accepted set, or on unexpected
+versions, schema objects, grants, connections or counts.
 
 ## Gate 4 — quiesce writes
 
