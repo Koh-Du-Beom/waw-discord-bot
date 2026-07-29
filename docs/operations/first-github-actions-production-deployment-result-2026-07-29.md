@@ -49,6 +49,13 @@ journal 본문이나 credential을 추가 수집하지 않았다.
 후보를 가리키지만 host의 active release는 rollback된 `bb53cf2`이므로 상태를
 혼동하지 않는다.
 
+## 후속 조치
+
+Activation 후 loopback health를 5초 간격, 최대 12회(약 2분 경계) 확인하는 bounded
+readiness helper를 추가했다. Delayed-start와 timeout synthetic fixture는
+로컬에서 통과했으며 timeout은 기존 activation `ERR` trap의 automatic
+release·unit rollback을 유지한다. Production 재실행은 아직 수행하지 않았다.
+
 ## 변경하지 않은 범위
 
 - Migration: `0`

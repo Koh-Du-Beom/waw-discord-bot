@@ -62,8 +62,7 @@ systemctl restart waw-web.service
 systemctl restart waw-bot.service
 systemctl is-active --quiet waw-web.service
 systemctl is-active --quiet waw-bot.service
-curl --fail --silent --show-error http://127.0.0.1:18080/health |
-  grep -q '"status":"healthy"'
+bash "$release/deploy/wait-production-health.sh"
 [[ "$(readlink -f /opt/waw/current)" == "$release" ]]
 rollback_needed=0
 echo "production_remote_activation_pass release=$release_id"

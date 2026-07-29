@@ -4,6 +4,16 @@
 
 ## 현재 단계
 
+2026-07-29 최초 production CD 실패의 activation 직후 단일 health probe를
+기존 운영 패턴과 같은 bounded readiness probe로 교체했다. Candidate release
+안의 helper가 loopback `/health`를 5초 간격으로 최대 12회 확인하며, healthy면
+즉시 성공하고 약 2분의 bounded 경계 안에 준비되지 않으면 실패해 기존 `ERR` trap의
+release·unit rollback을 그대로 실행한다. Synthetic fixture에서 3번째 probe의
+delayed-start 성공과 12회 timeout 실패를 확인했고 controller input fixture,
+Bash syntax와 diff check도 PASS했다. Production push와 workflow 재실행은
+`0`이며 정상 CD 경로는 새 develop CI와 별도 owner-approved production
+재실행 전까지 미검증이다.
+
 2026-07-29 최초 GitHub Actions production deploy run `30408412211`이 exact
 candidate `464eb99542dfdc375cd75af1efcf29f1938e204e`를 stage·activate했지만
 web restart 직후 단일 loopback health probe가 connection refused로 실패했다.
