@@ -154,3 +154,24 @@ Migrations are forward-only and application traffic does not depend on version 2
 - Use a reviewed corrective forward migration, or restore the verified archive into a disposable empty target to diagnose.
 
 Any suspected partial change, unexpected role, residual credential or missing backup/monitor state blocks Task 2.
+
+## Mutable identity display metadata
+
+- `registered_discord_user`의 `(guild_id, discord_user_id)`와
+  `riot_account_link.puuid`는 영구 식별 경계다. Discord `display_label`과 Riot
+  `game_name`/`tag_line`은 변경 가능한 표시 metadata다.
+- Discord command audit upsert가 사용자 행을 등록한다. Bot startup member
+  reconciliation과 `guildMemberUpdate`는 이미 등록된 행의 label이 실제로
+  달라진 경우에만 갱신한다. Dashboard DB label은 bot guild-member cache에서
+  현재 displayName을 얻지 못할 때의 fallback이다.
+- Riot bot runtime은 15분마다 link ID 순서로 최대 10개의 active link를
+  순차 조회한다. Account-v1 by-PUUID 응답의 PUUID가 저장값과 같고 bounded
+  `gameName`/`tagLine`이 유효할 때만 `link_id`, PUUID, expected version,
+  `removed_at is null` guard로 갱신한다.
+- Riot 표시값이 바뀐 update는 `version = version + 1`을 함께 적용해 이전
+  dashboard snapshot의 해제 요청을 stale 처리한다. 같은 표시값, removed/stale
+  row, 404/429/5xx/timeout/malformed response는 기존 이름·연결·관측 상태를
+  그대로 유지한다.
+- 이 refresh는 web에 Riot/Discord credential을 주지 않으며 PUUID 재할당,
+  자동 연결 해제, observation write 또는 raw provider response 저장을 하지
+  않는다. 실패 진단은 고정 reason code만 기록한다.

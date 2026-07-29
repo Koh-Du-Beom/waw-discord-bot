@@ -24,7 +24,11 @@ test("accepts only an exact Account API PUUID match", async () => {
       url: String(input),
       token: new Headers(init?.headers).get("X-Riot-Token"),
     });
-    return new Response(JSON.stringify({ puuid }), { status: 200 });
+    return new Response(JSON.stringify({
+      puuid,
+      gameName: "현재 이름",
+      tagLine: "KR1",
+    }), { status: 200 });
   });
 
   assert.deepEqual(await validator.validate({ puuid: ` ${puuid} `, platformId: "kr" }), {
@@ -34,6 +38,18 @@ test("accepts only an exact Account API PUUID match", async () => {
   assert.equal(requests.length, 1);
   assert.equal(requests[0]?.token, secret);
   assert.match(requests[0]?.url ?? "", /^https:\/\/asia\.api\.riotgames\.com\//u);
+});
+
+test("reads the latest Riot ID display metadata by permanent PUUID", async () => {
+  const validator = new RiotPuuidValidator(secret, async (input) => {
+    assert.match(String(input), /\/by-puuid\//u);
+    return Response.json({ puuid, gameName: "변경된 이름", tagLine: "NEW" });
+  });
+  assert.deepEqual(await validator.lookupByPuuid({ puuid, platformId: "KR" }), {
+    normalizedPuuid: puuid,
+    gameName: "변경된 이름",
+    tagLine: "NEW",
+  });
 });
 
 test("rejects malformed, missing, and unsupported-platform identifiers", async () => {
