@@ -66,7 +66,7 @@ if [[ "$ACTION" == stage ]]; then
     { echo release_bot_entrypoint_missing >&2; exit 1; }
   [[ -r "$root/dist/server/persistence/run-migration.js" ]] ||
     { echo release_migration_runner_missing >&2; exit 1; }
-  for migration in "$root"/migrations/000*.sql; do
+  for migration in "$root"/migrations/00*.sql; do
     [[ -f "$migration" ]] ||
       { echo release_migration_source_missing >&2; exit 1; }
     compiled_migration="$root/dist/migrations/$(basename "$migration")"

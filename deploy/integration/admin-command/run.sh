@@ -29,7 +29,7 @@ for _ in $(seq 1 60); do
 done
 docker exec "$postgres" pg_isready -U postgres -d waw_task6 >/dev/null
 
-for migration in "$ROOT"/migrations/000*.sql; do
+for migration in "$ROOT"/migrations/00*.sql; do
   docker exec -i "$postgres" psql -v ON_ERROR_STOP=1 -U postgres -d waw_task6 \
     <"$migration" >/dev/null
 done
