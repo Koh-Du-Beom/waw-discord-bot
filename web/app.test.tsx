@@ -190,6 +190,7 @@ test("announces mutation failure without claiming success", async () => {
 
 test("administrator can review a KR request and approve with a hidden PUUID", async () => {
   let approved = 0;
+  let activeLinksRead = 0;
   let finishApproval!: () => void;
   const approval = new Promise<void>((resolve) => {
     finishApproval = resolve;
@@ -216,6 +217,19 @@ test("administrator can review a KR request and approve with a hidden PUUID", as
       await approval;
       return { message: "승인했습니다." };
     },
+    getRiotLinks: async () => ({
+      links: activeLinksRead++ === 0
+        ? []
+        : [{
+            linkId: "link:approved-synthetic",
+            expectedVersion: 0,
+            requesterLabel: "요청자",
+            platformId: "KR",
+            gameName: "테스트계정",
+            tagLine: "KR1",
+            isPrimary: true,
+          }],
+    }),
   })} />);
 
   fireEvent.click(await screen.findByRole("button", { name: /Riot 계정/ }));
@@ -229,7 +243,9 @@ test("administrator can review a KR request and approve with a hidden PUUID", as
   assert.equal(approved, 1);
   finishApproval();
   await screen.findByText("Riot 계정 연결 요청을 승인했습니다.");
+  await screen.findByText("테스트계정#KR1 · 대표");
   assert.equal(approved, 1);
+  assert.equal(activeLinksRead, 2);
 });
 
 test("administrator can reject a stale Riot request", async () => {
@@ -265,6 +281,7 @@ test("administrator can reject a stale Riot request", async () => {
 
 test("administrator can approve every eligible Riot request in one action", async () => {
   const approved: string[] = [];
+  let activeLinksRead = 0;
   const first = {
     requestId: "request-bulk-1",
     discordUserId: "discord-one",
@@ -290,12 +307,27 @@ test("administrator can approve every eligible Riot request in one action", asyn
       approved.push(request.requestId);
       return { message: "승인했습니다." };
     },
+    getRiotLinks: async () => ({
+      links: activeLinksRead++ === 0
+        ? []
+        : [{
+            linkId: "link:bulk-approved",
+            expectedVersion: 0,
+            requesterLabel: "첫 요청자",
+            platformId: "KR",
+            gameName: "첫계정",
+            tagLine: "KR1",
+            isPrimary: true,
+          }],
+    }),
   })} />);
 
   fireEvent.click(await screen.findByRole("button", { name: /Riot 계정/ }));
   fireEvent.click(screen.getByRole("button", { name: "일괄 승인" }));
   await screen.findByText("2건을 일괄 승인했습니다.");
+  await screen.findByText("첫계정#KR1 · 대표");
   assert.deepEqual(approved, ["request-bulk-1", "request-bulk-2"]);
+  assert.equal(activeLinksRead, 2);
 });
 
 test("administrator confirms and removes one active Riot link once", async () => {
@@ -347,6 +379,7 @@ function apiFixture(
     overview?: DashboardOverviewDto;
     overviewError?: Error;
     riotLinks?: import("../src/contracts/dashboard.ts").ActiveRiotLinksDto;
+    getRiotLinks?: DashboardApi["getRiotLinks"];
     settings?: LowRiskSettingsDto;
     update?: DashboardApi["updateSettings"];
     audit?: { events: AuditEventDto[] };
@@ -367,7 +400,7 @@ function apiFixture(
       return overrides.overview ?? healthyOverviewFixture;
     },
     async getRiotLinks() {
-      return overrides.riotLinks ?? { links: [] };
+      return overrides.getRiotLinks?.() ?? overrides.riotLinks ?? { links: [] };
     },
     async getSettings() {
       return overrides.settings ?? settingsFixture;

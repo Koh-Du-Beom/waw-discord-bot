@@ -6,6 +6,8 @@
   refresh mutable Riot ID display fields in bounded bot-side Account-v1
   by-PUUID batches; PUUID/Discord IDs remain permanent, changed links increment
   their optimistic version, and provider failures preserve existing state.
+  Dashboard approval now refreshes both pending requests and active links, so a
+  newly approved account appears in the user list without a page reload.
 
 - PLAN-0012 staged release `c7c5ad6`를 production에 활성화했다. 첫 시도의
   health helper 실행 비트 오류는 기존 release/unit으로 자동 rollback됐고,

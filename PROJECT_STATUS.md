@@ -12,9 +12,10 @@ by-PUUID를 15분마다 최대 10건의 순차 배치로 순회하고, PUUID가 
 gameName/tagLine이 달라진 active row만 optimistic version과 함께 갱신한다.
 Provider 실패, stale/removed row와 같은 이름은 mutation하지 않는다. 새
 migration/dependency, web credential/API 권한과 production/user-data mutation은
-없다. Targeted unit `12/12`, 전체 test `268 pass / 8 external PostgreSQL skips /
-0 fail`, typecheck가 PASS했고 PostgreSQL 통합 추가 검증은 CI Linux fixture에
-남아 있다.
+없다. Dashboard 승인 뒤 pending 요청만 다시 읽어 활성 사용자 목록이 page
+reload 전까지 stale하던 client state 결함도 active link와 pending request를
+함께 재조회하도록 수정했다. Targeted unit과 전체 test, typecheck 결과는 이
+브랜치의 최신 검증 기록으로 갱신한다.
 
 2026-07-29 PLAN-0012 exact release `c7c5ad6` production activation을 완료했다.
 Staged checksum, current `a2271329230b`, rollback `930c22cb669d`, migration
