@@ -155,28 +155,51 @@ export async function reconcileMembersWithPolicy(input: {
   retryDelaysMs: readonly number[];
   reportFailure: (reason: BotFailureReason) => void;
 }): Promise<readonly ReconciledMember[]> {
+  let lastError: unknown;
   for (let attempt = 0; attempt <= input.retryDelaysMs.length; attempt += 1) {
     const outcome = await Promise.race([
       input.reconcile().then(
         (members) => ({ kind: "success" as const, members }),
-        () => ({ kind: "failed" as const }),
+        (error: unknown) => ({ kind: "failed" as const, error }),
       ),
       input.timeout(input.timeoutMs).then(() => ({ kind: "timed_out" as const })),
     ]);
     if (outcome.kind === "success") {
       return outcome.members;
     }
+    lastError = outcome.kind === "failed" ? outcome.error : undefined;
     if (outcome.kind === "timed_out") {
       input.reportFailure("gateway_member_reconciliation_timed_out");
     }
     const retryDelay = input.retryDelaysMs[attempt];
     if (retryDelay !== undefined) {
-      await input.sleep(retryDelay);
+      await input.sleep(
+        outcome.kind === "failed"
+          ? (gatewayRateLimitDelayMs(outcome.error) ?? retryDelay)
+          : retryDelay,
+      );
       continue;
     }
   }
   input.reportFailure("gateway_member_reconciliation_retry_exhausted");
-  throw new Error("gateway member reconciliation retry exhausted");
+  throw lastError ?? new Error("gateway member reconciliation retry exhausted");
+}
+
+function gatewayRateLimitDelayMs(error: unknown): number | undefined {
+  if (
+    !(error instanceof Error) ||
+    error.name !== "GatewayRateLimitError" ||
+    !("data" in error) ||
+    typeof error.data !== "object" ||
+    error.data === null ||
+    !("retry_after" in error.data) ||
+    typeof error.data.retry_after !== "number" ||
+    !Number.isFinite(error.data.retry_after) ||
+    error.data.retry_after < 0
+  ) {
+    return undefined;
+  }
+  return Math.ceil(error.data.retry_after * 1_000);
 }
 
 function defaultInterval(action: () => void, milliseconds: number): () => void {

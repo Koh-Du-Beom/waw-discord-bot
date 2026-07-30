@@ -192,7 +192,12 @@ function Dashboard({
         confirmation: true,
       });
       setResult({ kind: "success", message: "Riot 계정 연결 요청을 승인했습니다." });
-      setRiotRequests(await api.getRiotRequests().catch(() => ({ requests: [] })));
+      const [nextRequests, nextLinks] = await Promise.all([
+        api.getRiotRequests().catch(() => riotRequests),
+        api.getRiotLinks().catch(() => riotLinks),
+      ]);
+      setRiotRequests(nextRequests);
+      setRiotLinks(nextLinks);
     } catch (error) {
       const code = errorCode(error);
       setResult({
@@ -304,7 +309,14 @@ function Dashboard({
         message: `${completed}건 처리 후 중단되었습니다. 목록을 확인해 다시 시도하세요.`,
       });
     } finally {
-      setRiotRequests(await api.getRiotRequests().catch(() => riotRequests));
+      const [nextRequests, nextLinks] = await Promise.all([
+        api.getRiotRequests().catch(() => riotRequests),
+        decision === "approve"
+          ? api.getRiotLinks().catch(() => riotLinks)
+          : Promise.resolve(riotLinks),
+      ]);
+      setRiotRequests(nextRequests);
+      setRiotLinks(nextLinks);
       setProcessingRiotRequests(new Set());
       riotRequestsInFlight.current.clear();
     }

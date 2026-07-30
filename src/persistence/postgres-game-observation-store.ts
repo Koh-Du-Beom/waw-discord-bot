@@ -11,7 +11,7 @@ export class PostgresGameObservationStore implements GameObservationStore {
 
   async record(
     input: PersistedGameObservation,
-  ): Promise<"recorded" | "duplicate" | "stale"> {
+  ): Promise<"recorded" | "violation_recorded" | "duplicate" | "stale"> {
     const client = await this.pool.connect();
     try {
       await client.query("begin");
@@ -59,6 +59,22 @@ export class PostgresGameObservationStore implements GameObservationStore {
       ) {
         throw new Error("game identity mismatch");
       }
+      const incident = await client.query<{
+        status: string;
+        comparison_state: string;
+      }>(
+        `select status, comparison_state
+           from game_incident
+          where game_key = $1 and discord_user_id = $2
+          for update`,
+        [input.gameKey, input.discordUserId],
+      );
+      const priorIncident = incident.rows[0];
+      const firstViolation =
+        input.comparisonState === "violation" &&
+        (priorIncident === undefined ||
+          (priorIncident.status === "open" &&
+            priorIncident.comparison_state !== "violation"));
 
       const latest = await client.query<{ observed_at: Date }>(
         `select observed_at
@@ -108,7 +124,7 @@ export class PostgresGameObservationStore implements GameObservationStore {
         ],
       );
       await client.query("commit");
-      return "recorded";
+      return firstViolation ? "violation_recorded" : "recorded";
     } catch {
       await client.query("rollback").catch(() => undefined);
       throw new PersistenceError("game_observation_write_failed");

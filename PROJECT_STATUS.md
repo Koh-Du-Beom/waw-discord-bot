@@ -1,8 +1,35 @@
 # 프로젝트 상태
 
-마지막 갱신일: 2026-07-29
+마지막 갱신일: 2026-07-30
 
 ## 현재 단계
+
+2026-07-30 자동 관측이 처음 `violation`으로 전환된 transaction을 식별해
+설정된 Discord 채널에 대상 사용자만 실제 mention하는 공개 몰랭 알림을
+추가했다. 같은 violation의 후속 30초 poll은 재전송하지 않고, Discord 전송
+실패는 process가 살아 있는 동안 다음 poll에서 재시도한다. 관측 활성화 시
+`WAW_GAME_ALERT_CHANNEL_ID`를 필수 snowflake로 검증하며 다른 guild 또는
+send 불가능 channel은 거부한다. 전체 테스트 `289 pass / 7 external
+PostgreSQL skips / 0 fail`과 typecheck가 PASS했다. Production 설정·배포·
+restart·DB mutation은 `0`이다.
+
+2026-07-30 production Gateway member reconciliation 진단에서 확인한
+`RequestGuildMembers` rate limit 복구 결함을 최소 수정했다. Member fetch의
+원본 오류를 보존하고 `GatewayRateLimitError.data.retry_after`를 검증해
+밀리초로 올림한 뒤 고정 retry delay 대신 사용한다. 다른 오류와 timeout은 기존
+bounded delay를 유지하며, 최종 실패도 마지막 attempt의 원인만 전달한다. 관련
+단위 테스트 `7/7`, 전체 테스트 `285 pass / 7 external PostgreSQL skips /
+0 fail`과 typecheck가 PASS했다. Production 배포·restart·DB mutation은 `0`이다.
+
+2026-07-29 열린 Dashboard의 외부 Discord/Riot 변경이 initial load 이후 자동
+반영되지 않는 client query lifecycle 결함을 재현했다. `visibilitychange` 뒤에도
+active-link query가 initial 1회에서 증가하지 않았다. 짧은 polling은
+administrator pending-list IPC의 operation/result/audit를 매번 영구 기록하므로
+hidden·비활성 화면까지 polling하는 안과 새 SSE 경계를 제외했다. Riot tab이
+visible일 때만 60초 polling하고 tab 진입·15초 이상 지난 visible 복귀·명시적
+새로고침·mutation 종료에 active/pending snapshot을 single-flight로 함께
+재조회하는 안을 `ADR-0026` Proposed로 작성했다. Owner 승인 전 product code,
+migration, dependency와 production 변경은 `0`이다.
 
 2026-07-29 Discord/Riot 표시 이름 동기화 누락 결함을 기존 schema와 bot
 runtime 경계 안에서 수정했다. Discord `guildMemberUpdate`, startup member
@@ -12,7 +39,10 @@ by-PUUID를 15분마다 최대 10건의 순차 배치로 순회하고, PUUID가 
 gameName/tagLine이 달라진 active row만 optimistic version과 함께 갱신한다.
 Provider 실패, stale/removed row와 같은 이름은 mutation하지 않는다. 새
 migration/dependency, web credential/API 권한과 production/user-data mutation은
-없다. Targeted unit `12/12`, 전체 test `268 pass / 8 external PostgreSQL skips /
+없다. Dashboard 승인 뒤 pending 요청만 다시 읽어 활성 사용자 목록이 page
+reload 전까지 stale하던 client state 결함도 active link와 pending request를
+함께 재조회하도록 수정했다. Targeted unit `12/12`, 전체 test `268 pass / 8
+external PostgreSQL skips /
 0 fail`, typecheck가 PASS했고 PostgreSQL 통합 추가 검증은 CI Linux fixture에
 남아 있다.
 

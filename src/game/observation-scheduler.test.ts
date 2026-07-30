@@ -152,6 +152,7 @@ test("integrates fake sources through the real comparison executor and clears en
         return "recorded";
       },
     }),
+    violations: { async notify() {} },
     now: () => new Date("2026-07-25T00:10:00Z"),
     timeoutMilliseconds: 100,
   });
@@ -192,8 +193,84 @@ function fixture(
         return "recorded";
       },
     },
+    violations: { async notify() {} },
     now: () => new Date("2026-07-25T00:10:00Z"),
     timeoutMilliseconds,
   });
   return { scheduler, voiceCalls };
 }
+
+test("announces only a newly recorded violation", async () => {
+  const notifications: unknown[] = [];
+  let observations = 0;
+  const scheduler = new GameObservationScheduler({
+    targets: { async listTargets() { return [target]; } },
+    riot: {
+      async observe() {
+        return {
+          state: "active" as const,
+          gameId: "game",
+          queueId: 420,
+          startedAt,
+        };
+      },
+    },
+    voice: { async reconcile() { return []; } },
+    observations: {
+      async execute() {
+        observations += 1;
+        return observations === 1 ? "violation_recorded" : "recorded";
+      },
+    },
+    violations: {
+      async notify(input: unknown) {
+        notifications.push(input);
+      },
+    },
+    now: () => new Date("2026-07-25T00:10:00Z"),
+    timeoutMilliseconds: 100,
+  });
+
+  assert.equal(await scheduler.poll(target), "violation_recorded");
+  assert.equal(await scheduler.poll(target), "recorded");
+  assert.deepEqual(notifications, [
+    { guildId: "guild", discordUserId: "member" },
+  ]);
+});
+
+test("retries a failed violation announcement on the next poll", async () => {
+  let observations = 0;
+  let notifications = 0;
+  const scheduler = new GameObservationScheduler({
+    targets: { async listTargets() { return [target]; } },
+    riot: {
+      async observe() {
+        return {
+          state: "active" as const,
+          gameId: "game",
+          queueId: 420,
+          startedAt,
+        };
+      },
+    },
+    voice: { async reconcile() { return []; } },
+    observations: {
+      async execute() {
+        observations += 1;
+        return observations === 1 ? "violation_recorded" : "recorded";
+      },
+    },
+    violations: {
+      async notify() {
+        notifications += 1;
+        if (notifications === 1) throw new Error("discord unavailable");
+      },
+    },
+    now: () => new Date("2026-07-25T00:10:00Z"),
+    timeoutMilliseconds: 100,
+  });
+
+  await assert.rejects(scheduler.poll(target), /discord unavailable/u);
+  assert.equal(await scheduler.poll(target), "recorded");
+  assert.equal(notifications, 2);
+});
