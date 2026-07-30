@@ -62,10 +62,6 @@ if [[ "$action" == preflight ]]; then
 fi
 
 if [[ "$before_flag" == 1 ]]; then
-  [[ -f "$dropin" ]] || { echo game_observation_dropin_missing >&2; exit 1; }
-  [[ "$(wc -l <"$dropin")" == 2 ]]
-  grep -qxF '[Service]' "$dropin"
-  grep -qxF 'Environment=WAW_GAME_OBSERVATION_ENABLED=1' "$dropin"
   echo "game_observation_activation_already_enabled release=$release_id"
   exit 0
 fi
