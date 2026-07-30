@@ -31,7 +31,7 @@ printf '%s\n' \
   '#!/usr/bin/env bash' \
   'set -eu' \
   'if [[ "$1" == show ]]; then' \
-  '  if [[ -f "$WAW_GAME_OBSERVATION_TEST_ROOT/etc/systemd/system/waw-bot.service.d/90-game-observation-enabled.conf" ]]; then echo WAW_GAME_OBSERVATION_ENABLED=1; else echo WAW_GAME_OBSERVATION_ENABLED=0; fi' \
+  '  if [[ -n "${WAW_GAME_OBSERVATION_TEST_EFFECTIVE_FLAG:-}" ]]; then echo "WAW_GAME_OBSERVATION_ENABLED=$WAW_GAME_OBSERVATION_TEST_EFFECTIVE_FLAG"; elif [[ -f "$WAW_GAME_OBSERVATION_TEST_ROOT/etc/systemd/system/waw-bot.service.d/90-game-observation-enabled.conf" ]]; then echo WAW_GAME_OBSERVATION_ENABLED=1; else echo WAW_GAME_OBSERVATION_ENABLED=0; fi' \
   'fi' \
   >"$fixture_root/bin/systemctl"
 printf '%s\n' \
@@ -43,10 +43,14 @@ chmod +x "$fixture_root/bin/systemctl" "$fixture_root/bin/curl" "$fixture_root/b
 
 run_manager() {
   WAW_GAME_OBSERVATION_TEST_ROOT="$fixture_root" \
+    WAW_GAME_OBSERVATION_TEST_EFFECTIVE_FLAG="${WAW_GAME_OBSERVATION_TEST_EFFECTIVE_FLAG:-}" \
     PATH="$fixture_root/bin:$PATH" \
     bash "$manager" "$@"
 }
 
+WAW_GAME_OBSERVATION_TEST_EFFECTIVE_FLAG=1 \
+  run_manager activate "$expected_commit" |
+  grep -qx "game_observation_activation_already_enabled release=$release_id"
 run_manager preflight "$expected_commit" |
   grep -qx "game_observation_preflight_pass release=$release_id enabled=0"
 run_manager activate "$expected_commit" |

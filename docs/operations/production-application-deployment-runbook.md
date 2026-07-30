@@ -170,8 +170,10 @@ separate gate. `preflight` streams the reviewed checks over pinned SSH without
 creating a remote artifact and performs read-only Discord API permission
 checks without sending a message. `activate` is accepted only from the exact
 `production` SHA, repeats the preflight, installs only
-`90-game-observation-enabled.conf`, restarts the bot and rolls that drop-in back
-on failed health. Never dispatch `activate` from another ref or substitute an
+`90-game-observation-enabled.conf` when the effective flag is still `0`,
+restarts the bot and rolls that drop-in back on failed health. An effective
+flag already equal to `1` is treated as idempotently active. Never dispatch
+`activate` from another ref or substitute an
 unreviewed remote command.
 
 For the Supabase session pooler, preserve encrypted libpq-compatible TLS
