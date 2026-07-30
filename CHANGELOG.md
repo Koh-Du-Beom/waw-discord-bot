@@ -1,5 +1,12 @@
 # 변경 이력
 
+- 최초 자동 몰랭 violation을 설정된 Discord 채널에 공개 멘션으로 알리고,
+  후속 poll의 중복 전송을 막으며 일시적인 전송 실패는 다음 poll에서 재시도한다.
+
+- Discord Gateway member reconciliation이 rate limit될 때 provider의
+  `retry_after`를 존중하고, 원본 오류를 보존해 고정된 짧은 재시도로 같은 제한
+  구간에서 소진되지 않도록 수정했다.
+
 - Discord server nickname changes now refresh the existing registered-user
   label from `guildMemberUpdate` and startup member reconciliation while slash
   command audit upsert remains the registration path. Active Riot links now

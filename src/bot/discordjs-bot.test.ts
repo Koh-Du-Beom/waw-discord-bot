@@ -253,3 +253,69 @@ test("reconciliation exhaustion emits only fixed reason codes", async () => {
   ]);
   assert.equal(JSON.stringify(failures).includes("operator-1"), false);
 });
+
+test("reconciliation preserves GatewayRateLimitError and honors retry_after", async () => {
+  const rateLimit = Object.assign(new Error("sensitive provider detail"), {
+    name: "GatewayRateLimitError",
+    data: { retry_after: 12.345 },
+  });
+  const sleeps: number[] = [];
+  let attempts = 0;
+
+  const members = await reconcileMembersWithPolicy({
+    reconcile: async () => {
+      attempts += 1;
+      if (attempts === 1) throw rateLimit;
+      return [];
+    },
+    timeout: () => new Promise(() => {}),
+    sleep: async (milliseconds) => {
+      sleeps.push(milliseconds);
+    },
+    timeoutMs: 15_000,
+    retryDelaysMs: [2_000],
+    reportFailure: () => {},
+  });
+
+  assert.deepEqual(members, []);
+  assert.deepEqual(sleeps, [12_345]);
+
+  await assert.rejects(
+    reconcileMembersWithPolicy({
+      reconcile: async () => {
+        throw rateLimit;
+      },
+      timeout: () => new Promise(() => {}),
+      sleep: async () => {},
+      timeoutMs: 15_000,
+      retryDelaysMs: [],
+      reportFailure: () => {},
+    }),
+    (error) => error === rateLimit,
+  );
+});
+
+test("a final timeout does not surface an earlier provider error", async () => {
+  let attempts = 0;
+  await assert.rejects(
+    reconcileMembersWithPolicy({
+      reconcile: () => {
+        attempts += 1;
+        return attempts === 1
+          ? Promise.reject(
+              Object.assign(new Error("provider detail"), {
+                name: "GatewayRateLimitError",
+                data: { retry_after: 0 },
+              }),
+            )
+          : new Promise(() => {});
+      },
+      timeout: async () => {},
+      sleep: async () => {},
+      timeoutMs: 15_000,
+      retryDelaysMs: [2_000],
+      reportFailure: () => {},
+    }),
+    /retry exhausted/u,
+  );
+});

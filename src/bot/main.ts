@@ -13,6 +13,10 @@ import {
   attachDiscordMemberLabelSync,
   refreshReconciledMemberLabels,
 } from "../adapters/discord/member-label-sync.ts";
+import {
+  createGameViolationAnnouncer,
+  type DiscordAnnouncementChannel,
+} from "../adapters/discord/game-violation-announcer.ts";
 import { createDiscordVoiceSource } from "../adapters/discord/voice-observation-adapter.ts";
 import {
   createMemberRoleIpcServer,
@@ -59,7 +63,10 @@ import {
   gatewayFailureDiagnostic,
   gatewayStateDiagnostic,
 } from "./gateway-diagnostics.ts";
-import { observationFeatureEnabled } from "./observation-feature.ts";
+import {
+  gameAlertChannelId,
+  observationFeatureEnabled,
+} from "./observation-feature.ts";
 import { AdminCommandApplication } from "../ipc/admin-command-application.ts";
 import { createAdminCommandIpcServer } from "../ipc/admin-command-ipc.ts";
 import {
@@ -92,6 +99,10 @@ const authorizationConfiguration =
   parseBotAuthorizationConfiguration(process.env);
 const gameObservationEnabled = observationFeatureEnabled(
   process.env.WAW_GAME_OBSERVATION_ENABLED,
+);
+const alertChannelId = gameAlertChannelId(
+  process.env.WAW_GAME_ALERT_CHANNEL_ID,
+  gameObservationEnabled,
 );
 const client = new Client({ intents: [...DISCORDJS_MINIMUM_INTENTS] });
 const pool = new Pool({
@@ -197,6 +208,20 @@ const observationScheduler = gameObservationEnabled
       observations: new GameObservationExecutor(
         new PostgresGameObservationStore(pool),
       ),
+      violations: createGameViolationAnnouncer({
+        channelId: alertChannelId!,
+        async resolveChannel(channelId) {
+          const channel = await client.channels.fetch(channelId, { cache: false });
+          if (
+            !channel?.isSendable() ||
+            !("guildId" in channel) ||
+            channel.guildId !== authorizationConfiguration.allowedGuildId
+          ) {
+            return undefined;
+          }
+          return channel as DiscordAnnouncementChannel;
+        },
+      }),
       now: () => new Date(),
       timeoutMilliseconds: 3_000,
     })
@@ -214,9 +239,9 @@ const reconcileMembers = async () => {
   let members;
   try {
     members = await guild.members.fetch();
-  } catch {
+  } catch (error) {
     reportFailure("gateway_member_reconciliation_failed");
-    throw new Error("gateway member reconciliation failed");
+    throw error;
   }
   await refreshReconciledMemberLabels({
     guildId: guild.id,

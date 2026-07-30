@@ -143,6 +143,21 @@ test(
       "unknown",
     );
 
+    const violation = observation({
+      gameId: "observation-game-violation",
+      observedAt: new Date("2026-07-25T00:10:00Z"),
+    });
+    assert.equal(await executor.execute(violation), "violation_recorded");
+    assert.equal(
+      await executor.execute({
+        ...violation,
+        observedAt: new Date("2026-07-25T00:10:30Z"),
+        riot: { ...violation.riot, generation: 2 },
+        goLive: { ...violation.goLive, generation: 2 },
+      }),
+      "recorded",
+    );
+
     await pool.query(
       `update riot_account_link
           set removed_at = now(), is_primary = false, version = version + 1

@@ -26,8 +26,16 @@ export type DiscordVoiceSource = {
 
 type GameObservationSink = Pick<GameObservationExecutor, "execute">;
 
+export type GameViolationNotifier = {
+  notify(input: {
+    guildId: string;
+    discordUserId: string;
+  }): Promise<void>;
+};
+
 export type SchedulerPollResult =
   | "recorded"
+  | "violation_recorded"
   | "duplicate"
   | "stale"
   | "queue_ignored"
@@ -46,6 +54,7 @@ export class GameObservationScheduler {
   private readonly generations = new Map<string, number>();
   private readonly activeGames = new Map<string, ActiveGame>();
   private readonly interruptedAt = new Map<string, Date>();
+  private readonly pendingViolations = new Set<string>();
 
   constructor(
     private readonly input: {
@@ -53,6 +62,7 @@ export class GameObservationScheduler {
       riot: RiotGameObserver;
       voice: DiscordVoiceSource;
       observations: GameObservationSink;
+      violations: GameViolationNotifier;
       now: () => Date;
       timeoutMilliseconds: number;
     },
@@ -157,6 +167,16 @@ export class GameObservationScheduler {
           ...(interruption === undefined ? {} : { interruptedAt: interruption }),
         },
       });
+      if (result === "violation_recorded") {
+        this.pendingViolations.add(target.linkId);
+      }
+      if (this.pendingViolations.has(target.linkId)) {
+        await this.input.violations.notify({
+          guildId: target.guildId,
+          discordUserId: target.discordUserId,
+        });
+        this.pendingViolations.delete(target.linkId);
+      }
       if (riot.state === "inactive") this.activeGames.delete(target.linkId);
       return result;
     } finally {

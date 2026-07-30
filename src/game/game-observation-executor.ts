@@ -38,7 +38,7 @@ export type PersistedGameObservation = NormalizedGameObservation & {
 export type GameObservationStore = {
   record(
     observation: PersistedGameObservation,
-  ): Promise<"recorded" | "duplicate" | "stale">;
+  ): Promise<"recorded" | "violation_recorded" | "duplicate" | "stale">;
 };
 
 export class GameObservationInputError extends Error {}
@@ -53,7 +53,9 @@ export class GameObservationExecutor {
 
   async execute(
     input: NormalizedGameObservation,
-  ): Promise<"recorded" | "duplicate" | "stale" | "queue_ignored"> {
+  ): Promise<
+    "recorded" | "violation_recorded" | "duplicate" | "stale" | "queue_ignored"
+  > {
     validate(input);
     if (!this.observedQueueIds.has(input.queueId)) return "queue_ignored";
 

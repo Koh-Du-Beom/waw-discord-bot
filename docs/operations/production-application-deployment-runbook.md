@@ -160,6 +160,11 @@ verified without disclosure, and the consented propagation spike in ADR-0016
 has passed. Releases without the adapter fail fast when enabled; never run a
 partial scheduler.
 
+When game observation is enabled, `/etc/waw/bot.env` must also contain an exact
+`WAW_GAME_ALERT_CHANNEL_ID` snowflake for a sendable channel in the configured
+guild. Verify the bot has `View Channel` and `Send Messages` there before
+activation. Do not print the channel contents or bot token during readback.
+
 For the Supabase session pooler, preserve encrypted libpq-compatible TLS
 semantics in the file credential with both `sslmode=require` and
 `uselibpqcompat=true`. Without the compatibility flag, the Node PostgreSQL
