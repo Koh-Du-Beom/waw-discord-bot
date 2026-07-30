@@ -4,14 +4,24 @@
 
 ## 현재 단계
 
+2026-07-30 PLAN-0013 exact release
+`19ea83925f6b27f66c924e2b1860a3c5d0904a89` production 배포와 관측 활성화를
+완료했다. Owner-dispatched read-only preflight에서 release/rollback,
+web·bot·backup·monitor, loopback/canonical health, credential 존재와 Discord
+alert channel의 guild/type/View/Send를 확인했고 메시지는 보내지 않았다.
+Effective `WAW_GAME_OBSERVATION_ENABLED=1`을 최종 read-back했다. 기존 활성
+설정이 새 manager의 전용 drop-in에서 왔다고 가정해 첫 activation command가
+실패한 문제는 effective flag를 source of truth로 쓰도록 수정하고 fixture와
+CI를 거쳐 재배포했다. 실제 솔로랭크 Discord/Riot smoke만 owner와 사용자에게
+남아 있다.
+
 2026-07-30 자동 관측이 `violation`을 기록해도 사건이 `open`에 머물러
 `confirmed`만 계산하는 몰랭스택에 반영되지 않고, 후속 Riot inactive 관측이
 판정을 `compliant`로 덮는 결함을 수정했다. Accepted ADR-0027에 따라 최초
 violation insert 또는 전이를 같은 transaction에서 `confirmed`로 만들고,
 후속 관측은 정규화 증거만 추가한 채 확정 판정을 보존한다. 임시 PostgreSQL
 17에서 violation→confirmed, 후속 inactive, 1스택을 검증했다. Match-V5 사후
-복구, 기존에 덮어써진 사건 복원, production 관측 활성화·배포는 범위 밖이며
-수행하지 않았다.
+복구와 기존에 덮어써진 사건 복원은 범위 밖이다.
 
 2026-07-30 자동 관측이 처음 `violation`으로 전환된 transaction을 식별해
 설정된 Discord 채널에 대상 사용자만 실제 mention하는 공개 몰랭 알림을
