@@ -33,6 +33,8 @@ jobs:
       - run: bash deploy/test-production-application-assets.sh
       - run: bash deploy/test-production-release-manager.sh
       - run: bash scripts/test-deploy-production-via-lightsail.sh
+      - run: node scripts/verify-discord-alert-channel.mjs --self-test
+      - run: bash scripts/test-manage-production-game-observation-remote.sh
       - run: bash scripts/test-wait-production-health.sh
       - run: bash deploy/integration/postgres/test-data-reset.sh
       - run: git diff --check

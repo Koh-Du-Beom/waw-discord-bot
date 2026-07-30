@@ -165,6 +165,15 @@ When game observation is enabled, `/etc/waw/bot.env` must also contain an exact
 guild. Verify the bot has `View Channel` and `Send Messages` there before
 activation. Do not print the channel contents or bot token during readback.
 
+Use the owner-dispatched `Manage production game observation` workflow for this
+separate gate. `preflight` streams the reviewed checks over pinned SSH without
+creating a remote artifact and performs read-only Discord API permission
+checks without sending a message. `activate` is accepted only from the exact
+`production` SHA, repeats the preflight, installs only
+`90-game-observation-enabled.conf`, restarts the bot and rolls that drop-in back
+on failed health. Never dispatch `activate` from another ref or substitute an
+unreviewed remote command.
+
 For the Supabase session pooler, preserve encrypted libpq-compatible TLS
 semantics in the file credential with both `sslmode=require` and
 `uselibpqcompat=true`. Without the compatibility flag, the Node PostgreSQL

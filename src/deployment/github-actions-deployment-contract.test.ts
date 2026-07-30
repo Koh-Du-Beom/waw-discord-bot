@@ -8,8 +8,20 @@ const preflight = await readFile(
   ".github/workflows/preflight-production-ssh.yml",
   "utf8",
 );
+const gameObservation = await readFile(
+  ".github/workflows/game-observation-production.yml",
+  "utf8",
+);
 const local = await readFile("scripts/deploy-production-via-lightsail.sh", "utf8");
 const remote = await readFile("scripts/deploy-production-release-remote.sh", "utf8");
+const gameObservationRemote = await readFile(
+  "scripts/manage-production-game-observation-remote.sh",
+  "utf8",
+);
+const alertVerifier = await readFile(
+  "scripts/verify-discord-alert-channel.mjs",
+  "utf8",
+);
 
 test("CI has no deployment authority", () => {
   assert.match(ci, /branches: \[develop, production\]/u);
@@ -24,6 +36,8 @@ test("CI has no deployment authority", () => {
     /node node_modules\/playwright-core\/cli\.js install --with-deps chromium/u,
   );
   assert.match(ci, /bash scripts\/test-deploy-production-via-lightsail\.sh/u);
+  assert.match(ci, /verify-discord-alert-channel\.mjs --self-test/u);
+  assert.match(ci, /test-manage-production-game-observation-remote\.sh/u);
 });
 
 test("production deployment is exact, serialized and branch-bound", () => {
@@ -43,11 +57,36 @@ test("production deployment is exact, serialized and branch-bound", () => {
 });
 
 test("all third-party actions are pinned to full commit SHAs", () => {
-  for (const source of [ci, deploy]) {
+  for (const source of [ci, deploy, gameObservation]) {
     const uses = [...source.matchAll(/uses:\s*[^@\s]+@([^\s#]+)/gu)];
     assert.ok(uses.length > 0);
     for (const entry of uses) assert.match(entry[1] ?? "", /^[a-f0-9]{40}$/u);
   }
+});
+
+test("game observation activation is manual, exact and reversible", () => {
+  assert.match(gameObservation, /workflow_dispatch:/u);
+  assert.doesNotMatch(gameObservation, /\bpush:/u);
+  assert.match(gameObservation, /group:\s*waw-production/u);
+  assert.match(gameObservation, /environment:\s*production/u);
+  assert.match(gameObservation, /refs\/heads\/develop/u);
+  assert.match(gameObservation, /refs\/heads\/production/u);
+  assert.match(gameObservation, /test "\$GITHUB_SHA" = "\$EXPECTED_RELEASE"/u);
+  assert.match(gameObservation, /StrictHostKeyChecking=yes/u);
+  assert.match(gameObservation, /if: \$\{\{ inputs\.action == 'activate' \}\}/u);
+  assert.match(gameObservation, /if: \$\{\{ always\(\) \}\}/u);
+  assert.doesNotMatch(gameObservation, /set -x/u);
+
+  assert.match(gameObservationRemote, /90-game-observation-enabled\.conf/u);
+  assert.match(gameObservationRemote, /WAW_GAME_OBSERVATION_ENABLED=1/u);
+  assert.match(gameObservationRemote, /trap rollback ERR/u);
+  assert.match(gameObservationRemote, /rm -f -- "\$dropin"/u);
+  assert.match(gameObservationRemote, /wait-production-health\.sh/u);
+
+  assert.match(alertVerifier, /VIEW_CHANNEL/u);
+  assert.match(alertVerifier, /SEND_MESSAGES/u);
+  assert.match(alertVerifier, /discord_alert_channel_preflight_pass/u);
+  assert.doesNotMatch(alertVerifier, /method:\s*["'](?:POST|PUT|PATCH|DELETE)/u);
 });
 
 test("manual SSH preflight proves only a pinned connection", () => {

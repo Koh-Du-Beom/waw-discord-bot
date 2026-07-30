@@ -4,6 +4,15 @@
 
 ## 현재 단계
 
+2026-07-30 자동 관측이 `violation`을 기록해도 사건이 `open`에 머물러
+`confirmed`만 계산하는 몰랭스택에 반영되지 않고, 후속 Riot inactive 관측이
+판정을 `compliant`로 덮는 결함을 수정했다. Accepted ADR-0027에 따라 최초
+violation insert 또는 전이를 같은 transaction에서 `confirmed`로 만들고,
+후속 관측은 정규화 증거만 추가한 채 확정 판정을 보존한다. 임시 PostgreSQL
+17에서 violation→confirmed, 후속 inactive, 1스택을 검증했다. Match-V5 사후
+복구, 기존에 덮어써진 사건 복원, production 관측 활성화·배포는 범위 밖이며
+수행하지 않았다.
+
 2026-07-30 자동 관측이 처음 `violation`으로 전환된 transaction을 식별해
 설정된 Discord 채널에 대상 사용자만 실제 mention하는 공개 몰랭 알림을
 추가했다. 같은 violation의 후속 30초 poll은 재전송하지 않고, Discord 전송

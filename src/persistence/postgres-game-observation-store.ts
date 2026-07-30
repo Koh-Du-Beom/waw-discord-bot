@@ -107,9 +107,22 @@ export class PostgresGameObservationStore implements GameObservationStore {
         `insert into game_incident (
           incident_id, game_key, discord_user_id, status, comparison_state,
           policy_version, version, created_at, updated_at
-        ) values ($1,$2,$3,'open',$4,$5,0,$6,$6)
+        ) values (
+          $1,$2,$3,
+          case when $4 = 'violation' then 'confirmed' else 'open' end,
+          $4,$5,0,$6,$6
+        )
         on conflict (game_key, discord_user_id) do update
-          set comparison_state = excluded.comparison_state,
+          set status = case
+                when game_incident.comparison_state = 'violation'
+                  then 'confirmed'
+                else excluded.status
+              end,
+              comparison_state = case
+                when game_incident.comparison_state = 'violation'
+                  then game_incident.comparison_state
+                else excluded.comparison_state
+              end,
               policy_version = excluded.policy_version,
               version = game_incident.version + 1,
               updated_at = excluded.updated_at
