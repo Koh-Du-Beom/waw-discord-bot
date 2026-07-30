@@ -4,6 +4,7 @@ import { after, before, test } from "node:test";
 import { Pool } from "pg";
 
 import { GameObservationExecutor } from "../game/game-observation-executor.ts";
+import { PostgresFeatureStore } from "./feature-store.ts";
 import { PostgresGameObservationStore } from "./postgres-game-observation-store.ts";
 import { PersistenceError } from "./postgres-persistence.ts";
 
@@ -16,6 +17,15 @@ before(async () => {
   if (!connectionString) return;
   pool = new Pool({ connectionString, max: 4 });
   await pool.query("select 1");
+  await pool.query(
+    `insert into registered_discord_user (
+       guild_id, discord_user_id, display_label, created_at, updated_at
+     ) values (
+       'observation-guild','observation-member','관측 사용자',now(),now()
+     )
+     on conflict (guild_id, discord_user_id) do update
+       set display_label = excluded.display_label`,
+  );
   await pool.query(
     `insert into riot_account_link (
        link_id, discord_user_id, puuid, platform_id, game_name, tag_line,
@@ -143,19 +153,75 @@ test(
       "unknown",
     );
 
+    assert.equal(
+      await executor.execute(observation({
+        gameId: "observation-game-violation",
+        observedAt: new Date("2026-07-25T00:04:59.999Z"),
+      })),
+      "recorded",
+    );
     const violation = observation({
       gameId: "observation-game-violation",
       observedAt: new Date("2026-07-25T00:10:00Z"),
+      riot: { state: "active", evidenceCode: "spectator_active", generation: 2 },
+      goLive: { state: "inactive", evidenceCode: "voice_state_event", generation: 2 },
     });
     assert.equal(await executor.execute(violation), "violation_recorded");
     assert.equal(
       await executor.execute({
         ...violation,
         observedAt: new Date("2026-07-25T00:10:30Z"),
-        riot: { ...violation.riot, generation: 2 },
-        goLive: { ...violation.goLive, generation: 2 },
+        riot: { ...violation.riot, generation: 3 },
+        goLive: { ...violation.goLive, generation: 3 },
       }),
       "recorded",
+    );
+    assert.deepEqual(
+      (
+        await pool.query<{
+          status: string;
+          comparison_state: string;
+          confirmed: string;
+        }>(`
+          select status, comparison_state,
+                 count(*) filter (where status = 'confirmed') over ()::text confirmed
+            from game_incident
+           where game_key = 'KR:observation-game-violation'
+        `)
+      ).rows,
+      [{ status: "confirmed", comparison_state: "violation", confirmed: "1" }],
+    );
+    assert.deepEqual(
+      (await new PostgresFeatureStore(pool).listStacks()).filter(
+        (item) => item.discordUserLabel === "관측 사용자",
+      ),
+      [{ discordUserLabel: "관측 사용자", stack: 1 }],
+    );
+
+    await pool.query(`
+      -- Simulate an open violation persisted by the previous release.
+      update game_incident
+         set status = 'open'
+       where game_key = 'KR:observation-game-violation'
+    `);
+    assert.equal(
+      await executor.execute({
+        ...violation,
+        observedAt: new Date("2026-07-25T00:11:00Z"),
+        riot: { state: "inactive", evidenceCode: "spectator_inactive", generation: 4 },
+        goLive: { ...violation.goLive, generation: 4 },
+      }),
+      "recorded",
+    );
+    assert.deepEqual(
+      (
+        await pool.query<{ status: string; comparison_state: string }>(`
+          select status, comparison_state
+            from game_incident
+           where game_key = 'KR:observation-game-violation'
+        `)
+      ).rows,
+      [{ status: "confirmed", comparison_state: "violation" }],
     );
 
     await pool.query(

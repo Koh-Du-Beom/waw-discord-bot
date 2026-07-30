@@ -59,6 +59,13 @@
 
 ## Unreleased
 
+- Confirm the first automatically observed game-policy violation in the same
+  transaction, so it contributes exactly one stack and later game-end
+  observations cannot overwrite the confirmed violation.
+- Add an owner-dispatched production game-observation workflow that checks the
+  exact release, services, health, credentials and Discord channel permissions
+  without sending a message, then installs one reversible systemd activation
+  drop-in only for the explicit activation action.
 - Disclose that administrator-approved active Riot links are automatically
   observed for ranked-solo and Discord Go Live state, with unlinking as the
   opt-out path.

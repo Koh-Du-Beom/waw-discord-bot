@@ -1,0 +1,111 @@
+name: Manage production game observation
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Read-only preflight or owner-approved activation
+        required: true
+        type: choice
+        options: [preflight, activate]
+      expected_release:
+        description: Exact 40-character production release commit
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: waw-production
+  cancel-in-progress: false
+
+jobs:
+  manage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Prepare and validate SSH credentials
+        env:
+          ACTION: ${{ inputs.action }}
+          EXPECTED_RELEASE: ${{ inputs.expected_release }}
+          LIGHTSAIL_HOST: ${{ vars.LIGHTSAIL_HOST }}
+          LIGHTSAIL_USER: ${{ vars.LIGHTSAIL_USER }}
+          LIGHTSAIL_DEPLOY_SSH_KEY: ${{ secrets.LIGHTSAIL_DEPLOY_SSH_KEY }}
+          LIGHTSAIL_SSH_KNOWN_HOSTS: ${{ secrets.LIGHTSAIL_SSH_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          [[ "$LIGHTSAIL_HOST" =~ ^([A-Za-z0-9][A-Za-z0-9.-]{0,252}|[0-9a-fA-F:]+)$ ]]
+          [[ "$LIGHTSAIL_USER" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]]
+          [[ "$EXPECTED_RELEASE" =~ ^[a-f0-9]{40}$ ]]
+          if [[ "$ACTION" == preflight ]]; then
+            test "$GITHUB_REF" = refs/heads/develop
+          else
+            test "$ACTION" = activate
+            test "$GITHUB_REF" = refs/heads/production
+            test "$GITHUB_SHA" = "$EXPECTED_RELEASE"
+          fi
+          printf '%s\n' "$LIGHTSAIL_DEPLOY_SSH_KEY" > "$RUNNER_TEMP/waw-game-key"
+          printf '%s\n' "$LIGHTSAIL_SSH_KNOWN_HOSTS" > "$RUNNER_TEMP/waw-game-known-hosts"
+          chmod 600 "$RUNNER_TEMP/waw-game-key" "$RUNNER_TEMP/waw-game-known-hosts"
+          ssh-keygen -y -f "$RUNNER_TEMP/waw-game-key" >/dev/null
+          ssh-keygen -F "$LIGHTSAIL_HOST" -f "$RUNNER_TEMP/waw-game-known-hosts" >/dev/null
+      - name: Verify release, services, health and current flag
+        env:
+          EXPECTED_RELEASE: ${{ inputs.expected_release }}
+          LIGHTSAIL_HOST: ${{ vars.LIGHTSAIL_HOST }}
+          LIGHTSAIL_USER: ${{ vars.LIGHTSAIL_USER }}
+        run: |
+          ssh \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o "UserKnownHostsFile=$RUNNER_TEMP/waw-game-known-hosts" \
+            -o ConnectTimeout=15 \
+            -o ConnectionAttempts=1 \
+            -i "$RUNNER_TEMP/waw-game-key" \
+            "$LIGHTSAIL_USER@$LIGHTSAIL_HOST" \
+            "sudo bash -s -- preflight '$EXPECTED_RELEASE'" \
+            < scripts/manage-production-game-observation-remote.sh
+      - name: Verify Discord alert channel without sending
+        env:
+          LIGHTSAIL_HOST: ${{ vars.LIGHTSAIL_HOST }}
+          LIGHTSAIL_USER: ${{ vars.LIGHTSAIL_USER }}
+        run: |
+          ssh \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o "UserKnownHostsFile=$RUNNER_TEMP/waw-game-known-hosts" \
+            -o ConnectTimeout=15 \
+            -o ConnectionAttempts=1 \
+            -i "$RUNNER_TEMP/waw-game-key" \
+            "$LIGHTSAIL_USER@$LIGHTSAIL_HOST" \
+            "sudo /usr/local/bin/node --input-type=module -" \
+            < scripts/verify-discord-alert-channel.mjs
+      - name: Activate observation
+        if: ${{ inputs.action == 'activate' }}
+        env:
+          EXPECTED_RELEASE: ${{ inputs.expected_release }}
+          LIGHTSAIL_HOST: ${{ vars.LIGHTSAIL_HOST }}
+          LIGHTSAIL_USER: ${{ vars.LIGHTSAIL_USER }}
+        run: |
+          ssh \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o "UserKnownHostsFile=$RUNNER_TEMP/waw-game-known-hosts" \
+            -o ConnectTimeout=15 \
+            -o ConnectionAttempts=1 \
+            -i "$RUNNER_TEMP/waw-game-key" \
+            "$LIGHTSAIL_USER@$LIGHTSAIL_HOST" \
+            "sudo bash -s -- activate '$EXPECTED_RELEASE'" \
+            < scripts/manage-production-game-observation-remote.sh
+      - name: Remove SSH credentials
+        if: ${{ always() }}
+        run: rm -f -- "$RUNNER_TEMP/waw-game-key" "$RUNNER_TEMP/waw-game-known-hosts"
