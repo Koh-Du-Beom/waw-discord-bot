@@ -1,6 +1,6 @@
 # 구현 계획: 관측된 몰랭 위반 자동 확정
 
-- Status: Production activation in progress
+- Status: Production activated — real game smoke pending
 - Related requirements: FUN-010, FUN-013, FUN-015
 - Related ADRs: ADR-0016, ADR-0027
 - Owner: Product owner
@@ -75,7 +75,8 @@
 뒤 별도 owner-dispatched workflow가 현재 release와 rollback, service/timer,
 local/canonical health, Riot credential 존재, alert channel의 guild/type과
 View/Send 권한을 읽기 전용으로 검증한다. 그 다음에만
-`WAW_GAME_OBSERVATION_ENABLED=1` drop-in을 설치한다.
+effective flag가 `0`이면 `WAW_GAME_OBSERVATION_ENABLED=1` drop-in을
+설치한다. 이미 `1`이면 멱등 활성 상태로 판정한다.
 
 ## 문서 갱신
 
@@ -102,5 +103,11 @@ View/Send 권한을 읽기 전용으로 검증한다. 그 다음에만
   typecheck, server/web build와 `git diff --check`가 통과했다.
 - 기본 macOS 임시 경로에서는 Unix socket 길이 제한으로 무관한 IPC 테스트
   1건이 `EINVAL`로 실패했으며 짧은 `/tmp` 경로 재실행에서 통과했다.
-- Production 배포, 관측 flag·알림 채널 변경과 실제 Discord/Riot smoke는
-  수행하지 않았다.
+- Exact production release `19ea83925f6b27f66c924e2b1860a3c5d0904a89`를
+  배포했고 관측 flag `1`, Discord alert channel의 guild/type/View/Send,
+  service/timer와 loopback/canonical health를 확인했다. 검증 중 Discord
+  메시지는 보내지 않았다.
+- 실제 Discord/Riot 솔로랭크 smoke는 owner 요청에 따라 남겨 두었다. 운영
+  증적은
+  `docs/operations/plan-0013-game-observation-activation-result-2026-07-30.md`에
+  기록했다.

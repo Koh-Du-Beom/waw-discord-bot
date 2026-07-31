@@ -22,3 +22,67 @@ test("normalizes self_stream and turns reconnect gaps into unknown until reconci
   assert.equal(observer.current("guild", "member")?.state, "inactive");
   assert.equal(observer.current("guild", "member")?.evidenceCode, "reconciled");
 });
+
+test("expires cached evidence at the freshness boundary", () => {
+  const observer = new DiscordStreamObserver();
+  observer.observe({
+    guildId: "guild",
+    discordUserId: "member",
+    selfStream: true,
+    observedAt: new Date("2026-07-31T00:00:00Z"),
+  });
+  assert.equal(
+    observer.currentAt(
+      "guild",
+      "member",
+      new Date("2026-07-31T00:02:59.999Z"),
+      180_000,
+    )?.state,
+    "active",
+  );
+  assert.deepEqual(
+    observer.currentAt(
+      "guild",
+      "member",
+      new Date("2026-07-31T00:03:00Z"),
+      180_000,
+    ),
+    {
+      ...observer.current("guild", "member"),
+      state: "unknown",
+      evidenceCode: "stale",
+    },
+  );
+});
+
+test("does not let a late reconciliation overwrite a newer voice event", () => {
+  const observer = new DiscordStreamObserver();
+  const initial = observer.observe({
+    guildId: "guild",
+    discordUserId: "member",
+    selfStream: false,
+    observedAt: new Date("2026-07-31T00:00:00Z"),
+  });
+  const baseline = new Map([["member", initial.generation]]);
+  observer.observe({
+    guildId: "guild",
+    discordUserId: "member",
+    selfStream: true,
+    observedAt: new Date("2026-07-31T00:00:01Z"),
+  });
+
+  assert.deepEqual(
+    observer.reconcile({
+      guildId: "guild",
+      observedAt: new Date("2026-07-31T00:00:02Z"),
+      members: [{ discordUserId: "member", selfStream: false }],
+      baselineGenerations: baseline,
+    }),
+    [],
+  );
+  assert.equal(observer.current("guild", "member")?.state, "active");
+  assert.equal(
+    observer.current("guild", "member")?.evidenceCode,
+    "voice_state_event",
+  );
+});

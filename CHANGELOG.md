@@ -59,6 +59,12 @@
 
 ## Unreleased
 
+- Preserve Discord Voice source time separately from the Riot poll time, expire
+  cached evidence to `unknown` after three minutes, and reconcile only current
+  observation targets every two minutes with single-flight and late-result
+  protection.
+- Add additive migration `0011` for nullable Discord
+  `source_observed_at` evidence without rewriting historical poll timestamps.
 - Confirm the first automatically observed game-policy violation in the same
   transaction, so it contributes exactly one stack and later game-end
   observations cannot overwrite the confirmed violation.

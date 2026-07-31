@@ -62,6 +62,11 @@ const migrations = [
     name: "riot_link_removal_result",
     path: path.resolve(import.meta.dirname, "../../migrations/0010_riot_link_removal_result.sql"),
   },
+  {
+    version: 11,
+    name: "game_observation_source_time",
+    path: path.resolve(import.meta.dirname, "../../migrations/0011_game_observation_source_time.sql"),
+  },
 ] as const;
 
 async function main(): Promise<void> {
