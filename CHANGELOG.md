@@ -1,5 +1,12 @@
 # 변경 이력
 
+- PLAN-0014 exact candidate `4f8832124f19`를 production에 활성화했다.
+  Discord Voice source/poll timestamp 분리, 3분 stale `unknown`, 2분 targeted
+  reconciliation과 late-result 보호가 schema `11` 및 effective
+  `120000/180000`으로 적용됐다. Loopback/canonical health, Gateway와
+  backup/monitor timer가 PASS했으며 최종 240초 구간에는 active target이 없어
+  live Voice row 검증은 `NO_ACTIVE_TARGET`로 기록했다.
+
 - 최초 자동 몰랭 violation을 설정된 Discord 채널에 공개 멘션으로 알리고,
   후속 poll의 중복 전송을 막으며 일시적인 전송 실패는 다음 poll에서 재시도한다.
 

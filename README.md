@@ -951,6 +951,36 @@ Discord 방송은 실제로 켜지지 않았는데도 일부 후속 경기는 �
   [ADR-0028](docs/adr/ADR-0028-fresh-discord-voice-evidence.md),
   [PLAN-0014](docs/implementation/PLAN-0014-fresh-discord-voice-evidence.md)
 
+### Production merge가 승인 전에 자동 deploy를 시작함
+
+PLAN-0014는 stage, migration과 activation을 별도 Owner gate로 진행했지만
+production PR merge가 `push` 기반 `Deploy production` workflow를 즉시
+시작했습니다. 승인 범위 밖이라 원격 build 중 취소했으며, read-only 확인에서
+activation/restart는 없고 비활성 release와 임시 디렉터리만 남은 것을 확인해
+정확한 대상만 제거했습니다.
+
+- 임시 대응: 자동 run을 즉시 취소하고 current/previous, unit, PID, schema와
+  health를 read-back한 뒤 승인된 staged candidate만 수동 activation했습니다.
+- 남은 해결: Production push와 activation을 분리하도록 기존 GitHub deployment
+  ADR을 재검토하고, manual dispatch 또는 required reviewer gate를 별도
+  architecture decision으로 확정해야 합니다.
+- 남긴 원칙: Branch merge 권한은 production activation 권한을 암묵적으로
+  포함하지 않습니다. Workflow trigger도 승인 경계의 일부입니다.
+
+### Activation verifier가 정상 Gateway를 journal 누락으로 실패 처리함
+
+최종 activation 뒤 Gateway health는 240초 동안 다섯 번 모두 connected/FRESH
+였지만 verifier가 Gateway 연결 완료 이후의 시각부터 journal을 조회해
+`gateway.state` 행이 없다는 이유로 실패했습니다. Rollback 성공 출력과 실제
+symlink read-back도 일치하지 않아 출력만으로 상태를 추정하지 않았습니다.
+
+- 해결: 실제 current/previous를 별도 read-only로 확인하고, 이미 active인
+  candidate를 다시 restart하지 않은 채 schema, effective settings, Gateway
+  health와 두 reconciliation interval을 최종 검증했습니다.
+- 남긴 원칙: Event가 검색 구간에 없다는 것은 실패 event가 아닙니다. Transition
+  log와 current health snapshot을 구분하고 mutation 뒤에는 symlink를 직접
+  read-back합니다.
+
 ### macOS에서만 Unix socket test가 `EINVAL`
 
 기본 macOS temporary directory 경로가 길어 PostgreSQL·Unix socket path

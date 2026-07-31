@@ -4,6 +4,18 @@
 
 ## 현재 단계
 
+2026-07-31 PLAN-0014 Task 7 production activation을 완료했다. Exact candidate
+`4f8832124f194e92a29003eb7f8c7056bce5e60b`의 encrypted backup/empty
+PostgreSQL 17 restore, schema `10→11`, stage와 production tree 동일성을
+확인했고 최종 current `4f8832124f19`, previous `19ea83925f6b`다. Effective
+observation/reconciliation/freshness는 `1/120000/180000`, schema `11`,
+loopback/canonical health, Gateway connected와 240초의 5개 fresh checkpoint,
+backup/monitor timer가 PASS했다. 관측 구간에는 active target이 없어
+sanitized Voice row 검증은 `NO_ACTIVE_TARGET`로 남았으며 실제 경기 smoke가
+후속 gate다. Production merge가 자동 deploy를 시작한 문제는 build 중 취소하고
+잔여 release/temp를 정리했으며, 자동 deploy 승인 경계 수정은 별도 후속
+architecture task로 분리한다.
+
 2026-07-31 PLAN-0014 Tasks 1~6 local/disposable 구현을 완료했다. Discord
 Voice source 관측시각과 Riot poll 시각을 분리하고, 3분 stale active/inactive를
 `unknown`으로 낮춘다. Gateway가 정상이어도 현재 관측 대상 사용자만 2분마다
