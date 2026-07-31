@@ -61,6 +61,7 @@ test(
         state: "inactive",
         evidenceCode: "voice_state_event",
         generation: 2,
+        sourceObservedAt: new Date("2026-07-25T00:05:00Z"),
         interruptedAt: new Date("2026-07-25T00:05:00Z"),
       },
     });
@@ -84,10 +85,12 @@ test(
       source: string;
       state: string;
       evidence_code: string;
+      source_observed_at: Date | null;
       comparison_state: string;
       version: string;
     }>(`
       select observation.source, observation.state, observation.evidence_code,
+             observation.source_observed_at,
              incident.comparison_state, incident.version::text
         from game_observation observation
         join game_incident incident
@@ -102,6 +105,7 @@ test(
         source: "discord_voice",
         state: "inactive",
         evidence_code: "voice_state_event",
+        source_observed_at: new Date("2026-07-25T00:05:00Z"),
         comparison_state: "interrupted",
         version: "1",
       },
@@ -109,6 +113,7 @@ test(
         source: "riot_spectator",
         state: "active",
         evidence_code: "spectator_active",
+        source_observed_at: null,
         comparison_state: "interrupted",
         version: "1",
       },
@@ -261,7 +266,12 @@ function observation(
     discordUserId: "observation-member",
     observedAt: new Date("2026-07-25T00:05:00Z"),
     riot: { state: "active", evidenceCode: "spectator_active", generation: 1 },
-    goLive: { state: "inactive", evidenceCode: "voice_state_event", generation: 1 },
+    goLive: {
+      state: "inactive",
+      evidenceCode: "voice_state_event",
+      generation: 1,
+      sourceObservedAt: new Date("2026-07-25T00:04:00Z"),
+    },
     ...overrides,
   };
 }

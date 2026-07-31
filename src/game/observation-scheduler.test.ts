@@ -176,6 +176,7 @@ function fixture(
   observe: RiotGameObserver["observe"],
   calls: NormalizedGameObservation[] = [],
   timeoutMilliseconds = 100,
+  now: () => Date = () => new Date("2026-07-25T00:10:00Z"),
 ) {
   const voiceCalls: string[] = [];
   const scheduler = new GameObservationScheduler({
@@ -194,7 +195,7 @@ function fixture(
       },
     },
     violations: { async notify() {} },
-    now: () => new Date("2026-07-25T00:10:00Z"),
+    now,
     timeoutMilliseconds,
   });
   return { scheduler, voiceCalls };
@@ -273,4 +274,258 @@ test("retries a failed violation announcement on the next poll", async () => {
   await assert.rejects(scheduler.poll(target), /discord unavailable/u);
   assert.equal(await scheduler.poll(target), "recorded");
   assert.equal(notifications, 2);
+});
+
+test("preserves the Discord source observation time separately from the poll time", async () => {
+  const calls: NormalizedGameObservation[] = [];
+  let now = new Date("2026-07-31T00:01:00Z");
+  const { scheduler } = fixture(
+    async () => ({ state: "active", gameId: "freshness-game", queueId: 420, startedAt }),
+    calls,
+    100,
+    () => now,
+  );
+  const sourceObservedAt = new Date("2026-07-31T00:00:00Z");
+  scheduler.observeVoice({
+    guildId: "guild",
+    discordUserId: "member",
+    selfStream: true,
+    observedAt: sourceObservedAt,
+  });
+
+  now = new Date("2026-07-31T00:01:30Z");
+  await scheduler.poll(target);
+
+  const goLive = calls[0]?.goLive as
+    | (NormalizedGameObservation["goLive"] & { sourceObservedAt?: Date })
+    | undefined;
+  assert.equal(calls[0]?.observedAt.getTime(), now.getTime());
+  assert.equal(goLive?.sourceObservedAt?.getTime(), sourceObservedAt.getTime());
+});
+
+test("turns a stale cached active stream into unknown instead of compliant", async () => {
+  const persisted: PersistedGameObservation[] = [];
+  let now = new Date("2026-07-31T00:00:00Z");
+  const scheduler = new GameObservationScheduler({
+    targets: { async listTargets() { return [target]; } },
+    riot: {
+      async observe() {
+        return {
+          state: "active" as const,
+          gameId: "stale-active-game",
+          queueId: 420,
+          startedAt,
+        };
+      },
+    },
+    voice: { async reconcile() { return []; } },
+    observations: new GameObservationExecutor({
+      async record(input) {
+        persisted.push(input);
+        return "recorded";
+      },
+    }),
+    violations: { async notify() {} },
+    now: () => now,
+    timeoutMilliseconds: 100,
+  });
+  scheduler.observeVoice({
+    guildId: "guild",
+    discordUserId: "member",
+    selfStream: true,
+    observedAt: now,
+  });
+
+  now = new Date("2026-07-31T00:10:00Z");
+  await scheduler.poll(target);
+
+  assert.equal(persisted[0]?.goLive.state, "unknown");
+  assert.equal(persisted[0]?.comparisonState, "unknown");
+});
+
+test("periodically reconciles voice state while the Gateway remains healthy", async () => {
+  const calls: NormalizedGameObservation[] = [];
+  let now = new Date("2026-07-31T00:00:00Z");
+  const { scheduler, voiceCalls } = fixture(
+    async () => ({ state: "active", gameId: "periodic-reconcile-game", queueId: 420, startedAt }),
+    calls,
+    100,
+    () => now,
+  );
+
+  await scheduler.tick();
+  now = new Date("2026-07-31T00:10:00Z");
+  await scheduler.tick();
+
+  assert.deepEqual(voiceCalls, ["guild", "guild"]);
+  assert.equal(calls[1]?.goLive.evidenceCode, "reconciled");
+});
+
+test("does not turn a Spectator disappearance during grace into a violation", async () => {
+  const calls: PersistedGameObservation[] = [];
+  let attempt = 0;
+  let now = new Date("2026-07-31T00:04:00Z");
+  const scheduler = new GameObservationScheduler({
+    targets: { async listTargets() { return [target]; } },
+    riot: {
+      async observe() {
+        attempt += 1;
+        return attempt === 1
+          ? {
+              state: "active" as const,
+              gameId: "grace-only-game",
+              queueId: 420,
+              startedAt: new Date("2026-07-31T00:00:00Z"),
+            }
+          : { state: "inactive" as const };
+      },
+    },
+    voice: { async reconcile() { return []; } },
+    observations: new GameObservationExecutor({
+      async record(input) {
+        calls.push(input);
+        return "recorded";
+      },
+    }),
+    violations: { async notify() {} },
+    now: () => now,
+    timeoutMilliseconds: 100,
+  });
+  scheduler.observeVoice({
+    guildId: "guild",
+    discordUserId: "member",
+    selfStream: false,
+    observedAt: now,
+  });
+
+  await scheduler.poll(target);
+  now = new Date("2026-07-31T00:04:30Z");
+  await scheduler.poll(target);
+
+  assert.deepEqual(
+    calls.map((call) => call.comparisonState),
+    ["grace", "compliant"],
+  );
+  assert.equal(
+    calls.some((call) => call.comparisonState === "violation"),
+    false,
+  );
+});
+
+test("deduplicates targeted users and shares one in-flight guild reconciliation", async () => {
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const requested: string[][] = [];
+  const scheduler = new GameObservationScheduler({
+    targets: {
+      async listTargets() {
+        return [
+          target,
+          { ...target, linkId: "alternate-link" },
+        ];
+      },
+    },
+    riot: {
+      async observe() {
+        return { state: "inactive" as const };
+      },
+    },
+    voice: {
+      async reconcile(_guildId, discordUserIds) {
+        requested.push([...discordUserIds]);
+        await pending;
+        return [{ discordUserId: "member", selfStream: false }];
+      },
+    },
+    observations: { async execute() { return "recorded"; } },
+    violations: { async notify() {} },
+    now: () => new Date("2026-07-31T00:00:00Z"),
+    timeoutMilliseconds: 100,
+  });
+
+  const first = scheduler.reconcile("guild");
+  const second = scheduler.reconcile("guild");
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(requested, [["member"]]);
+  release();
+  assert.equal(await first, await second);
+});
+
+test("turns a reconciliation failure into unknown without blocking game polling", async () => {
+  const persisted: PersistedGameObservation[] = [];
+  const scheduler = new GameObservationScheduler({
+    targets: { async listTargets() { return [target]; } },
+    riot: {
+      async observe() {
+        return {
+          state: "active" as const,
+          gameId: "reconcile-failure-game",
+          queueId: 420,
+          startedAt,
+        };
+      },
+    },
+    voice: { async reconcile() { throw new Error("provider detail"); } },
+    observations: new GameObservationExecutor({
+      async record(input) {
+        persisted.push(input);
+        return "recorded";
+      },
+    }),
+    violations: { async notify() {} },
+    now: () => new Date("2026-07-31T00:10:00Z"),
+    timeoutMilliseconds: 100,
+    voiceReconciliationTimeoutMilliseconds: 10,
+  });
+
+  await scheduler.tick();
+
+  assert.equal(persisted[0]?.goLive.state, "unknown");
+  assert.equal(persisted[0]?.comparisonState, "unknown");
+});
+
+test("starts the interruption allowance when reconciliation finds streaming inactive", async () => {
+  const persisted: PersistedGameObservation[] = [];
+  let now = new Date("2026-07-31T00:10:00Z");
+  const scheduler = new GameObservationScheduler({
+    targets: { async listTargets() { return [target]; } },
+    riot: {
+      async observe() {
+        return {
+          state: "active" as const,
+          gameId: "reconciled-interruption-game",
+          queueId: 420,
+          startedAt,
+        };
+      },
+    },
+    voice: {
+      async reconcile() {
+        return [{ discordUserId: "member", selfStream: false }];
+      },
+    },
+    observations: new GameObservationExecutor({
+      async record(input) {
+        persisted.push(input);
+        return "recorded";
+      },
+    }),
+    violations: { async notify() {} },
+    now: () => now,
+    timeoutMilliseconds: 100,
+  });
+  scheduler.observeVoice({
+    guildId: "guild",
+    discordUserId: "member",
+    selfStream: true,
+    observedAt: now,
+  });
+
+  now = new Date("2026-07-31T00:10:30Z");
+  await scheduler.reconcile("guild");
+  await scheduler.poll(target);
+
+  assert.equal(persisted[0]?.comparisonState, "interrupted");
 });

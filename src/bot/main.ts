@@ -65,6 +65,7 @@ import {
 } from "./gateway-diagnostics.ts";
 import {
   gameAlertChannelId,
+  observationTimingConfiguration,
   observationFeatureEnabled,
 } from "./observation-feature.ts";
 import { AdminCommandApplication } from "../ipc/admin-command-application.ts";
@@ -188,6 +189,17 @@ const diagnostics: DiscordJsGatewayDiagnosticSource = {
 const reportFailure = (reason: BotFailureReason): void => {
   process.stderr.write(`${gatewayFailureDiagnostic(reason)}\n`);
 };
+const observationTiming = observationTimingConfiguration({
+  ...(process.env.WAW_DISCORD_VOICE_RECONCILIATION_INTERVAL_MS === undefined
+    ? {}
+    : {
+        reconciliationInterval:
+          process.env.WAW_DISCORD_VOICE_RECONCILIATION_INTERVAL_MS,
+      }),
+  ...(process.env.WAW_DISCORD_VOICE_FRESHNESS_MS === undefined
+    ? {}
+    : { freshness: process.env.WAW_DISCORD_VOICE_FRESHNESS_MS }),
+});
 const observationScheduler = gameObservationEnabled
   ? new GameObservationScheduler({
       targets: new PostgresObservationTargetSource(
@@ -196,13 +208,27 @@ const observationScheduler = gameObservationEnabled
       ),
       riot: new RiotSpectatorObserver(riotApiKey),
       voice: createDiscordVoiceSource({
-        async fetchMembers(guildId) {
+        async fetchMembers(guildId, discordUserIds) {
           const guild = await client.guilds.fetch(guildId);
-          const members = await guild.members.fetch();
-          return members.map((member) => ({
-            discordUserId: member.id,
-            selfStream: member.voice.streaming === true,
-          }));
+          return Promise.all(
+            discordUserIds.map(async (discordUserId) => {
+              try {
+                const voice = await guild.voiceStates.fetch(discordUserId, {
+                  cache: true,
+                  force: true,
+                });
+                return {
+                  discordUserId,
+                  selfStream: voice.streaming === true,
+                };
+              } catch (error) {
+                return {
+                  discordUserId,
+                  selfStream: isUnknownVoiceState(error) ? false : null,
+                };
+              }
+            }),
+          );
         },
       }),
       observations: new GameObservationExecutor(
@@ -224,6 +250,10 @@ const observationScheduler = gameObservationEnabled
       }),
       now: () => new Date(),
       timeoutMilliseconds: 3_000,
+      voiceFreshnessMilliseconds: observationTiming.freshnessMilliseconds,
+      voiceReconciliationIntervalMilliseconds:
+        observationTiming.reconciliationIntervalMilliseconds,
+      voiceReconciliationTimeoutMilliseconds: 15_000,
     })
   : undefined;
 const reconcileMembers = async () => {
@@ -279,6 +309,15 @@ const memberLabelSync = attachDiscordMemberLabelSync({
     );
   },
 });
+
+function isUnknownVoiceState(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === 10_065
+  );
+}
 const assembly = await startDiscordJsBot({
   ownerId: `pid-${process.pid}`,
   lease: new FileSingletonLease("/run/waw-bot/singleton", process.pid),

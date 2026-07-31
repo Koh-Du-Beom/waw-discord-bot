@@ -127,6 +127,9 @@ Live 자동 관측 대상이며, 연결 해제 후에는 후속 관측에서 제
 - 관리자가 승인한 모든 활성 KR Riot 계정을 30초 주기로 관측합니다.
 - Riot solo ranked queue ID `420`과 Discord Voice State의 Go Live
   `self_stream`을 별도 증거로 저장합니다.
+- Discord Voice 증거는 실제 source 관측시각과 30초 poll 시각을 분리하고,
+  3분이 지나면 `unknown`으로 낮춥니다. Gateway가 정상이어도 관측 대상만
+  2분마다 current Voice State를 재조정합니다.
 - 게임 시작 뒤 5분 유예, 스트림 중단 2분 허용을 적용합니다.
 - 외부 API 실패와 Gateway 불확실성은 `unknown`으로 기록합니다.
 - 동일 사건을 중복 생성하거나 같은 위반 알림을 반복 전송하지 않습니다.
@@ -429,6 +432,8 @@ Credential directory는 절대 경로여야 합니다. 값은 비어 있거나 �
 |---|---|
 | `WAW_ADMIN_COMMAND_IPC_ENABLED` | Dashboard→bot 관리자 명령 |
 | `WAW_GAME_OBSERVATION_ENABLED` | Riot/Go Live 자동 관측 |
+| `WAW_DISCORD_VOICE_RECONCILIATION_INTERVAL_MS` | 대상 Voice State 재조정 주기; 기본 120000ms |
+| `WAW_DISCORD_VOICE_FRESHNESS_MS` | Discord 증거 freshness; 기본 180000ms |
 | `WAW_SUMMARY_QUOTA_ENABLED` | 등록 사용자별 rolling-hour 예약 |
 | `WAW_SUMMARY_PROVIDER_ENABLED` | OpenAI 요약 provider와 credential load |
 
