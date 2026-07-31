@@ -25,6 +25,7 @@ export type NormalizedGameObservation = {
     state: EvidenceState;
     evidenceCode: string;
     generation: number;
+    sourceObservedAt?: Date;
     interruptedAt?: Date;
   };
 };
@@ -104,6 +105,9 @@ function validate(input: NormalizedGameObservation): void {
     !Number.isFinite(input.gameStartedAt.getTime()) ||
     !Number.isFinite(input.observedAt.getTime()) ||
     input.gameStartedAt.getTime() > input.observedAt.getTime() ||
+    (input.goLive.sourceObservedAt !== undefined &&
+      (!Number.isFinite(input.goLive.sourceObservedAt.getTime()) ||
+        input.goLive.sourceObservedAt.getTime() > input.observedAt.getTime())) ||
     (input.goLive.interruptedAt !== undefined &&
       (!Number.isFinite(input.goLive.interruptedAt.getTime()) ||
         input.goLive.interruptedAt.getTime() > input.observedAt.getTime()))

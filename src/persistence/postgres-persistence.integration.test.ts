@@ -38,6 +38,7 @@ const migrationSevenPath = path.join(projectRoot, "migrations/0007_summary_daily
 const migrationEightPath = path.join(projectRoot, "migrations/0008_summary_hourly_cooldown.sql");
 const migrationNinePath = path.join(projectRoot, "migrations/0009_riot_link_version.sql");
 const migrationTenPath = path.join(projectRoot, "migrations/0010_riot_link_removal_result.sql");
+const migrationElevenPath = path.join(projectRoot, "migrations/0011_game_observation_source_time.sql");
 const migrationOneSql = await readFile(migrationOnePath, "utf8");
 const migrationTwoSql = await readFile(migrationTwoPath, "utf8");
 const migrationThreeSql = await readFile(migrationThreePath, "utf8");
@@ -48,6 +49,7 @@ const migrationSevenSql = await readFile(migrationSevenPath, "utf8");
 const migrationEightSql = await readFile(migrationEightPath, "utf8");
 const migrationNineSql = await readFile(migrationNinePath, "utf8");
 const migrationTenSql = await readFile(migrationTenPath, "utf8");
+const migrationElevenSql = await readFile(migrationElevenPath, "utf8");
 
 let clusterDirectory = "";
 let socketDirectory = "";
@@ -163,6 +165,11 @@ test("applies migration transactionally, records version, and rejects reapplicat
     name: "riot_link_removal_result",
     sql: migrationTenSql,
   });
+  await applyMigration(adminPool, {
+    version: 11,
+    name: "game_observation_source_time",
+    sql: migrationElevenSql,
+  });
 
   const version = await adminPool.query<{ version: number }>(
     "select version from app_schema_version order by version",
@@ -178,6 +185,7 @@ test("applies migration transactionally, records version, and rejects reapplicat
     { version: 8 },
     { version: 9 },
     { version: 10 },
+    { version: 11 },
   ]);
 
   const linkVersion = await adminPool.query<{

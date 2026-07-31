@@ -156,8 +156,8 @@ async function insertEvidence(
   const result = await client.query(
     `insert into game_observation (
       observation_id, game_key, discord_user_id, source, state, observed_at,
-      evidence_code, generation
-    ) values ($1,$2,$3,$4,$5,$6,$7,$8)
+      source_observed_at, evidence_code, generation
+    ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
     on conflict (game_key, discord_user_id, source, generation) do nothing`,
     [
       observationId(input.gameKey, input.discordUserId, source, evidence.generation),
@@ -166,6 +166,7 @@ async function insertEvidence(
       source,
       evidence.state,
       input.observedAt,
+      source === "discord_voice" ? input.goLive.sourceObservedAt ?? null : null,
       evidence.evidenceCode,
       evidence.generation,
     ],
