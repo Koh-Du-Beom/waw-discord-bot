@@ -18,6 +18,135 @@ container wrapper는 실행되지 않았지만 host PostgreSQL 17 fixture로 같
 schema/store 경계를 검증했다. Production 접근, migration 적용, 배포, restart와
 외부 API 호출은 `0`이며 Task 7 exact production gate만 남아 있다.
 
+2026-07-31 PLAN-0015 production human SSH 전환을 완료했다. Human owner가
+Termius `waw-operator`와 별도 passphrase-protected Ed25519 key의 fresh login/
+sudo, `PermitRootLogin no`, `DisableForwarding yes`, fail2ban `sshd` jail과
+최종 host read-back을 확인했다. GitHub no-mutation SSH preflight도
+owner-confirmed PASS지만 exact run ID는 미기록이다. Existing GitHub deploy
+account/key와 exact-commit path는 불변이다. Owner 결정으로 SSH port 22와
+Lightsail any IPv4/IPv6 source를 유지해 firewall stage는 DEFERRED, mutation
+`0`이다. CloudShell/browser SSH는 break-glass이고 AI agent external-terminal
+input은 `0`이다. TEMP handoff는 제거하고 README, inventory, runbook, ADR/PLAN
+문서를 verified 결과에 맞췄다.
+
+2026-07-31 Owner가 PLAN-0015 Stage 2~8의 남은 실행을 모두 승인했다. Human
+owner가 통합 Git 비추적 handoff를 순서대로 직접 입력하며, 각 stage 검증 실패
+시 다음으로 진행하지 않고 해당 rollback만 수행한다. Stage 7 firewall은 stable
+source CIDR을 Owner가 화면에서 exact 확인한 family만 적용하고 미확인 family는
+DEFERRED한다. AI agent external input과 GitHub deploy/application/data 변경은
+계속 금지된다.
+
+Stage 3 첫 실행에서 `waw-operator` login 검증 전에 rollback 명령까지 순차
+실행했고, 새 account session에서 자기 account/home을 삭제해 session이 종료됐다.
+기존 `ubuntu` recovery path는 정상이고 read-only postcondition에서 account,
+home과 sudo membership 모두 absent여서 rollback은 PASS다. Human key는 local에
+유지된다. 재발 방지를 위해 corrected retry는 success path만 별도 TEMP 문서에
+두고, placeholder 대신 validated interactive public-key input을 사용하며 rollback
+명령을 제거했다. Stage 3 retry는 새 exact 승인 대기다.
+
+Corrected Stage 3 retry preflight는 `STOP account_exists`, exit `1`로 안전하게
+중단됐다. 직전 rollback postcondition은 absent였으므로 account가 다시 생성된
+시점과 partial state는 미확정이다. Install, delete와 login retry를 하지 않고
+기존 `ubuntu` recovery session에서 account/home/key/sudo/password metadata만
+읽는 별도 check를 준비했다.
+
+후속 read-only 확인에서 `waw-operator` account는 존재하지만
+`/home/waw-operator/.ssh/authorized_keys`가 absent인 partial Stage 3 상태를
+확정했다. Mac human key pair는 유지되고 fingerprint 값은 저장하지 않았다.
+Account 재생성 없이 기존 `ubuntu` recovery session에서 missing human public
+key만 mode `0700`/`0600`으로 설치하고 local/remote fingerprint를 owner가
+직접 비교하는 최소 repair handoff를 준비했다.
+
+Human owner가 missing public key repair를 완료하고 Termius의 human private
+key로 `waw-operator` SSH login에 성공했다. Existing `ubuntu` recovery path와
+GitHub deploy identity는 유지된다. Stage 3 완료 판정에는 새 session의 identity와
+sudo password 검증이 남아 있으며, PASS 전에는 root login hardening으로
+진행하지 않는다.
+
+Owner가 새 `waw-operator` Termius session에서 identity와 sudo password 검증을
+완료해 PLAN-0015 Stage 3을 PASS로 종료했다. Stage 1 inventory, Stage 2 human
+key와 Stage 3 account/key/login/sudo가 완료됐다.
+
+첫 Stage 4 apply는 첫 sudo preflight에서
+`waw-operator is not in the sudoers file`, exit `1`로 STOPPED됐다. 따라서
+`60-waw-root-login.conf` 생성, sshd reload와 다른 production mutation은 `0`이다.
+Stage 3 완료 보고와 달리 effective sudo authorization이 새 session에서
+검증되지 않은 상태였으므로 기존 `ubuntu` recovery session에서 sudo group
+membership/`visudo`/`sudo -l`을 보정하고 모든 `waw-operator` session을 새로
+열어 supplementary group과 `sudo -v`를 재검증하는 Stage 3A를 final handoff
+앞에 추가했다.
+
+Stage 3A 보정 뒤 Stage 5 새 human login은 PASS/exit `0`이다. 이어 확인 결과
+양식 `workflow=Preflight production SSH`를 SSH shell에 붙여 넣어 shell이
+`production`을 command로 해석했지만 host mutation은 없고 GitHub workflow도
+실행되지 않았다. Result template를 terminal paste 금지로 더 명확히 표시했으며,
+Stage 5 GitHub no-mutation preflight는 GitHub Actions UI에서 human owner가
+manual dispatch해야 한다.
+
+Stage 6 package install 첫 시도는 child heredoc이 stdin을 소유한 상태에서
+interactive `apt-get install` confirmation을 요청해 EOF/`Abort`, exit `1`로
+STOPPED됐다. Owner 입력으로 `n`이 선택된 것이 아니다. `apt-get update`는
+실행됐을 수 있으나 fail2ban install과 jail apply 완료 증거는 없다. 6B jail
+block은 중단하고, corrected 6A는 approved package scope에서
+`DEBIAN_FRONTEND=noninteractive`와 `-y`를 명시하며 package read-back 전에는
+6B로 진행하지 않는다.
+
+Owner는 관리 network/device source 제한을 운영하지 않기로 결정했다. SSH port
+변경은 public source restriction을 대체하지 못하고 기존 GitHub deploy/preflight
+기본 port 22 경로만 복잡하게 하므로 port 22와 현재 any IPv4/IPv6 Lightsail
+rule을 유지한다. Stage 7은 `DEFERRED BY OWNER`이며 firewall mutation은 `0`이다.
+Key-only auth, root login deny, forwarding deny, separated human/deploy keys,
+fail2ban과 browser SSH break-glass를 보완 통제로 유지하고 Stage 8 final
+read-back으로 진행한다.
+
+2026-07-31 Human owner의 승인된 PLAN-0015 Task 1 read-only inventory 1회는 SSH
+session disconnect로 `STOPPED`됐다. Production mutation은 보고되지 않았지만
+독립 검증하지 못했다. 제공한 block이 login shell에 `set -eu`를 직접 적용해
+read-only command의 non-zero exit가 shell 자체를 종료할 수 있던 handoff 결함을
+확인했다. Termius one-shot/session 동작과 transport failure는 아직 배제하지
+못했다. 승인된 1회는 소비됐으며 마지막 출력 stage 확인, subshell 격리와 새
+exact 승인 전에는 retry하지 않는다.
+
+Owner는 즉시 재접속이 정상이고 multi-line paste 직후 결과를 보기 전에 session이
+종료된 느낌이었다고 확인했다. Corrected Stage 1은 strict mode를 child `bash`
+heredoc 안에 격리하고 expected absent/inactive read를 명시적으로 허용해 child
+exit를 기존 Termius shell에 반환한다. Scope는 동일한 read-only이고 새 exact
+retry 승인은 아직 대기 중이다.
+
+Owner가 corrected Stage 1을 Termius에서 한 번 실행해 child exit `0`, mutation
+`0`으로 PASS했다. Ubuntu 24.04, SSH active, public-key auth enabled,
+password/keyboard-interactive disabled, root key login 허용, X11/TCP forwarding
+허용, `waw-operator`와 fail2ban 부재를 확인했다. Listener port는 22/53/80/443/
+18080이고 bind scope는 보존하지 않아 미확인이다. Owner가 기존 `ubuntu` key
+fingerprint를 확인하고 값은 전달하지 않았다. Lightsail console의 단일 visible
+TCP 22/80/443 rule은 모두 any IPv4 or IPv6를 허용했고 visible duplicate 22
+rule은 없었다. Stage 2 human key 생성은 별도 실행 승인 대기다.
+
+2026-07-31 Owner가 PLAN-0015의 모든 Task와 전체 작업 순서를 승인했다. 이
+승인은 계획 승인이고 각 production stage의 실행 승인은 계속 분리한다. 전체
+human-executed command/console action, verify, stop과 rollback 순서를 하나의
+Git 비추적 TEMP handoff로 제공하며 AI agent는 외부 terminal에 입력하지 않는다.
+
+2026-07-31 Owner가 PLAN-0015 Task 1 production read-only inventory를 승인했다.
+Human owner가 Git 비추적
+`TEMP_PLAN_0015_TASK_1_READONLY_INVENTORY.md`의 exact command set을 한 번
+직접 실행하고 redacted 결과만 전달한다. 승인 범위는 OS/SSH/account key
+fingerprint/fail2ban/listener와 Lightsail IPv4/IPv6 firewall read뿐이며,
+production mutation과 AI agent의 external terminal 입력은 `0`이다.
+
+2026-07-31 Owner가 PLAN-0015를 Approved로 확정했다. 모든 production 단계는
+실행 전 별도 exact 승인을 받고, AI agent는 Git 비추적 `TEMP_*.md` 명령 set만
+제공하며 human owner가 직접 입력한다. 첫 단계는 production mutation 없는
+Task 1 read-only inventory이고, exact 승인 전에는 외부 접속·명령을 실행하지
+않는다.
+
+2026-07-31 Owner가 production human SSH 운영 경로를 승인해 ADR-0029를
+Accepted로 전환했다. 기존 GitHub Actions deploy account/key와 exact-commit
+배포는 유지하고, Termius는 별도 `waw-operator` Linux account와 human-only
+SSH key를 사용한다. AI agent의 production·CloudShell·external terminal 입력은
+금지하며 CloudShell은 break-glass로만 유지한다. PLAN-0015는 Draft이고,
+production 접속·명령·dependency 설치·host/firewall mutation은 `0`이다.
+
 2026-07-30 PLAN-0013 exact release
 `19ea83925f6b27f66c924e2b1860a3c5d0904a89` production 배포와 관측 활성화를
 완료했다. Owner-dispatched read-only preflight에서 release/rollback,

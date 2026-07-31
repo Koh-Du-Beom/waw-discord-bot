@@ -24,12 +24,38 @@ activation remain separate gates.
 Repository variables contain only `LIGHTSAIL_HOST` and `LIGHTSAIL_USER`.
 Repository secrets contain `LIGHTSAIL_DEPLOY_SSH_KEY` and
 `LIGHTSAIL_SSH_KNOWN_HOSTS`; they must never be printed. The deploy key is not a
-human operator key. The named human operator path remains the break-glass
-fallback.
+human operator key.
 
 Use
 `docs/operations/first-production-promotion-activation-checklist.md` for the
 first promotion and evidence record.
+
+## Human SSH operations
+
+Normal human host operations use Termius with Linux account `waw-operator` and
+a passphrase-protected human-only Ed25519 key. This identity must not reuse,
+import or rotate the GitHub deploy private key. AI agents do not enter commands
+in production SSH, CloudShell, GitHub or external-service terminals; they may
+prepare a root-level Git-untracked `TEMP_*.md` command handoff for the human
+owner.
+
+The verified host boundary is:
+
+- public-key authentication enabled;
+- password and keyboard-interactive authentication disabled;
+- `PermitRootLogin no`;
+- `DisableForwarding yes`;
+- fail2ban `sshd` jail active;
+- TCP 22 retained for both Termius and GitHub exact-commit deployment;
+- Lightsail TCP 22 source retained as any IPv4/IPv6 by owner decision;
+- Lightsail browser SSH and CloudShell retained only for break-glass recovery.
+
+Changing the SSH port or source rule is not part of normal application
+deployment. Keep an existing recovery session open while changing SSH
+authentication, validate with `sshd -t`, reload rather than restart, and prove
+a fresh `waw-operator` login plus the GitHub no-mutation SSH preflight before
+closing recovery access. On any failure, stop and use only the failing stage's
+pre-recorded rollback; do not continue through a command handoff sequentially.
 
 ## G5 approval record
 

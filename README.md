@@ -580,6 +580,21 @@ Production 절차는
 복구는 [`docs/operations/backup-restore-runbook.md`](docs/operations/backup-restore-runbook.md)를
 따릅니다.
 
+### Human production SSH
+
+- 사람이 수행하는 정상 production SSH 운영은 Termius의 `waw-operator`
+  account와 passphrase-protected human-only Ed25519 key를 사용합니다.
+- Human key는 GitHub Actions deploy key와 account, rotation 및 revocation
+  경계를 공유하지 않습니다.
+- AI agent는 production SSH, CloudShell과 외부 서비스 terminal에 명령을
+  입력하지 않고, 필요한 명령은 repository root의 Git-untracked
+  `TEMP_*.md` handoff로만 제공합니다.
+- Root SSH login과 SSH forwarding은 차단하고 password authentication은
+  사용하지 않으며 fail2ban `sshd` jail을 유지합니다.
+- SSH port는 기존 GitHub exact-commit deployment와 동일한 TCP 22를 유지합니다.
+  Lightsail source restriction은 Owner 결정으로 적용하지 않으며 browser
+  SSH와 CloudShell은 break-glass 경로로만 사용합니다.
+
 ## 문서와 의사결정 체계
 
 | 문서 | 답하는 질문 |
