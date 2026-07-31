@@ -1,8 +1,22 @@
 # 프로젝트 상태
 
-마지막 갱신일: 2026-07-30
+마지막 갱신일: 2026-07-31
 
 ## 현재 단계
+
+2026-07-31 PLAN-0014 Tasks 1~6 local/disposable 구현을 완료했다. Discord
+Voice source 관측시각과 Riot poll 시각을 분리하고, 3분 stale active/inactive를
+`unknown`으로 낮춘다. Gateway가 정상이어도 현재 관측 대상 사용자만 2분마다
+targeted current Voice State로 재조정하며 guild별 single-flight, target 중복
+제거와 Gateway event 이후 도착한 late result 차단을 적용했다. 실패와 timeout은
+source 시각을 갱신하지 않는 `unknown`이다. Additive migration `0011`은 기존
+poll `observed_at`을 보존하고 nullable `source_observed_at`을 추가한다.
+전체 `307 tests / 300 pass / 7 explicit external-URL skips / 0 fail`,
+PostgreSQL 강제 모드와 별도 PostgreSQL 17 observation integration, typecheck,
+server/web build와 11 migration asset copy가 PASS했다. Docker daemon이 꺼져
+container wrapper는 실행되지 않았지만 host PostgreSQL 17 fixture로 같은 신규
+schema/store 경계를 검증했다. Production 접근, migration 적용, 배포, restart와
+외부 API 호출은 `0`이며 Task 7 exact production gate만 남아 있다.
 
 2026-07-30 PLAN-0013 exact release
 `19ea83925f6b27f66c924e2b1860a3c5d0904a89` production 배포와 관측 활성화를

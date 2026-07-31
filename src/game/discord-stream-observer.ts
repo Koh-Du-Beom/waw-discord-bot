@@ -6,7 +6,11 @@ export type DiscordStreamObservation = {
   state: EvidenceState;
   observedAt: Date;
   generation: number;
-  evidenceCode: "voice_state_event" | "reconciled" | "gateway_unavailable";
+  evidenceCode:
+    | "voice_state_event"
+    | "reconciled"
+    | "gateway_unavailable"
+    | "stale";
 };
 
 export class DiscordStreamObserver {
@@ -40,8 +44,17 @@ export class DiscordStreamObserver {
     guildId: string;
     observedAt: Date;
     members: readonly { discordUserId: string; selfStream: boolean | null }[];
+    baselineGenerations?: ReadonlyMap<string, number | undefined>;
   }): readonly DiscordStreamObservation[] {
-    return input.members.map((member) => {
+    return input.members.flatMap((member) => {
+      const stateKey = key(input.guildId, member.discordUserId);
+      if (
+        input.baselineGenerations !== undefined &&
+        this.states.get(stateKey)?.generation !==
+          input.baselineGenerations.get(member.discordUserId)
+      ) {
+        return [];
+      }
       const observation = this.observe({
         guildId: input.guildId,
         discordUserId: member.discordUserId,
@@ -49,8 +62,8 @@ export class DiscordStreamObserver {
         observedAt: input.observedAt,
       });
       const reconciled = { ...observation, evidenceCode: "reconciled" as const };
-      this.states.set(key(input.guildId, member.discordUserId), reconciled);
-      return reconciled;
+      this.states.set(stateKey, reconciled);
+      return [reconciled];
     });
   }
 
@@ -68,6 +81,23 @@ export class DiscordStreamObserver {
 
   current(guildId: string, discordUserId: string): DiscordStreamObservation | undefined {
     return this.states.get(key(guildId, discordUserId));
+  }
+
+  currentAt(
+    guildId: string,
+    discordUserId: string,
+    observedAt: Date,
+    freshnessMilliseconds: number,
+  ): DiscordStreamObservation | undefined {
+    const current = this.current(guildId, discordUserId);
+    if (
+      current === undefined ||
+      current.state === "unknown" ||
+      observedAt.getTime() - current.observedAt.getTime() < freshnessMilliseconds
+    ) {
+      return current;
+    }
+    return { ...current, state: "unknown", evidenceCode: "stale" };
   }
 }
 

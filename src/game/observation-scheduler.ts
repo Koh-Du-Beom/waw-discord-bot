@@ -19,7 +19,7 @@ export type ObservationTargetSource = {
 };
 
 export type DiscordVoiceSource = {
-  reconcile(guildId: string): Promise<
+  reconcile(guildId: string, discordUserIds: readonly string[]): Promise<
     readonly { discordUserId: string; selfStream: boolean | null }[]
   >;
 };
@@ -55,6 +55,11 @@ export class GameObservationScheduler {
   private readonly activeGames = new Map<string, ActiveGame>();
   private readonly interruptedAt = new Map<string, Date>();
   private readonly pendingViolations = new Set<string>();
+  private readonly lastReconciledAt = new Map<string, Date>();
+  private readonly reconciliations = new Map<
+    string,
+    Promise<readonly DiscordStreamObservation[]>
+  >();
 
   constructor(
     private readonly input: {
@@ -65,6 +70,9 @@ export class GameObservationScheduler {
       violations: GameViolationNotifier;
       now: () => Date;
       timeoutMilliseconds: number;
+      voiceFreshnessMilliseconds?: number;
+      voiceReconciliationIntervalMilliseconds?: number;
+      voiceReconciliationTimeoutMilliseconds?: number;
     },
   ) {}
 
@@ -91,18 +99,76 @@ export class GameObservationScheduler {
   }
 
   async reconcile(guildId: string): Promise<readonly DiscordStreamObservation[]> {
+    const pending = this.reconciliations.get(guildId);
+    if (pending !== undefined) return pending;
+    const reconciliation = this.reconcileGuild(guildId).finally(() => {
+      this.reconciliations.delete(guildId);
+    });
+    this.reconciliations.set(guildId, reconciliation);
+    return reconciliation;
+  }
+
+  private async reconcileGuild(
+    guildId: string,
+  ): Promise<readonly DiscordStreamObservation[]> {
+    const targets = await this.input.targets.listTargets();
+    const discordUserIds = [
+      ...new Set(
+        targets
+          .filter((target) => target.guildId === guildId)
+          .map((target) => target.discordUserId),
+      ),
+    ];
+    const baselineGenerations = new Map(
+      discordUserIds.map((discordUserId) => [
+        discordUserId,
+        this.streams.current(guildId, discordUserId)?.generation,
+      ]),
+    );
+    const previousStates = new Map(
+      discordUserIds.map((discordUserId) => [
+        discordUserId,
+        this.streams.current(guildId, discordUserId)?.state,
+      ]),
+    );
+    const members = await boundedVoiceReconciliation(
+      this.input.voice.reconcile(guildId, discordUserIds),
+      discordUserIds,
+      this.input.voiceReconciliationTimeoutMilliseconds ?? 15_000,
+    );
     const observedAt = this.input.now();
-    const members = await this.input.voice.reconcile(guildId);
-    const observations = this.streams.reconcile({ guildId, observedAt, members });
+    const observations = this.streams.reconcile({
+      guildId,
+      observedAt,
+      members,
+      baselineGenerations,
+    });
     for (const observation of observations) {
       const memberKey = key(guildId, observation.discordUserId);
-      if (observation.state === "active") this.interruptedAt.delete(memberKey);
+      if (observation.state === "active") {
+        this.interruptedAt.delete(memberKey);
+      } else if (
+        observation.state === "inactive" &&
+        previousStates.get(observation.discordUserId) === "active"
+      ) {
+        this.interruptedAt.set(memberKey, observedAt);
+      }
     }
+    this.lastReconciledAt.set(guildId, observedAt);
     return observations;
   }
 
   async tick(): Promise<ReadonlyMap<string, SchedulerPollResult>> {
     const targets = await this.input.targets.listTargets();
+    const now = this.input.now();
+    const interval =
+      this.input.voiceReconciliationIntervalMilliseconds ?? 120_000;
+    for (const guildId of new Set(targets.map((target) => target.guildId))) {
+      const last = this.lastReconciledAt.get(guildId);
+      if (last === undefined || now.getTime() - last.getTime() >= interval) {
+        await this.reconcile(guildId);
+      }
+    }
     const results = await Promise.all(
       targets.map(async (target) => [target.linkId, await this.poll(target)] as const),
     );
@@ -137,7 +203,12 @@ export class GameObservationScheduler {
       const game = this.activeGames.get(target.linkId);
       if (!game) return "no_active_game";
       const observedAt = this.input.now();
-      const voice = this.streams.current(target.guildId, target.discordUserId);
+      const voice = this.streams.currentAt(
+        target.guildId,
+        target.discordUserId,
+        observedAt,
+        this.input.voiceFreshnessMilliseconds ?? 180_000,
+      );
       const interruption = this.interruptedAt.get(
         key(target.guildId, target.discordUserId),
       );
@@ -164,6 +235,7 @@ export class GameObservationScheduler {
           state: voice?.state ?? "unknown",
           evidenceCode: voice?.evidenceCode ?? "gateway_unavailable",
           generation,
+          ...(voice === undefined ? {} : { sourceObservedAt: voice.observedAt }),
           ...(interruption === undefined ? {} : { interruptedAt: interruption }),
         },
       });
@@ -210,4 +282,31 @@ async function deadline<T>(
 
 function key(guildId: string, discordUserId: string): string {
   return `${guildId}:${discordUserId}`;
+}
+
+async function boundedVoiceReconciliation(
+  promise: Promise<
+    readonly { discordUserId: string; selfStream: boolean | null }[]
+  >,
+  discordUserIds: readonly string[],
+  timeoutMilliseconds: number,
+): Promise<readonly { discordUserId: string; selfStream: boolean | null }[]> {
+  let timer: NodeJS.Timeout | undefined;
+  const unavailable = () =>
+    discordUserIds.map((discordUserId) => ({
+      discordUserId,
+      selfStream: null,
+    }));
+  try {
+    return await Promise.race([
+      promise.catch(unavailable),
+      new Promise<readonly { discordUserId: string; selfStream: null }[]>(
+        (resolve) => {
+          timer = setTimeout(() => resolve(unavailable()), timeoutMilliseconds);
+        },
+      ),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }

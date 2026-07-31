@@ -18,7 +18,7 @@ export type VoiceSchedulerSink = Pick<
 >;
 
 export function createDiscordVoiceSource(input: {
-  fetchMembers(guildId: string): Promise<
+  fetchMembers(guildId: string, discordUserIds: readonly string[]): Promise<
     readonly { discordUserId: string; selfStream: boolean | null }[]
   >;
 }): DiscordVoiceSource {
