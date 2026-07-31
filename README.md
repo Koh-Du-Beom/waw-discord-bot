@@ -912,6 +912,30 @@ activation이 readiness를 통과하지 못하고 rollback됐습니다.
   않습니다. 고정 retry delay보다 provider가 준 bounded retry 정보를
   우선합니다.
 
+### 오래된 Discord Voice cache가 여러 경기에서 새 관측처럼 재사용됨
+
+2026-07-31 04:31 KST 검거 알림 전후를 익명으로 대조했을 때 네 번의 솔로랭크
+경기는 Riot Spectator에서 각각 관측됐지만 검거 stack은 한 번만 증가했습니다.
+Discord 방송은 실제로 켜지지 않았는데도 일부 후속 경기는 이전 `active` 상태를
+계속 재사용해 compliant로 판정됐습니다.
+
+- Root cause: Gateway event의 실제 source 관측 시각과 30초 poll 처리 시각을
+  구분하지 않아 cached Voice State가 poll 때마다 최신 evidence처럼 저장됐습니다.
+  또한 정상 Gateway에서는 bounded reconciliation을 하지 않았고, grace 안에
+  Spectator에서 사라진 경기에는 violation을 확정할 post-grace evidence가
+  없었습니다.
+- 해결: Discord Voice evidence에 `source_observed_at`을 별도로 전달하고 3분을
+  넘은 cached active는 `unknown`으로 처리합니다. 2분마다 대상 guild만
+  reconciliation하며 single-flight, generation 기반 late-result 거부와
+  실패·timeout의 `unknown` 처리를 적용합니다. Grace 안에서 끝난 경기는 자동
+  검거하지 않고 향후 Match-V5 사후 검증 대상으로 분리합니다.
+- 남긴 원칙: 처리 시각은 source 관측 시각의 대체물이 아닙니다. Freshness도
+  evidence 계약의 일부이며, post-grace 증거가 없다는 이유만으로 violation을
+  추론하지 않습니다.
+- 증거:
+  [ADR-0028](docs/adr/ADR-0028-fresh-discord-voice-evidence.md),
+  [PLAN-0014](docs/implementation/PLAN-0014-fresh-discord-voice-evidence.md)
+
 ### macOS에서만 Unix socket test가 `EINVAL`
 
 기본 macOS temporary directory 경로가 길어 PostgreSQL·Unix socket path
