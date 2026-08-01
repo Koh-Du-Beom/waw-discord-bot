@@ -1,8 +1,102 @@
 # 프로젝트 상태
 
-마지막 갱신일: 2026-07-31
+마지막 갱신일: 2026-08-01
 
 ## 현재 단계
+
+2026-08-01 PLAN-0016 release 준비에서 Git index exact archive의 Linux application
+asset·rollback fixture를 재검증했다. Windows worktree 실패는 systemd asset의 CRLF
+checkout 때문이었으며 `.gitattributes`에 systemd/Caddy LF 계약을 고정했다. Index
+archive에서는 두 fixture가 PASS했고 전체 local `311 pass / 8 PostgreSQL host-tool
+skips / 0 fail`, browser `2/2`, audit 0 vulnerabilities, typecheck/build/diff가 PASS했다.
+Production과 외부 서비스 접근은 `0`이다.
+
+2026-08-01 PLAN-0016 Task 7과 전체 계획을 완료했다. 검거 대시보드 운영·보안·health·
+장애·rollback runbook 및 production handoff를 작성했고, Gate A read-only preflight,
+Gate B backup/restore와 migration 0012, Gate C IPC-off immutable release, Gate D
+administrator IPC activation을 독립 승인으로 분리했다. 현재 dirty tree는 release
+candidate가 아니며 모든 gate와 최초 실제 mutation은 `Not approved`다. 문서 contract
+`3/3`이 checksum, default-off capability, rollback과 금지사항을 검증했다. Production
+변경은 `0`이다. 다음 단계는 owner가 Gate A만 별도로 승인할지 결정하는 것이며 자동
+production 진행은 없다.
+
+2026-08-01 PLAN-0016 Task 6를 완료했다. PostgreSQL 17 disposable container에서
+migration 0012, game read RLS/grant, web write deny, 101건 stable cursor와 stack,
+dashboard incident mutation의 operation·incident·revision·terminal result·audit
+원자성을 검증했다. Terminal result 강제 실패는 모든 row와 사건 version을 rollback했고
+duplicate operation 및 기존 Discord mutation 회귀도 통과했다. Chromium에서 관리자
+정정 keyboard flow와 desktop/mobile axe를 검증했다. PostgreSQL container 전체
+`325 pass / 7 external-fixture skips / 0 fail`, PostgreSQL file `16/16`, browser
+`2/2`, local `308 pass / 8 host-tool skips / 0 fail`, typecheck/build/diff가 PASS했다.
+추가 index migration은 필요하지 않았고 production DB·service·credential·실제 사건
+변경은 `0`이다. 다음 bounded 작업은 PLAN-0016 Task 7 문서와 별도 production gate다.
+
+2026-08-01 PLAN-0016 Task 5를 완료했다. 사건 정정·취소 HTTP route를 기존
+high-risk session boundary와 Task 4 admin IPC port에 연결했다. Current
+administrator, exact Origin·CSRF, 15분 recent OAuth, explicit confirmation,
+1~500자 단일행 reason과 exact incident version을 요구한다. 몰랭 UI는 관리자에게만
+정정·취소 control을 표시하고 별도 확인 checkbox 뒤 한 번만 전송한다. Stale
+snapshot은 history를 refresh하고 timeout은 새 operation을 보내지 않도록 안내한다.
+Targeted HTTP/port/API `26/26`, UI `21/21`, browser keyboard·axe `2/2`, 전체
+`308 pass / 8 external PostgreSQL skips / 0 fail`, typecheck와 build가 PASS했다.
+Production DB·socket·service·실제 사건 데이터 변경은 `0`이며 다음 bounded 작업은
+PLAN-0016 Task 6 disposable PostgreSQL/browser 통합이다.
+
+2026-08-01 PLAN-0016 Task 4를 완료했다. 관리자 IPC에 exact versioned
+`game_incident_correct|cancel` 계약을 추가하고 reason 1~500자, explicit confirmation,
+optimistic version을 검증한다. Bot application은 사건 target 접근 전에 Discord의
+current administrator를 재확인한다. 기존 `PostgresFeatureStore` 사건 transaction을
+공유해 incident 상태, revision, audit와 terminal `admin_command_result`를 원자적으로
+기록하며 duplicate와 timeout 후 `operation_status` reconciliation을 지원한다.
+Migration 0012는 local artifact로만 추가했고 production DB, socket, service와 실제
+사건 데이터 변경은 `0`이다. 다음 bounded 작업은 PLAN-0016 Task 5다.
+
+2026-08-01 PLAN-0016 Task 3를 완료했다. Dashboard에 lazy-loaded `몰랭` tab을
+추가해 스택, 진행 중 게임과 사건 이력을 표시하고 상태·사용자 표시명 filter,
+opaque cursor 이전/다음, loading/empty/error/retry 상태를 제공한다. Riot과 Go
+Live는 별도 상태·관측시각이며 `알 수 없음`, `시각 없음`, `오래됨`을 색상 외
+텍스트로 표시한다. Filter URL에는 raw Discord ID와 PUUID가 없다. Targeted
+`22/22`, 전체 test `297 pass / 8 external PostgreSQL skips / 0 fail`, browser
+axe/keyboard `2/2`, typecheck, server/web build와 `git diff --check`가 PASS했다.
+첫 browser 실행에서 기존 login test만 Windows Edge 경로를 재사용하지 않아
+Playwright Chromium 부재로 실패했으며 harness를 동일 Edge 경로로 고친 재실행은
+`2/2` PASS했다. Effective freshness API는 아직 없으므로 현재 accepted production
+값 3분을 UI의 오래됨 표시 기준으로 사용하며 Task 4 전까지 read-only다. IPC,
+mutation, migration, production과 실제 데이터 변경은 `0`이고 다음 작업은 Task 4다.
+
+2026-08-01 PLAN-0016 Task 2를 완료했다. Task 1의 스택, 진행 게임과 사건 이력을
+`/api/game/stacks`, `/api/game/active`, `/api/game/incidents` read API와 production
+dashboard port에 연결했다. Operator와 administrator는 기존 current-role 또는
+최대 5분 read cache 계약으로 조회하고, 미인증·권한 없음·만료 cache 또는 role
+service unavailable은 port 호출 전에 `401/403/503`으로 닫는다. Response schema는
+내부 추가 field를 직렬화하지 않으며 history query는 coercion 없이 limit `1..100`,
+cursor, 상태와 표시명만 허용한다. Targeted `28/28`, 전체 test
+`293 pass / 8 external PostgreSQL skips / 0 fail`, typecheck, server/web build와
+`git diff --check`가 PASS했다. UI, IPC, migration, production과 실제 데이터 변경은
+`0`이며 다음 bounded 작업은 Task 3 몰랭 UI read slice다.
+
+2026-08-01 Owner가 ADR-0030의 web read model + 기존 관리자 Unix socket 확장과
+high-risk 사건 변경 경계를 승인해 Accepted로 전환했고 PLAN-0016을 승인했다.
+Task 1은 dashboard용 스택, 진행 중 관측, cursor 사건 이력의 allowlisted DTO와
+PostgreSQL query를 구현했다. Riot/Go Live 상태·관측시각을 분리하고 PUUID,
+Discord ID와 evidence 내부값은 DTO에서 제외했다. 사건과 특정 Riot link를 잇는
+schema가 없으므로 활성 link가 정확히 하나일 때만 현재 Riot ID를 표시하고 그
+외에는 `null`로 닫는다. 동일 `updated_at`은 `incident_id` tie-break cursor로
+페이지 누락을 막는다. Targeted `15/15`, 전체 test
+`290 pass / 8 external PostgreSQL skips / 0 fail`, typecheck, server/web build와
+`git diff --check`가 PASS했다. Production, HTTP/UI/IPC, migration과 실제 데이터
+변경은 `0`이며 다음 bounded 작업은 PLAN-0016 Task 2다.
+
+2026-08-01 한글 Riot tag line이 `/라이엇계정 연결` 입력과 Account-v1 승인
+validator에서 영문·숫자 전용 정규식에 의해 DB 저장 전에 거부되던 결함을
+수정했다. 구조 구분자와 제어문자, 기존 길이 제한은 유지하면서 Unicode tag를
+허용하고 URL encoding 뒤 Riot Account API의 exact 응답 일치로 승인한다.
+`simsul복숭아#심복타도` command/API 회귀를 포함한 targeted test `18/18`,
+전체 test `286 pass / 8 external PostgreSQL skips / 0 fail`, typecheck와
+server/web build가 PASS했다. Production DB, credential, 배포와 실제 계정
+mutation은 `0`이다.
+제품 정책에 있으나 web에 없는 검거 화면은 `ADR-0030` Proposed와 승인 조건부
+`PLAN-0016` Draft로 분리했다. ADR 승인 전 dashboard 구현은 시작하지 않는다.
 
 2026-07-31 PLAN-0014 Task 7 production activation을 완료했다. Exact candidate
 `4f8832124f194e92a29003eb7f8c7056bce5e60b`의 encrypted backup/empty

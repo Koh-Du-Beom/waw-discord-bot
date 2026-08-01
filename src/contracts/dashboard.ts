@@ -105,6 +105,70 @@ export type ActiveRiotLinksDto = {
   links: ActiveRiotLinkDto[];
 };
 
+export type GameEvidenceStateDto = "active" | "inactive" | "unknown";
+export type GameComparisonStateDto =
+  | "compliant"
+  | "grace"
+  | "interrupted"
+  | "violation"
+  | "unknown";
+export type GameIncidentStatusDto =
+  | "open"
+  | "confirmed"
+  | "corrected"
+  | "cancelled";
+
+export type GameStackDto = {
+  memberLabel: string;
+  stack: number;
+};
+
+export type GameStacksDto = {
+  entries: GameStackDto[];
+};
+
+export type GameRiotIdDto = {
+  platformId: string;
+  gameName: string;
+  tagLine: string;
+};
+
+export type ActiveGameObservationDto = {
+  incidentId: string;
+  memberLabel: string;
+  riotId: GameRiotIdDto | null;
+  gameKey: string;
+  riotState: GameEvidenceStateDto;
+  riotObservedAt: string | null;
+  goLiveState: GameEvidenceStateDto;
+  goLiveObservedAt: string | null;
+  comparisonState: GameComparisonStateDto;
+  incidentStatus: GameIncidentStatusDto;
+  expectedVersion: number;
+  gameStartedAt: string;
+};
+
+export type ActiveGameObservationsDto = {
+  entries: ActiveGameObservationDto[];
+};
+
+export type GameIncidentHistoryEntryDto = ActiveGameObservationDto & {
+  gameEndedAt: string | null;
+  incidentUpdatedAt: string;
+};
+
+export type GameIncidentHistoryPageDto = {
+  entries: GameIncidentHistoryEntryDto[];
+  nextCursor?: string;
+};
+
+export type ListGameIncidentHistoryRequestDto = {
+  limit?: number;
+  cursor?: string;
+  status?: GameIncidentStatusDto;
+  memberLabel?: string;
+};
+
 export type ListPendingRiotLinksRequestDto = {
   cursor?: string;
 };
@@ -125,6 +189,17 @@ export type RemoveRiotLinkRequestDto = {
 };
 
 export type RiotLinkDecisionResponseDto = {
+  message: string;
+};
+
+export type MutateGameIncidentRequestDto = {
+  incidentId: string;
+  expectedVersion: number;
+  reason: string;
+  confirmation: true;
+};
+
+export type GameIncidentMutationResponseDto = {
   message: string;
 };
 
@@ -166,4 +241,9 @@ export const DASHBOARD_API_PATHS = {
   riotReject: "/api/riot/requests/reject",
   riotRemove: "/api/riot/links/remove",
   commandLog: "/api/command-log",
+  gameStacks: "/api/game/stacks",
+  activeGames: "/api/game/active",
+  gameIncidents: "/api/game/incidents",
+  gameIncidentCorrect: "/api/game/incidents/correct",
+  gameIncidentCancel: "/api/game/incidents/cancel",
 } as const;

@@ -58,7 +58,7 @@ export class RiotPuuidValidator implements PuuidValidationPort {
       typeof parsed.tagLine !== "string" ||
       parsed.tagLine.length < 2 ||
       parsed.tagLine.length > 8 ||
-      !/^[A-Za-z0-9]+$/u.test(parsed.tagLine)
+      /[\r\n\0\/#]/u.test(parsed.tagLine)
     ) {
       throw unavailable();
     }
@@ -88,7 +88,7 @@ export class RiotPuuidValidator implements PuuidValidationPort {
       tagLine.length < 2 ||
       tagLine.length > 8 ||
       /[\r\n\0/#]/u.test(gameName) ||
-      !/^[A-Za-z0-9]+$/u.test(tagLine)
+      /[\r\n\0\/#]/u.test(tagLine)
     ) {
       return { kind: "invalid", reasonCode: "invalid_puuid" };
     }

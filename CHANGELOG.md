@@ -1,5 +1,36 @@
 # 변경 이력
 
+- Linux production asset fixture가 Windows CRLF checkout에 좌우되지 않도록 systemd와
+  Caddy asset의 Git EOL을 LF로 고정하고 exact index archive에서 install·rollback을
+  재검증했다.
+
+- PLAN-0016 Task 7: 검거 대시보드 운영·보안·health·장애·rollback runbook과 별도
+  production handoff를 추가하고 read-only preflight, backup/restore+migration 0012,
+  IPC-off release, administrator IPC activation을 네 개의 독립 승인 gate로 분리했다.
+  현재 작업 tree와 모든 production gate는 승인되지 않았으며 문서 contract로 checksum,
+  default-off capability와 rollback 금지사항을 검증했다.
+
+- PLAN-0016 Task 6: PostgreSQL 17 disposable 통합에서 검거 dashboard의 read-only web
+  권한, 100건 pagination, bot-side 사건 mutation 원자성·rollback·중복 안전성과 기존
+  Discord 경로를 검증했다. Chromium keyboard·axe 통합도 통과했으며 production은
+  변경하지 않았다.
+
+- PLAN-0016 Task 5: 관리자 dashboard에서 recent OAuth·CSRF·명시적 확인과 사건
+  version을 검증한 뒤 몰랭 사건을 정정·취소하는 HTTP/UI 경계를 추가했다. Operator는
+  control과 route에서 거부되며 stale snapshot, double submit과 불명확한 timeout을
+  안전하게 처리한다. Production 변경은 수행하지 않았다.
+
+- PLAN-0016 Task 4: 관리자 IPC에 versioned `game_incident_correct|cancel`을 추가했다.
+  Current administrator 재확인, exact confirmation/reason contract, stale version,
+  duplicate와 timeout terminal-result reconciliation을 검증한다. 기존 사건 transaction에
+  결과 기록을 결합했으며 production 변경은 수행하지 않았다.
+
+- 관리 대시보드에 몰랭 스택, 진행 게임, 검거 이력과 상태·사용자 filter를 제공하는 read-only `몰랭` 화면을 추가했다.
+
+- 검거 대시보드가 사용할 스택, 진행 게임과 사건 이력의 권한 제한 read API를 추가했다.
+
+- 한글 tag line을 사용하는 Riot ID도 `/라이엇계정 연결` 요청과 관리자 Account API 검증을 통과할 수 있도록 수정했다.
+
 - PLAN-0014 exact candidate `4f8832124f19`를 production에 활성화했다.
   Discord Voice source/poll timestamp 분리, 3분 stale `unknown`, 2분 targeted
   reconciliation과 late-result 보호가 schema `11` 및 effective

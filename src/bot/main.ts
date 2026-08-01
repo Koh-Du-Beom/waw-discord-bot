@@ -369,6 +369,7 @@ if (assembly.process.exitCode === DUPLICATE_BOT_EXIT_CODE) {
     authorization: { readCurrentAuthorization },
     validator: riotIdentityReader,
     store: riotStore,
+    incidents: featureStore,
     displayName: async (discordUserId) => {
       const guild = await client.guilds.fetch(
         authorizationConfiguration.allowedGuildId,

@@ -37,6 +37,27 @@ test("production SPA has no automatic axe violations and supports keyboard mutat
       [],
     );
 
+    const gameTab = page.getByRole("button", { name: "몰랭" });
+    await gameTab.focus();
+    await page.keyboard.press("Enter");
+    await page.getByRole("heading", { name: "검거 이력" }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "필터 적용" }).isEnabled(), true);
+    assert.deepEqual(
+      (await new AxeBuilder({ page }).analyze()).violations.map((violation) => violation.id),
+      [],
+    );
+    const correct = page.getByRole("button", { name: "정정" });
+    await correct.focus();
+    await page.keyboard.press("Enter");
+    await page.getByLabel("변경 사유").fill("브라우저 접근성 정정");
+    await page.getByRole("checkbox", { name: /감사 기록/ }).check();
+    assert.deepEqual(
+      (await new AxeBuilder({ page }).analyze()).violations.map((violation) => violation.id),
+      [],
+    );
+    await page.getByRole("button", { name: "확인 후 실행" }).press("Enter");
+    await page.getByText("사건을 정정했습니다.").waitFor();
+
     await page.getByRole("button", { name: "설정" }).click();
     const checkbox = page.getByRole("checkbox", { name: "서버 요약 기능 사용" });
     await checkbox.focus();
@@ -79,7 +100,11 @@ test("Discord login page has no automatic axe violations", async () => {
   let browser: Browser | undefined;
   try {
     const address = await app.listen({ host: "127.0.0.1", port: 0 });
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch(
+      process.platform === "win32"
+        ? { executablePath: edgeExecutable, headless: true }
+        : { headless: true },
+    );
     const context = await browser.newContext({ viewport: { width: 360, height: 800 } });
     const page = await context.newPage();
     await page.goto(address, { waitUntil: "networkidle" });

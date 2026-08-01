@@ -67,6 +67,11 @@ const migrations = [
     name: "game_observation_source_time",
     path: path.resolve(import.meta.dirname, "../../migrations/0011_game_observation_source_time.sql"),
   },
+  {
+    version: 12,
+    name: "game_incident_admin_result",
+    path: path.resolve(import.meta.dirname, "../../migrations/0012_game_incident_admin_result.sql"),
+  },
 ] as const;
 
 async function main(): Promise<void> {

@@ -145,6 +145,7 @@ Live 자동 관측 대상이며, 연결 해제 후에는 후속 관측에서 제
 - 활성 Riot 연결 조회와 관리자 단건 해제
 - 요약 활성 설정
 - 설정 변경과 운영 감사 기록
+- 관리자 전용 몰랭 사건 정정·취소와 stale/timeout 안전 처리
 - desktop/mobile 반응형 UI, keyboard와 axe 접근성 검사
 
 ## 시스템 구조
@@ -578,6 +579,11 @@ Production 절차는
 [`docs/operations/production-application-deployment-runbook.md`](docs/operations/production-application-deployment-runbook.md),
 인증은 [`docs/operations/authentication-runbook.md`](docs/operations/authentication-runbook.md),
 복구는 [`docs/operations/backup-restore-runbook.md`](docs/operations/backup-restore-runbook.md)를
+따릅니다.
+검거 대시보드 운영은
+[`docs/operations/game-enforcement-dashboard-runbook.md`](docs/operations/game-enforcement-dashboard-runbook.md),
+별도 production 승인 경계는
+[`docs/operations/plan-0016-game-dashboard-production-gate-handoff-2026-08-01.md`](docs/operations/plan-0016-game-dashboard-production-gate-handoff-2026-08-01.md)를
 따릅니다.
 
 ### Human production SSH

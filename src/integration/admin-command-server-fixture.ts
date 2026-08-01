@@ -5,6 +5,7 @@ import { Pool } from "pg";
 import { AdminCommandApplication } from "../ipc/admin-command-application.ts";
 import { createAdminCommandIpcServer } from "../ipc/admin-command-ipc.ts";
 import { PostgresRiotCommandStore } from "../persistence/postgres-riot-command-store.ts";
+import { PostgresFeatureStore } from "../persistence/feature-store.ts";
 
 const socketPath = required("WAW_ADMIN_COMMAND_SOCKET");
 const pool = new Pool({
@@ -12,6 +13,7 @@ const pool = new Pool({
   max: 4,
 });
 const store = new PostgresRiotCommandStore(pool);
+const incidents = new PostgresFeatureStore(pool);
 const application = new AdminCommandApplication({
   authorization: {
     async readCurrentAuthorization() {
@@ -24,6 +26,7 @@ const application = new AdminCommandApplication({
     },
   },
   store,
+  incidents,
   now: () => new Date(),
 });
 const responseDelay = Number(process.env.WAW_ADMIN_RESPONSE_DELAY_MS ?? "0");

@@ -45,6 +45,15 @@ export function createProductionDashboardPorts(input: {
     async readActiveRiotLinks() {
       return store.readActiveRiotLinks();
     },
+    async readGameStacks() {
+      return store.readGameStacks();
+    },
+    async readActiveGameObservations() {
+      return store.readActiveGameObservations();
+    },
+    async readGameIncidentHistory(request) {
+      return store.readGameIncidentHistory(request);
+    },
     async readSettings() {
       return store.readSettings();
     },
@@ -72,6 +81,14 @@ export function createProductionDashboardPorts(input: {
     async removeRiotLink(request) {
       if (adminPorts) return adminPorts.removeRiotLink(request);
       throw new HttpPortError("unavailable", "riot_admin_ipc_unavailable");
+    },
+    async correctGameIncident(request) {
+      if (adminPorts) return adminPorts.correctGameIncident(request);
+      throw new HttpPortError("unavailable", "game_admin_ipc_unavailable");
+    },
+    async cancelGameIncident(request) {
+      if (adminPorts) return adminPorts.cancelGameIncident(request);
+      throw new HttpPortError("unavailable", "game_admin_ipc_unavailable");
     },
   };
 }
