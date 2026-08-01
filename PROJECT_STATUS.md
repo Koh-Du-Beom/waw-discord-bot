@@ -4,6 +4,17 @@
 
 ## 현재 단계
 
+2026-08-02 production Riot 연결 승인에서 `validator_unavailable`이 반복됐다. Admin IPC와
+목록 조회는 정상이고 exact credential을 사용한 Account-v1 조회도 HTTP `200`이어서,
+provider의 canonical game-name casing을 local exact-case 비교가 거부하는 결함으로
+진단했다. Riot ID 양쪽 구성요소를 NFC 정규화 후 case-insensitive 비교하도록 수정하고
+targeted `7/7`, typecheck, build, migration assets `12`, diff check와 PR #9 CI run
+`30707419487`을 PASS했다. Production merge commit
+`0c83785b08821e81fb5b939829564919d1681771` (`0c83785b0882`)의 deploy run
+`30707482776`도 PASS했다. 배포 후 web/bot IPC flag `1`, 두 service active, directory
+`0750`, socket `0660`, canonical health `healthy`를 재확인했다. 진단 중 실제 계정
+mutation은 실행하지 않았으며 credential과 Riot API 응답 식별값은 기록하지 않았다.
+
 2026-08-02 owner가 사건 정정·취소를 사용하지 않는 조건으로 PLAN-0016 Gate D Admin
 IPC 활성화를 승인했다. 검증된 production release `568522974a8f`는 유지하고 root-owned
 systemd drop-in에서 web/bot effective `WAW_ADMIN_COMMAND_IPC_ENABLED=1`만 설정했다.

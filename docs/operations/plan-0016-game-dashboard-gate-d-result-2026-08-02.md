@@ -37,3 +37,20 @@ Riot 연결 관리 IPC는 production schema 11의 기존 allowlist와 호환된�
 사용하지 않기로 한 상태이며 실제 실행은 금지한다. 해당 경로가 시도되거나 IPC/health
 장애가 발생하면 web drop-in을 먼저 제거하고 web을 restart한 뒤 bot drop-in 제거와 bot
 restart로 IPC를 다시 `OFF`로 만든다.
+
+## Riot 승인 hotfix
+
+활성화 후 Riot 연결 승인에서 `validator_unavailable`이 반복됐다. IPC request/list는
+정상이었고 exact production credential을 사용한 Account-v1 lookup은 HTTP `200`이었다.
+Provider가 반환하는 canonical game-name casing과 사용자 입력을 exact-case 비교하던
+validator 결함을 NFC 정규화 및 case-insensitive 비교로 수정했다.
+
+- Hotfix PR: `#9`
+- Production commit/release: `0c83785b08821e81fb5b939829564919d1681771` /
+  `0c83785b0882`
+- Exact-head CI: run `30707419487`, PASS
+- Production deploy: run `30707482776`, PASS
+- Post-deploy: web/bot IPC flag `1`, services active, directory `0750`, socket `0660`,
+  canonical health `healthy`
+
+진단과 배포 검증 중 실제 Riot 승인 mutation은 실행하지 않았다.
