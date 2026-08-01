@@ -154,5 +154,6 @@ HTTPS를 재검증한다.
 - Gate C: Owner override approved and PASS on 2026-08-02 with IPC OFF while Gate B
   restore/migration remains incomplete — see
   `plan-0016-game-dashboard-gate-c-override-result-2026-08-02.md`
-- Gate D: Not approved
+- Gate D: Owner approved and PASS on 2026-08-02; IPC ON with schema-11 restriction — see
+  `plan-0016-game-dashboard-gate-d-result-2026-08-02.md`
 - First real incident mutation: Not approved
