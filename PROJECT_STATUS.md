@@ -4,6 +4,18 @@
 
 ## 현재 단계
 
+2026-08-01 PLAN-0016 GitHub Actions 승격 준비에서 production 이력을 기준으로
+`release/plan-0016-production-candidate`와 PR #8을 만들었다. 첫 release head
+`9dbf710a83e7b88bc5092aec0c4fb6724b924ca0`의 CI는 production data-reset guard가
+schema 12를 허용하지 않아 실패했다. `scripts/production-data-reset.sql`과 fixture의
+exact schema ledger를 1–12로 교정한 뒤 새 release head
+`246264d362534b3e3de3215b341e73d6e1003548` (`246264d36253`), archive SHA-256
+`edb35b7e323407299a6aea095799dc5fb04600b8962f1ff0ebca89e58a9e4d4c`를 고정했다.
+Exact-head CI run `30700735890`은 전체 PASS했고 no-mutation production SSH preflight
+run `30700785973`도 PASS했다. Production schema는 아직 11이며 normal deploy workflow는
+migration을 실행하지 않으므로 PR은 merge하지 않았다. 다음 경계는 별도 owner 승인된
+Gate B backup/restore와 migration 0012이고 production 변경은 계속 `0`이다.
+
 2026-08-01 PLAN-0016 Gate A read-only production preflight를 PASS했다. 첫 시도의
 잘못된 source archive 입력값이 실제 `package-lock.json` hash임을 확인해 fail-closed한
 뒤 exact production archive hash를
