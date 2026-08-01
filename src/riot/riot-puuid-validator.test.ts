@@ -40,6 +40,23 @@ test("resolves a Unicode Riot tag through an encoded Account API path", async ()
   );
 });
 
+test("accepts the provider's canonical Riot ID casing", async () => {
+  const validator = new RiotPuuidValidator(secret, async () => Response.json({
+    puuid,
+    gameName: "Simsul복숭아",
+    tagLine: "심복타도",
+  }));
+
+  assert.deepEqual(
+    await validator.resolve({
+      gameName: "simsul복숭아",
+      tagLine: "심복타도",
+      platformId: "KR",
+    }),
+    { kind: "valid", normalizedPuuid: puuid },
+  );
+});
+
 test("accepts only an exact Account API PUUID match", async () => {
   const requests: Array<{ url: string; token: string | null }> = [];
   const validator = new RiotPuuidValidator(secret, async (input, init) => {
