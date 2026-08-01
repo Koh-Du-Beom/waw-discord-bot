@@ -1,3 +1,4 @@
 *.sh text eol=lf
 deploy/caddy/* text eol=lf
 deploy/systemd/* text eol=lf
+migrations/*.sql text eol=lf
