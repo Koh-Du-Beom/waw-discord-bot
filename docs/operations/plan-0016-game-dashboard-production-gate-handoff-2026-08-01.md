@@ -12,6 +12,22 @@ dirty in-progress context이므로 release candidate가 아니다. Clean reviewe
 SHA-256, maintenance window와 rollback owner가 채워지기 전에는 어떤 gate도 실행할
 수 없다.
 
+## 로컬 exact release candidate
+
+- Candidate commit: `f469c19029d139267fced0ffcb289aabe20132fc`
+- Release ID: `f469c19029d1`
+- Source archive SHA-256: `62c133871fed8355fd43fb4f626f50ca9ad3ee090694edfd5cd5d3579744065a`
+- `package-lock.json` SHA-256:
+  `466d9e633206ac07c6ed216bde1a481a27a95c6d7bc8d56e994a973835408803`
+- Migration 0012 archive SHA-256:
+  `188395af5cf3cbc55b3ca796143f3be9f5ac9381b7df9fcddb191bd9a24db07c`
+- Exact archive Linux fixtures: application assets PASS, release rollback PASS
+
+이 candidate는 로컬에서 고정됐지만 Gate A 승인은 아니다. Maintenance window,
+executor, observer와 rollback owner가 지정되고 별도 owner decision이 기록되기 전에는
+production에 접속하지 않는다. 이후 문서-only commit은 이 application candidate의
+bytes를 바꾸지 않는다.
+
 ## 완료된 비-production 증거
 
 | 경계 | 결과 |

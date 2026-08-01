@@ -4,6 +4,15 @@
 
 ## 현재 단계
 
+2026-08-01 clean application candidate를
+`f469c19029d139267fced0ffcb289aabe20132fc` (`f469c19029d1`)로 고정했다. Exact
+source archive SHA-256은
+`62c133871fed8355fd43fb4f626f50ca9ad3ee090694edfd5cd5d3579744065a`, lockfile은
+`466d9e633206ac07c6ed216bde1a481a27a95c6d7bc8d56e994a973835408803`, migration
+0012 LF archive는 `188395af5cf3cbc55b3ca796143f3be9f5ac9381b7df9fcddb191bd9a24db07c`다.
+Exact archive의 Linux application asset과 rollback fixture가 PASS했다. Gate A와
+production은 아직 미승인이며 maintenance window와 운영 담당자 지정이 남았다.
+
 2026-08-01 PLAN-0016 release 준비에서 Git index exact archive의 Linux application
 asset·rollback fixture를 재검증했다. Windows worktree 실패는 systemd asset의 CRLF
 checkout 때문이었으며 `.gitattributes`에 systemd/Caddy LF 계약을 고정했다. Index
