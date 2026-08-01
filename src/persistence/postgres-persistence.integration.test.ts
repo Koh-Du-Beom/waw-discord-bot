@@ -12,6 +12,7 @@ import { createAuthService } from "../auth/auth-service.ts";
 import { parseAuthConfiguration } from "../auth/oauth-configuration.ts";
 import { hashOpaqueSessionId } from "./session-store.ts";
 import { PostgresFeatureStore } from "./feature-store.ts";
+import { PostgresDashboardStore } from "./dashboard-store.ts";
 import { RiotAccountLinkService } from "../riot/account-link.ts";
 import { PostgresRiotCommandStore } from "./postgres-riot-command-store.ts";
 import { PostgresDiscordMemberLabelStore } from "./discord-member-label-store.ts";
@@ -39,6 +40,7 @@ const migrationEightPath = path.join(projectRoot, "migrations/0008_summary_hourl
 const migrationNinePath = path.join(projectRoot, "migrations/0009_riot_link_version.sql");
 const migrationTenPath = path.join(projectRoot, "migrations/0010_riot_link_removal_result.sql");
 const migrationElevenPath = path.join(projectRoot, "migrations/0011_game_observation_source_time.sql");
+const migrationTwelvePath = path.join(projectRoot, "migrations/0012_game_incident_admin_result.sql");
 const migrationOneSql = await readFile(migrationOnePath, "utf8");
 const migrationTwoSql = await readFile(migrationTwoPath, "utf8");
 const migrationThreeSql = await readFile(migrationThreePath, "utf8");
@@ -50,6 +52,7 @@ const migrationEightSql = await readFile(migrationEightPath, "utf8");
 const migrationNineSql = await readFile(migrationNinePath, "utf8");
 const migrationTenSql = await readFile(migrationTenPath, "utf8");
 const migrationElevenSql = await readFile(migrationElevenPath, "utf8");
+const migrationTwelveSql = await readFile(migrationTwelvePath, "utf8");
 
 let clusterDirectory = "";
 let socketDirectory = "";
@@ -170,6 +173,11 @@ test("applies migration transactionally, records version, and rejects reapplicat
     name: "game_observation_source_time",
     sql: migrationElevenSql,
   });
+  await applyMigration(adminPool, {
+    version: 12,
+    name: "game_incident_admin_result",
+    sql: migrationTwelveSql,
+  });
 
   const version = await adminPool.query<{ version: number }>(
     "select version from app_schema_version order by version",
@@ -186,6 +194,7 @@ test("applies migration transactionally, records version, and rejects reapplicat
     { version: 9 },
     { version: 10 },
     { version: 11 },
+    { version: 12 },
   ]);
 
   const linkVersion = await adminPool.query<{
@@ -709,6 +718,191 @@ test("enforces RLS and workload grants for web and bot roles", async () => {
     await assert.rejects(webPool.query("create table forbidden_by_runtime (id integer)"), /permission denied/);
   } finally {
     await webPool.end();
+    await botPool.end();
+  }
+});
+
+test("game dashboard web role reads bounded pages and cannot mutate game data", async () => {
+  await adminPool.query(`
+    create role waw_task6_web login;
+    grant waw_web to waw_task6_web;
+    insert into registered_discord_user (
+      guild_id, discord_user_id, display_label, created_at, updated_at
+    ) values ('task6-guild','task6-page-member','Task6 Page',now(),now());
+    insert into riot_game (game_key, platform_id, game_id, queue_id, started_at, ended_at)
+    select 'KR:task6-page-' || value, 'KR', 'task6-page-' || value, 420,
+           '2026-08-01T00:00:00Z'::timestamptz + value * interval '1 minute',
+           '2026-08-01T00:30:00Z'::timestamptz + value * interval '1 minute'
+      from generate_series(1, 101) value;
+    insert into game_incident (
+      incident_id, game_key, discord_user_id, status, comparison_state,
+      policy_version, version, created_at, updated_at
+    )
+    select 'task6-page-incident-' || lpad(value::text, 3, '0'),
+           'KR:task6-page-' || value, 'task6-page-member', 'confirmed',
+           'violation', 1, 0, '2026-08-01T00:10:00Z'::timestamptz,
+           '2026-08-01T02:00:00Z'::timestamptz + value * interval '1 second'
+      from generate_series(1, 101) value;
+  `);
+  const webPool = await createPool("waw_task6_web");
+  try {
+    const store = new PostgresDashboardStore(webPool);
+    const first = await store.readGameIncidentHistory({
+      limit: 100,
+      memberLabel: "Task6 Page",
+    });
+    assert.equal(first.entries.length, 100);
+    assert.ok(first.nextCursor);
+    assert.equal(first.entries[0]?.incidentId, "task6-page-incident-101");
+    const second = await store.readGameIncidentHistory({
+      limit: 100,
+      cursor: first.nextCursor,
+      memberLabel: "Task6 Page",
+    });
+    assert.equal(second.entries.length, 1);
+    assert.equal(second.entries[0]?.incidentId, "task6-page-incident-001");
+    assert.equal(second.nextCursor, undefined);
+    assert.deepEqual(
+      (await store.readGameStacks()).entries.find((entry) => entry.memberLabel === "Task6 Page"),
+      { memberLabel: "Task6 Page", stack: 101 },
+    );
+    await assert.rejects(
+      webPool.query(
+        "update game_incident set status = 'cancelled' where incident_id = 'task6-page-incident-001'",
+      ),
+      /permission denied/,
+    );
+    await assert.rejects(
+      webPool.query(
+        `insert into game_incident_revision (
+          revision_id, incident_id, operation_id, actor_id, action,
+          previous_status, next_status, reason, occurred_at
+        ) values ('forbidden','task6-page-incident-001','missing','web','cancel',
+                  'confirmed','cancelled','forbidden',now())`,
+      ),
+      /permission denied/,
+    );
+  } finally {
+    await webPool.end();
+  }
+});
+
+test("admin incident mutation commits and rolls back operation, revision, result and audit atomically", async () => {
+  await adminPool.query(`
+    create role waw_task6_bot login;
+    grant waw_bot to waw_task6_bot;
+    insert into riot_game (game_key, platform_id, game_id, queue_id, started_at)
+    values
+      ('KR:task6-admin-success','KR','task6-admin-success',420,'2026-08-01T03:00:00Z'),
+      ('KR:task6-admin-rollback','KR','task6-admin-rollback',420,'2026-08-01T03:00:00Z'),
+      ('KR:task6-discord','KR','task6-discord',420,'2026-08-01T03:00:00Z');
+    insert into game_incident (
+      incident_id, game_key, discord_user_id, status, comparison_state,
+      policy_version, version, created_at, updated_at
+    ) values
+      ('task6-admin-success','KR:task6-admin-success','task6-member','confirmed','violation',1,4,now(),now()),
+      ('task6-admin-rollback','KR:task6-admin-rollback','task6-member','confirmed','violation',1,2,now(),now()),
+      ('task6-discord','KR:task6-discord','task6-member','confirmed','violation',1,0,now(),now());
+  `);
+  const botPool = await createPool("waw_task6_bot");
+  const store = new PostgresFeatureStore(botPool);
+  try {
+    const occurredAt = new Date("2026-08-01T04:00:00.000Z");
+    assert.equal(await store.mutateAdminIncidentWithAudit({
+      operationId: "task6-admin-success-op",
+      incidentId: "task6-admin-success",
+      expectedVersion: 4,
+      actorId: "task6-administrator",
+      action: "correct",
+      reason: "disposable PostgreSQL 오탐 정정",
+      occurredAt,
+      commandName: "game_incident_correct",
+    }), "updated");
+    assert.equal(await store.mutateAdminIncidentWithAudit({
+      operationId: "task6-admin-success-op",
+      incidentId: "task6-admin-success",
+      expectedVersion: 4,
+      actorId: "task6-administrator",
+      action: "correct",
+      reason: "재전송",
+      occurredAt,
+      commandName: "game_incident_correct",
+    }), "duplicate_operation");
+    const committed = await adminPool.query<{
+      status: string; version: string; revisions: string; results: string; audits: string;
+    }>(`
+      select status, version::text,
+        (select count(*)::text from game_incident_revision where operation_id='task6-admin-success-op') revisions,
+        (select count(*)::text from admin_command_result where operation_id='task6-admin-success-op') results,
+        (select count(*)::text from audit_event where operation_id='task6-admin-success-op') audits
+      from game_incident where incident_id='task6-admin-success'
+    `);
+    assert.deepEqual(committed.rows, [{
+      status: "corrected", version: "5", revisions: "1", results: "1", audits: "1",
+    }]);
+
+    await adminPool.query(`
+      create function task6_reject_admin_result() returns trigger language plpgsql as $$
+      begin
+        if new.operation_id = 'task6-admin-rollback-op' then
+          raise exception 'task6 synthetic terminal result failure';
+        end if;
+        return new;
+      end $$;
+      create trigger task6_reject_admin_result before insert on admin_command_result
+        for each row execute function task6_reject_admin_result()
+    `);
+    try {
+      await assert.rejects(store.mutateAdminIncidentWithAudit({
+        operationId: "task6-admin-rollback-op",
+        incidentId: "task6-admin-rollback",
+        expectedVersion: 2,
+        actorId: "task6-administrator",
+        action: "cancel",
+        reason: "rollback 검증",
+        occurredAt,
+        commandName: "game_incident_cancel",
+      }), PersistenceError);
+    } finally {
+      await adminPool.query(`
+        drop trigger task6_reject_admin_result on admin_command_result;
+        drop function task6_reject_admin_result()
+      `);
+    }
+    const rolledBack = await adminPool.query<{
+      status: string; version: string; operations: string; revisions: string;
+      results: string; audits: string;
+    }>(`
+      select status, version::text,
+        (select count(*)::text from operation_ledger where operation_id='task6-admin-rollback-op') operations,
+        (select count(*)::text from game_incident_revision where operation_id='task6-admin-rollback-op') revisions,
+        (select count(*)::text from admin_command_result where operation_id='task6-admin-rollback-op') results,
+        (select count(*)::text from audit_event where operation_id='task6-admin-rollback-op') audits
+      from game_incident where incident_id='task6-admin-rollback'
+    `);
+    assert.deepEqual(rolledBack.rows, [{
+      status: "confirmed", version: "2", operations: "0", revisions: "0",
+      results: "0", audits: "0",
+    }]);
+
+    assert.equal(await store.mutateWithAudit({
+      operationId: "task6-discord-op",
+      incidentId: "task6-discord",
+      expectedVersion: 0,
+      actorId: "task6-administrator",
+      authorizationTier: "administrator",
+      action: "cancel",
+      reason: "Discord 경로 회귀",
+      occurredAt,
+    }), "updated");
+    const discord = await adminPool.query<{ status: string; revisions: string; results: string }>(`
+      select status,
+        (select count(*)::text from game_incident_revision where operation_id='task6-discord-op') revisions,
+        (select count(*)::text from admin_command_result where operation_id='task6-discord-op') results
+      from game_incident where incident_id='task6-discord'
+    `);
+    assert.deepEqual(discord.rows, [{ status: "cancelled", revisions: "1", results: "0" }]);
+  } finally {
     await botPool.end();
   }
 });

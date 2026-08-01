@@ -1,8 +1,136 @@
 # 프로젝트 상태
 
-마지막 갱신일: 2026-07-31
+마지막 갱신일: 2026-08-01
 
 ## 현재 단계
+
+2026-08-01 PLAN-0016 Gate A read-only production preflight를 PASS했다. 첫 시도의
+잘못된 source archive 입력값이 실제 `package-lock.json` hash임을 확인해 fail-closed한
+뒤 exact production archive hash를
+`e0ea44670f933bc62d90170e4e86587c29019a61fdc5ef8d9163f30572cdebfb`로 교정했다.
+Owner가 Termius SSH와 sudo 인증을 직접 완료한 후 current/previous release, PostgreSQL
+17.6·schema 11·accepted ledger·15/60 connections, 24시간 이내 published backup,
+service/timer/alarm/canonical health, web/bot/PUBLIC grant, Admin IPC metadata와 최근
+journal canary를 비민감 집계값으로 확인했다. Exact candidate의 격리 Linux asset 및
+rollback fixture와 migration ledger test도 PASS했다. 상세 증거는
+`docs/operations/plan-0016-game-dashboard-gate-a-result-2026-08-01.md`에 있다. Gate B–D와
+실제 사건 mutation은 실행하지 않았고 production 변경은 `0`이다.
+
+2026-08-01 clean application candidate를
+`f469c19029d139267fced0ffcb289aabe20132fc` (`f469c19029d1`)로 고정했다. Exact
+source archive SHA-256은
+`e0ea44670f933bc62d90170e4e86587c29019a61fdc5ef8d9163f30572cdebfb`, lockfile은
+`466d9e633206ac07c6ed216bde1a481a27a95c6d7bc8d56e994a973835408803`, migration
+0012 LF archive는 `188395af5cf3cbc55b3ca796143f3be9f5ac9381b7df9fcddb191bd9a24db07c`다.
+Exact archive의 Linux application asset과 rollback fixture가 PASS했다. Gate A와
+관련 read-only production preflight는 완료됐고 Gate B–D는 미승인이다. Maintenance
+window와 운영 담당자 지정은 후속 gate 전에 남아 있다.
+
+2026-08-01 PLAN-0016 release 준비에서 Git index exact archive의 Linux application
+asset·rollback fixture를 재검증했다. Windows worktree 실패는 systemd asset의 CRLF
+checkout 때문이었으며 `.gitattributes`에 systemd/Caddy LF 계약을 고정했다. Index
+archive에서는 두 fixture가 PASS했고 전체 local `311 pass / 8 PostgreSQL host-tool
+skips / 0 fail`, browser `2/2`, audit 0 vulnerabilities, typecheck/build/diff가 PASS했다.
+Production과 외부 서비스 접근은 `0`이다.
+
+2026-08-01 PLAN-0016 Task 7과 전체 계획을 완료했다. 검거 대시보드 운영·보안·health·
+장애·rollback runbook 및 production handoff를 작성했고, Gate A read-only preflight,
+Gate B backup/restore와 migration 0012, Gate C IPC-off immutable release, Gate D
+administrator IPC activation을 독립 승인으로 분리했다. 현재 dirty tree는 release
+candidate가 아니며 모든 gate와 최초 실제 mutation은 `Not approved`다. 문서 contract
+`3/3`이 checksum, default-off capability, rollback과 금지사항을 검증했다. Production
+변경은 `0`이다. 다음 단계는 owner가 Gate A만 별도로 승인할지 결정하는 것이며 자동
+production 진행은 없다.
+
+2026-08-01 PLAN-0016 Task 6를 완료했다. PostgreSQL 17 disposable container에서
+migration 0012, game read RLS/grant, web write deny, 101건 stable cursor와 stack,
+dashboard incident mutation의 operation·incident·revision·terminal result·audit
+원자성을 검증했다. Terminal result 강제 실패는 모든 row와 사건 version을 rollback했고
+duplicate operation 및 기존 Discord mutation 회귀도 통과했다. Chromium에서 관리자
+정정 keyboard flow와 desktop/mobile axe를 검증했다. PostgreSQL container 전체
+`325 pass / 7 external-fixture skips / 0 fail`, PostgreSQL file `16/16`, browser
+`2/2`, local `308 pass / 8 host-tool skips / 0 fail`, typecheck/build/diff가 PASS했다.
+추가 index migration은 필요하지 않았고 production DB·service·credential·실제 사건
+변경은 `0`이다. 다음 bounded 작업은 PLAN-0016 Task 7 문서와 별도 production gate다.
+
+2026-08-01 PLAN-0016 Task 5를 완료했다. 사건 정정·취소 HTTP route를 기존
+high-risk session boundary와 Task 4 admin IPC port에 연결했다. Current
+administrator, exact Origin·CSRF, 15분 recent OAuth, explicit confirmation,
+1~500자 단일행 reason과 exact incident version을 요구한다. 몰랭 UI는 관리자에게만
+정정·취소 control을 표시하고 별도 확인 checkbox 뒤 한 번만 전송한다. Stale
+snapshot은 history를 refresh하고 timeout은 새 operation을 보내지 않도록 안내한다.
+Targeted HTTP/port/API `26/26`, UI `21/21`, browser keyboard·axe `2/2`, 전체
+`308 pass / 8 external PostgreSQL skips / 0 fail`, typecheck와 build가 PASS했다.
+Production DB·socket·service·실제 사건 데이터 변경은 `0`이며 다음 bounded 작업은
+PLAN-0016 Task 6 disposable PostgreSQL/browser 통합이다.
+
+2026-08-01 PLAN-0016 Task 4를 완료했다. 관리자 IPC에 exact versioned
+`game_incident_correct|cancel` 계약을 추가하고 reason 1~500자, explicit confirmation,
+optimistic version을 검증한다. Bot application은 사건 target 접근 전에 Discord의
+current administrator를 재확인한다. 기존 `PostgresFeatureStore` 사건 transaction을
+공유해 incident 상태, revision, audit와 terminal `admin_command_result`를 원자적으로
+기록하며 duplicate와 timeout 후 `operation_status` reconciliation을 지원한다.
+Migration 0012는 local artifact로만 추가했고 production DB, socket, service와 실제
+사건 데이터 변경은 `0`이다. 다음 bounded 작업은 PLAN-0016 Task 5다.
+
+2026-08-01 PLAN-0016 Task 3를 완료했다. Dashboard에 lazy-loaded `몰랭` tab을
+추가해 스택, 진행 중 게임과 사건 이력을 표시하고 상태·사용자 표시명 filter,
+opaque cursor 이전/다음, loading/empty/error/retry 상태를 제공한다. Riot과 Go
+Live는 별도 상태·관측시각이며 `알 수 없음`, `시각 없음`, `오래됨`을 색상 외
+텍스트로 표시한다. Filter URL에는 raw Discord ID와 PUUID가 없다. Targeted
+`22/22`, 전체 test `297 pass / 8 external PostgreSQL skips / 0 fail`, browser
+axe/keyboard `2/2`, typecheck, server/web build와 `git diff --check`가 PASS했다.
+첫 browser 실행에서 기존 login test만 Windows Edge 경로를 재사용하지 않아
+Playwright Chromium 부재로 실패했으며 harness를 동일 Edge 경로로 고친 재실행은
+`2/2` PASS했다. Effective freshness API는 아직 없으므로 현재 accepted production
+값 3분을 UI의 오래됨 표시 기준으로 사용하며 Task 4 전까지 read-only다. IPC,
+mutation, migration, production과 실제 데이터 변경은 `0`이고 다음 작업은 Task 4다.
+
+2026-08-01 PLAN-0016 Task 2를 완료했다. Task 1의 스택, 진행 게임과 사건 이력을
+`/api/game/stacks`, `/api/game/active`, `/api/game/incidents` read API와 production
+dashboard port에 연결했다. Operator와 administrator는 기존 current-role 또는
+최대 5분 read cache 계약으로 조회하고, 미인증·권한 없음·만료 cache 또는 role
+service unavailable은 port 호출 전에 `401/403/503`으로 닫는다. Response schema는
+내부 추가 field를 직렬화하지 않으며 history query는 coercion 없이 limit `1..100`,
+cursor, 상태와 표시명만 허용한다. Targeted `28/28`, 전체 test
+`293 pass / 8 external PostgreSQL skips / 0 fail`, typecheck, server/web build와
+`git diff --check`가 PASS했다. UI, IPC, migration, production과 실제 데이터 변경은
+`0`이며 다음 bounded 작업은 Task 3 몰랭 UI read slice다.
+
+2026-08-01 Owner가 ADR-0030의 web read model + 기존 관리자 Unix socket 확장과
+high-risk 사건 변경 경계를 승인해 Accepted로 전환했고 PLAN-0016을 승인했다.
+Task 1은 dashboard용 스택, 진행 중 관측, cursor 사건 이력의 allowlisted DTO와
+PostgreSQL query를 구현했다. Riot/Go Live 상태·관측시각을 분리하고 PUUID,
+Discord ID와 evidence 내부값은 DTO에서 제외했다. 사건과 특정 Riot link를 잇는
+schema가 없으므로 활성 link가 정확히 하나일 때만 현재 Riot ID를 표시하고 그
+외에는 `null`로 닫는다. 동일 `updated_at`은 `incident_id` tie-break cursor로
+페이지 누락을 막는다. Targeted `15/15`, 전체 test
+`290 pass / 8 external PostgreSQL skips / 0 fail`, typecheck, server/web build와
+`git diff --check`가 PASS했다. Production, HTTP/UI/IPC, migration과 실제 데이터
+변경은 `0`이며 다음 bounded 작업은 PLAN-0016 Task 2다.
+
+2026-08-01 한글 Riot tag line이 `/라이엇계정 연결` 입력과 Account-v1 승인
+validator에서 영문·숫자 전용 정규식에 의해 DB 저장 전에 거부되던 결함을
+수정했다. 구조 구분자와 제어문자, 기존 길이 제한은 유지하면서 Unicode tag를
+허용하고 URL encoding 뒤 Riot Account API의 exact 응답 일치로 승인한다.
+`simsul복숭아#심복타도` command/API 회귀를 포함한 targeted test `18/18`,
+전체 test `286 pass / 8 external PostgreSQL skips / 0 fail`, typecheck와
+server/web build가 PASS했다. Production DB, credential, 배포와 실제 계정
+mutation은 `0`이다.
+제품 정책에 있으나 web에 없는 검거 화면은 `ADR-0030` Proposed와 승인 조건부
+`PLAN-0016` Draft로 분리했다. ADR 승인 전 dashboard 구현은 시작하지 않는다.
+
+2026-07-31 PLAN-0014 Task 7 production activation을 완료했다. Exact candidate
+`4f8832124f194e92a29003eb7f8c7056bce5e60b`의 encrypted backup/empty
+PostgreSQL 17 restore, schema `10→11`, stage와 production tree 동일성을
+확인했고 최종 current `4f8832124f19`, previous `19ea83925f6b`다. Effective
+observation/reconciliation/freshness는 `1/120000/180000`, schema `11`,
+loopback/canonical health, Gateway connected와 240초의 5개 fresh checkpoint,
+backup/monitor timer가 PASS했다. 관측 구간에는 active target이 없어
+sanitized Voice row 검증은 `NO_ACTIVE_TARGET`로 남았으며 실제 경기 smoke가
+후속 gate다. Production merge가 자동 deploy를 시작한 문제는 build 중 취소하고
+잔여 release/temp를 정리했으며, 자동 deploy 승인 경계 수정은 별도 후속
+architecture task로 분리한다.
 
 2026-07-31 PLAN-0014 Tasks 1~6 local/disposable 구현을 완료했다. Discord
 Voice source 관측시각과 Riot poll 시각을 분리하고, 3분 stale active/inactive를
@@ -17,6 +145,135 @@ server/web build와 11 migration asset copy가 PASS했다. Docker daemon이 꺼�
 container wrapper는 실행되지 않았지만 host PostgreSQL 17 fixture로 같은 신규
 schema/store 경계를 검증했다. Production 접근, migration 적용, 배포, restart와
 외부 API 호출은 `0`이며 Task 7 exact production gate만 남아 있다.
+
+2026-07-31 PLAN-0015 production human SSH 전환을 완료했다. Human owner가
+Termius `waw-operator`와 별도 passphrase-protected Ed25519 key의 fresh login/
+sudo, `PermitRootLogin no`, `DisableForwarding yes`, fail2ban `sshd` jail과
+최종 host read-back을 확인했다. GitHub no-mutation SSH preflight도
+owner-confirmed PASS지만 exact run ID는 미기록이다. Existing GitHub deploy
+account/key와 exact-commit path는 불변이다. Owner 결정으로 SSH port 22와
+Lightsail any IPv4/IPv6 source를 유지해 firewall stage는 DEFERRED, mutation
+`0`이다. CloudShell/browser SSH는 break-glass이고 AI agent external-terminal
+input은 `0`이다. TEMP handoff는 제거하고 README, inventory, runbook, ADR/PLAN
+문서를 verified 결과에 맞췄다.
+
+2026-07-31 Owner가 PLAN-0015 Stage 2~8의 남은 실행을 모두 승인했다. Human
+owner가 통합 Git 비추적 handoff를 순서대로 직접 입력하며, 각 stage 검증 실패
+시 다음으로 진행하지 않고 해당 rollback만 수행한다. Stage 7 firewall은 stable
+source CIDR을 Owner가 화면에서 exact 확인한 family만 적용하고 미확인 family는
+DEFERRED한다. AI agent external input과 GitHub deploy/application/data 변경은
+계속 금지된다.
+
+Stage 3 첫 실행에서 `waw-operator` login 검증 전에 rollback 명령까지 순차
+실행했고, 새 account session에서 자기 account/home을 삭제해 session이 종료됐다.
+기존 `ubuntu` recovery path는 정상이고 read-only postcondition에서 account,
+home과 sudo membership 모두 absent여서 rollback은 PASS다. Human key는 local에
+유지된다. 재발 방지를 위해 corrected retry는 success path만 별도 TEMP 문서에
+두고, placeholder 대신 validated interactive public-key input을 사용하며 rollback
+명령을 제거했다. Stage 3 retry는 새 exact 승인 대기다.
+
+Corrected Stage 3 retry preflight는 `STOP account_exists`, exit `1`로 안전하게
+중단됐다. 직전 rollback postcondition은 absent였으므로 account가 다시 생성된
+시점과 partial state는 미확정이다. Install, delete와 login retry를 하지 않고
+기존 `ubuntu` recovery session에서 account/home/key/sudo/password metadata만
+읽는 별도 check를 준비했다.
+
+후속 read-only 확인에서 `waw-operator` account는 존재하지만
+`/home/waw-operator/.ssh/authorized_keys`가 absent인 partial Stage 3 상태를
+확정했다. Mac human key pair는 유지되고 fingerprint 값은 저장하지 않았다.
+Account 재생성 없이 기존 `ubuntu` recovery session에서 missing human public
+key만 mode `0700`/`0600`으로 설치하고 local/remote fingerprint를 owner가
+직접 비교하는 최소 repair handoff를 준비했다.
+
+Human owner가 missing public key repair를 완료하고 Termius의 human private
+key로 `waw-operator` SSH login에 성공했다. Existing `ubuntu` recovery path와
+GitHub deploy identity는 유지된다. Stage 3 완료 판정에는 새 session의 identity와
+sudo password 검증이 남아 있으며, PASS 전에는 root login hardening으로
+진행하지 않는다.
+
+Owner가 새 `waw-operator` Termius session에서 identity와 sudo password 검증을
+완료해 PLAN-0015 Stage 3을 PASS로 종료했다. Stage 1 inventory, Stage 2 human
+key와 Stage 3 account/key/login/sudo가 완료됐다.
+
+첫 Stage 4 apply는 첫 sudo preflight에서
+`waw-operator is not in the sudoers file`, exit `1`로 STOPPED됐다. 따라서
+`60-waw-root-login.conf` 생성, sshd reload와 다른 production mutation은 `0`이다.
+Stage 3 완료 보고와 달리 effective sudo authorization이 새 session에서
+검증되지 않은 상태였으므로 기존 `ubuntu` recovery session에서 sudo group
+membership/`visudo`/`sudo -l`을 보정하고 모든 `waw-operator` session을 새로
+열어 supplementary group과 `sudo -v`를 재검증하는 Stage 3A를 final handoff
+앞에 추가했다.
+
+Stage 3A 보정 뒤 Stage 5 새 human login은 PASS/exit `0`이다. 이어 확인 결과
+양식 `workflow=Preflight production SSH`를 SSH shell에 붙여 넣어 shell이
+`production`을 command로 해석했지만 host mutation은 없고 GitHub workflow도
+실행되지 않았다. Result template를 terminal paste 금지로 더 명확히 표시했으며,
+Stage 5 GitHub no-mutation preflight는 GitHub Actions UI에서 human owner가
+manual dispatch해야 한다.
+
+Stage 6 package install 첫 시도는 child heredoc이 stdin을 소유한 상태에서
+interactive `apt-get install` confirmation을 요청해 EOF/`Abort`, exit `1`로
+STOPPED됐다. Owner 입력으로 `n`이 선택된 것이 아니다. `apt-get update`는
+실행됐을 수 있으나 fail2ban install과 jail apply 완료 증거는 없다. 6B jail
+block은 중단하고, corrected 6A는 approved package scope에서
+`DEBIAN_FRONTEND=noninteractive`와 `-y`를 명시하며 package read-back 전에는
+6B로 진행하지 않는다.
+
+Owner는 관리 network/device source 제한을 운영하지 않기로 결정했다. SSH port
+변경은 public source restriction을 대체하지 못하고 기존 GitHub deploy/preflight
+기본 port 22 경로만 복잡하게 하므로 port 22와 현재 any IPv4/IPv6 Lightsail
+rule을 유지한다. Stage 7은 `DEFERRED BY OWNER`이며 firewall mutation은 `0`이다.
+Key-only auth, root login deny, forwarding deny, separated human/deploy keys,
+fail2ban과 browser SSH break-glass를 보완 통제로 유지하고 Stage 8 final
+read-back으로 진행한다.
+
+2026-07-31 Human owner의 승인된 PLAN-0015 Task 1 read-only inventory 1회는 SSH
+session disconnect로 `STOPPED`됐다. Production mutation은 보고되지 않았지만
+독립 검증하지 못했다. 제공한 block이 login shell에 `set -eu`를 직접 적용해
+read-only command의 non-zero exit가 shell 자체를 종료할 수 있던 handoff 결함을
+확인했다. Termius one-shot/session 동작과 transport failure는 아직 배제하지
+못했다. 승인된 1회는 소비됐으며 마지막 출력 stage 확인, subshell 격리와 새
+exact 승인 전에는 retry하지 않는다.
+
+Owner는 즉시 재접속이 정상이고 multi-line paste 직후 결과를 보기 전에 session이
+종료된 느낌이었다고 확인했다. Corrected Stage 1은 strict mode를 child `bash`
+heredoc 안에 격리하고 expected absent/inactive read를 명시적으로 허용해 child
+exit를 기존 Termius shell에 반환한다. Scope는 동일한 read-only이고 새 exact
+retry 승인은 아직 대기 중이다.
+
+Owner가 corrected Stage 1을 Termius에서 한 번 실행해 child exit `0`, mutation
+`0`으로 PASS했다. Ubuntu 24.04, SSH active, public-key auth enabled,
+password/keyboard-interactive disabled, root key login 허용, X11/TCP forwarding
+허용, `waw-operator`와 fail2ban 부재를 확인했다. Listener port는 22/53/80/443/
+18080이고 bind scope는 보존하지 않아 미확인이다. Owner가 기존 `ubuntu` key
+fingerprint를 확인하고 값은 전달하지 않았다. Lightsail console의 단일 visible
+TCP 22/80/443 rule은 모두 any IPv4 or IPv6를 허용했고 visible duplicate 22
+rule은 없었다. Stage 2 human key 생성은 별도 실행 승인 대기다.
+
+2026-07-31 Owner가 PLAN-0015의 모든 Task와 전체 작업 순서를 승인했다. 이
+승인은 계획 승인이고 각 production stage의 실행 승인은 계속 분리한다. 전체
+human-executed command/console action, verify, stop과 rollback 순서를 하나의
+Git 비추적 TEMP handoff로 제공하며 AI agent는 외부 terminal에 입력하지 않는다.
+
+2026-07-31 Owner가 PLAN-0015 Task 1 production read-only inventory를 승인했다.
+Human owner가 Git 비추적
+`TEMP_PLAN_0015_TASK_1_READONLY_INVENTORY.md`의 exact command set을 한 번
+직접 실행하고 redacted 결과만 전달한다. 승인 범위는 OS/SSH/account key
+fingerprint/fail2ban/listener와 Lightsail IPv4/IPv6 firewall read뿐이며,
+production mutation과 AI agent의 external terminal 입력은 `0`이다.
+
+2026-07-31 Owner가 PLAN-0015를 Approved로 확정했다. 모든 production 단계는
+실행 전 별도 exact 승인을 받고, AI agent는 Git 비추적 `TEMP_*.md` 명령 set만
+제공하며 human owner가 직접 입력한다. 첫 단계는 production mutation 없는
+Task 1 read-only inventory이고, exact 승인 전에는 외부 접속·명령을 실행하지
+않는다.
+
+2026-07-31 Owner가 production human SSH 운영 경로를 승인해 ADR-0029를
+Accepted로 전환했다. 기존 GitHub Actions deploy account/key와 exact-commit
+배포는 유지하고, Termius는 별도 `waw-operator` Linux account와 human-only
+SSH key를 사용한다. AI agent의 production·CloudShell·external terminal 입력은
+금지하며 CloudShell은 break-glass로만 유지한다. PLAN-0015는 Draft이고,
+production 접속·명령·dependency 설치·host/firewall mutation은 `0`이다.
 
 2026-07-30 PLAN-0013 exact release
 `19ea83925f6b27f66c924e2b1860a3c5d0904a89` production 배포와 관측 활성화를

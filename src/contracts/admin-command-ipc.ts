@@ -7,6 +7,8 @@ export type AdminCommandName =
   | "riot_link_request_approve"
   | "riot_link_request_reject"
   | "riot_link_remove"
+  | "game_incident_correct"
+  | "game_incident_cancel"
   | "operation_status";
 
 type RequestBase = {
@@ -40,6 +42,24 @@ export type AdminCommandRequest =
       payload: { linkId: string; expectedVersion: number; confirmation: true };
     })
   | (RequestBase & {
+      command: "game_incident_correct";
+      payload: {
+        incidentId: string;
+        expectedVersion: number;
+        reason: string;
+        confirmation: true;
+      };
+    })
+  | (RequestBase & {
+      command: "game_incident_cancel";
+      payload: {
+        incidentId: string;
+        expectedVersion: number;
+        reason: string;
+        confirmation: true;
+      };
+    })
+  | (RequestBase & {
       command: "operation_status";
       payload: { operationId: string };
     });
@@ -56,6 +76,8 @@ export type AdminCommandReasonCode =
   | "riot_link_request_unavailable"
   | "riot_link_not_found"
   | "riot_link_stale"
+  | "game_incident_not_found"
+  | "game_incident_stale"
   | "riot_active_puuid_conflict"
   | "invalid_puuid"
   | "platform_mismatch"
@@ -91,6 +113,10 @@ export type AdminCommandResponse =
             status: "approved" | "rejected";
           }
         | { kind: "riot_link_removal"; status: "removed" }
+        | {
+            kind: "game_incident_mutation";
+            status: "corrected" | "cancelled";
+          }
         | {
             kind: "operation_status";
             status: "success" | "denied" | "conflict" | "failure" | "unknown";
@@ -140,6 +166,8 @@ const reasonCodes = new Set<AdminCommandReasonCode>([
   "riot_link_request_unavailable",
   "riot_link_not_found",
   "riot_link_stale",
+  "game_incident_not_found",
+  "game_incident_stale",
   "riot_active_puuid_conflict",
   "invalid_puuid",
   "platform_mismatch",
@@ -301,6 +329,14 @@ function parsePayload(
       "command" | "payload"
     >
   | Pick<
+      Extract<AdminCommandRequest, { command: "game_incident_correct" }>,
+      "command" | "payload"
+    >
+  | Pick<
+      Extract<AdminCommandRequest, { command: "game_incident_cancel" }>,
+      "command" | "payload"
+    >
+  | Pick<
       Extract<AdminCommandRequest, { command: "operation_status" }>,
       "command" | "payload"
     >
@@ -371,6 +407,35 @@ function parsePayload(
           confirmation: true,
         },
       };
+    case "game_incident_correct":
+    case "game_incident_cancel":
+      if (
+        !hasExactKeys(value, [
+          "confirmation",
+          "expectedVersion",
+          "incidentId",
+          "reason",
+        ]) ||
+        value.confirmation !== true ||
+        !isPattern(value.incidentId, entityIdPattern) ||
+        !isVersion(value.expectedVersion) ||
+        typeof value.reason !== "string" ||
+        value.reason !== value.reason.trim() ||
+        value.reason.length < 1 ||
+        value.reason.length > 500 ||
+        /[\0\r\n]/u.test(value.reason)
+      ) {
+        return undefined;
+      }
+      return {
+        command,
+        payload: {
+          incidentId: value.incidentId,
+          expectedVersion: value.expectedVersion,
+          reason: value.reason,
+          confirmation: true,
+        },
+      };
     case "operation_status":
       if (
         !hasExactKeys(value, ["operationId"]) ||
@@ -396,6 +461,12 @@ function parseResult(
   }
   if (value.kind === "riot_link_removal") {
     return hasExactKeys(value, ["kind", "status"]) && value.status === "removed"
+      ? { kind: value.kind, status: value.status }
+      : undefined;
+  }
+  if (value.kind === "game_incident_mutation") {
+    return hasExactKeys(value, ["kind", "status"]) &&
+      (value.status === "corrected" || value.status === "cancelled")
       ? { kind: value.kind, status: value.status }
       : undefined;
   }

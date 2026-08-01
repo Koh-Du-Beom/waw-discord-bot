@@ -24,12 +24,38 @@ activation remain separate gates.
 Repository variables contain only `LIGHTSAIL_HOST` and `LIGHTSAIL_USER`.
 Repository secrets contain `LIGHTSAIL_DEPLOY_SSH_KEY` and
 `LIGHTSAIL_SSH_KNOWN_HOSTS`; they must never be printed. The deploy key is not a
-human operator key. The named human operator path remains the break-glass
-fallback.
+human operator key.
 
 Use
 `docs/operations/first-production-promotion-activation-checklist.md` for the
 first promotion and evidence record.
+
+## Human SSH operations
+
+Normal human host operations use Termius with Linux account `waw-operator` and
+a passphrase-protected human-only Ed25519 key. This identity must not reuse,
+import or rotate the GitHub deploy private key. AI agents do not enter commands
+in production SSH, CloudShell, GitHub or external-service terminals; they may
+prepare a root-level Git-untracked `TEMP_*.md` command handoff for the human
+owner.
+
+The verified host boundary is:
+
+- public-key authentication enabled;
+- password and keyboard-interactive authentication disabled;
+- `PermitRootLogin no`;
+- `DisableForwarding yes`;
+- fail2ban `sshd` jail active;
+- TCP 22 retained for both Termius and GitHub exact-commit deployment;
+- Lightsail TCP 22 source retained as any IPv4/IPv6 by owner decision;
+- Lightsail browser SSH and CloudShell retained only for break-glass recovery.
+
+Changing the SSH port or source rule is not part of normal application
+deployment. Keep an existing recovery session open while changing SSH
+authentication, validate with `sshd -t`, reload rather than restart, and prove
+a fresh `waw-operator` login plus the GitHub no-mutation SSH preflight before
+closing recovery access. On any failure, stop and use only the failing stage's
+pre-recorded rollback; do not continue through a command handoff sequentially.
 
 ## G5 approval record
 
@@ -207,6 +233,20 @@ healthy.
 
 Root is break-glass only. Record reason, start/end and action names without
 account IDs, tokens, session identifiers or secret material, then log out.
+
+## PLAN-0016 검거 대시보드 release 경계
+
+검거 대시보드의 migration 0012, immutable release와 admin IPC activation은 하나의
+일반 application deployment로 묶지 않는다. 정확한 Gate A–D 순서, stop 조건,
+capability diff와 rollback은
+`docs/operations/plan-0016-game-dashboard-production-gate-handoff-2026-08-01.md`를
+따른다. 정상 운영과 장애 대응은
+`docs/operations/game-enforcement-dashboard-runbook.md`를 따른다.
+
+PLAN-0016 완료나 이 runbook의 존재는 production 연결, backup 생성, migration,
+release activation, unit restart, feature flag 변경 또는 실제 사건 mutation을 승인하지
+않는다. Migration 0012는 별도 fresh backup/restore gate 뒤 적용하고 admin IPC는
+default `0` release가 건강한 뒤 다시 별도 승인한다.
 
 ## Public ingress activation
 

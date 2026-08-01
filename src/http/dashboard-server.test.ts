@@ -81,6 +81,9 @@ function ports(overrides: Partial<DashboardHttpPorts> = {}): DashboardHttpPorts 
     readDisplayName: async () => "Fixture Operator",
     readOverview: async () => overview,
     readActiveRiotLinks: async () => ({ links: [] }),
+    readGameStacks: async () => ({ entries: [] }),
+    readActiveGameObservations: async () => ({ entries: [] }),
+    readGameIncidentHistory: async () => ({ entries: [] }),
     readSettings: async () => settings,
     updateSettings: async () => ({
       kind: "updated",
@@ -92,6 +95,8 @@ function ports(overrides: Partial<DashboardHttpPorts> = {}): DashboardHttpPorts 
     approveRiotLink: async () => ({ message: "승인했습니다." }),
     rejectRiotLink: async () => ({ message: "거절했습니다." }),
     removeRiotLink: async () => ({ message: "연결을 해제했습니다." }),
+    correctGameIncident: async () => ({ message: "사건을 정정했습니다." }),
+    cancelGameIncident: async () => ({ message: "사건을 취소했습니다." }),
     ...overrides,
   };
 }
@@ -173,6 +178,262 @@ test("composes auth and protected read routes with allowlisted DTOs", async () =
   });
   assert.equal(logout.statusCode, 204);
   await app.close();
+});
+
+test("game read APIs allow operators and administrators with allowlisted responses", async () => {
+  for (const tier of ["operator", "administrator"] as const) {
+    const calls: string[] = [];
+    const observation = {
+      incidentId: "incident-1",
+      memberLabel: "등록 사용자",
+      riotId: null,
+      gameKey: "KR:game-1",
+      riotState: "active" as const,
+      riotObservedAt: "2026-08-01T00:05:00.000Z",
+      goLiveState: "unknown" as const,
+      goLiveObservedAt: null,
+      comparisonState: "unknown" as const,
+      incidentStatus: "open" as const,
+      expectedVersion: 2,
+      gameStartedAt: "2026-08-01T00:00:00.000Z",
+    };
+    const app = server({
+      auth: {
+        authorize: async (input) => {
+          assert.equal(input.kind, "read");
+          return authResponse(200, {
+            kind: "authorized",
+            actorId: "500",
+            authorizationTier: tier,
+            source: "current-role",
+          });
+        },
+      },
+      ports: {
+        async readGameStacks() {
+          calls.push("stacks");
+          return { entries: [{ memberLabel: "등록 사용자", stack: 1 }] };
+        },
+        async readActiveGameObservations() {
+          calls.push("active");
+          return { entries: [{ ...observation, leaked: "not-serialized" }] };
+        },
+        async readGameIncidentHistory(request) {
+          calls.push(`history:${request.limit}:${request.status}:${request.memberLabel}`);
+          return {
+            entries: [{
+              ...observation,
+              gameEndedAt: null,
+              incidentUpdatedAt: "2026-08-01T00:06:00.000Z",
+              leaked: "not-serialized",
+            }],
+          };
+        },
+      },
+    });
+
+    const requests = [
+      { url: "/api/game/stacks", call: "stacks" },
+      { url: "/api/game/active", call: "active" },
+      {
+        url: "/api/game/incidents?limit=25&status=open&memberLabel=%EB%93%B1%EB%A1%9D%20%EC%82%AC%EC%9A%A9%EC%9E%90",
+        call: "history:25:open:등록 사용자",
+      },
+    ];
+    for (const request of requests) {
+      const response = await app.inject({
+        method: "GET",
+        url: request.url,
+        headers: { cookie: sessionCookie },
+      });
+      assert.equal(response.statusCode, 200);
+      assert.equal(JSON.stringify(response.json()).includes("leaked"), false);
+      assert.equal(calls.at(-1), request.call);
+    }
+    await app.close();
+  }
+});
+
+test("game read APIs deny invalid roles and unavailable or expired role evidence before ports", async () => {
+  const denials = [
+    {
+      response: authResponse(401, { kind: "denied", reason: "session-invalid" }),
+      code: "unauthenticated",
+    },
+    {
+      response: authResponse(403, { kind: "denied", reason: "unauthorized" }),
+      code: "forbidden",
+    },
+    {
+      response: authResponse(503, { kind: "denied", reason: "unavailable" }),
+      code: "unavailable",
+    },
+  ] as const;
+  for (const denial of denials) {
+    let portCalls = 0;
+    const app = server({
+      auth: { authorize: async () => denial.response },
+      ports: {
+        async readGameStacks() { portCalls += 1; return { entries: [] }; },
+        async readActiveGameObservations() { portCalls += 1; return { entries: [] }; },
+        async readGameIncidentHistory() { portCalls += 1; return { entries: [] }; },
+      },
+    });
+    for (const url of [
+      "/api/game/stacks",
+      "/api/game/active",
+      "/api/game/incidents",
+    ]) {
+      const response = await app.inject({
+        method: "GET",
+        url,
+        headers: { cookie: sessionCookie },
+      });
+      assert.equal(response.statusCode, denial.response.statusCode);
+      assert.equal(response.json().error.code, denial.code);
+    }
+    assert.equal(portCalls, 0);
+    await app.close();
+  }
+});
+
+test("game incident read rejects malformed filters before the port", async () => {
+  let portCalls = 0;
+  const app = server({
+    ports: {
+      async readGameIncidentHistory() {
+        portCalls += 1;
+        return { entries: [] };
+      },
+    },
+  });
+  for (const url of [
+    "/api/game/incidents?limit=0",
+    "/api/game/incidents?limit=101",
+    "/api/game/incidents?status=invalid",
+    "/api/game/incidents?unexpected=true",
+  ]) {
+    const response = await app.inject({
+      method: "GET",
+      url,
+      headers: { cookie: sessionCookie },
+    });
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.json().error.code, "invalid_request");
+  }
+  assert.equal(portCalls, 0);
+  await app.close();
+});
+
+test("game incident mutation requires administrator high-risk authorization and exact body", async () => {
+  const authorizationCalls: Array<{ kind: string; explicitConfirmation?: boolean }> = [];
+  const mutations: string[] = [];
+  const app = server({
+    auth: {
+      async authorize(input) {
+        authorizationCalls.push(input);
+        return authResponse(200, {
+          kind: "authorized",
+          actorId: "administrator-1",
+          authorizationTier: "administrator",
+          source: "current-role",
+        });
+      },
+    },
+    ports: {
+      async correctGameIncident(input) {
+        mutations.push(`correct:${input.request.incidentId}:${input.request.expectedVersion}:${input.request.reason}`);
+        return { message: "사건을 정정했습니다." };
+      },
+      async cancelGameIncident() {
+        throw new HttpPortError("conflict", "game_incident_stale");
+      },
+    },
+  });
+  const correct = await app.inject({
+    method: "POST",
+    url: "/api/game/incidents/correct",
+    headers: mutationHeaders,
+    payload: {
+      incidentId: "incident:000001",
+      expectedVersion: 4,
+      reason: "오탐 정정",
+      confirmation: true,
+    },
+  });
+  assert.equal(correct.statusCode, 200);
+  const cancel = await app.inject({
+    method: "POST",
+    url: "/api/game/incidents/cancel",
+    headers: mutationHeaders,
+    payload: {
+      incidentId: "incident:000001",
+      expectedVersion: 3,
+      reason: "중복 사건",
+      confirmation: true,
+    },
+  });
+  assert.equal(cancel.statusCode, 409);
+  assert.deepEqual(mutations, ["correct:incident:000001:4:오탐 정정"]);
+  assert.deepEqual(
+    authorizationCalls.map((call) => [call.kind, call.explicitConfirmation]),
+    [["high-risk", true], ["high-risk", true]],
+  );
+
+  for (const payload of [
+    { incidentId: "incident:000001", expectedVersion: 4, reason: "오탐 정정" },
+    { incidentId: "incident:000001", expectedVersion: 4, reason: " ", confirmation: true },
+    { incidentId: "incident:000001", expectedVersion: 4, reason: "line\nbreak", confirmation: true },
+    { incidentId: "incident:000001", expectedVersion: 4, reason: "x".repeat(501), confirmation: true },
+  ]) {
+    const invalid = await app.inject({
+      method: "POST",
+      url: "/api/game/incidents/correct",
+      headers: mutationHeaders,
+      payload,
+    });
+    assert.equal(invalid.statusCode, 400);
+  }
+  await app.close();
+});
+
+test("game incident mutation denies operator and stale OAuth or CSRF before the port", async () => {
+  const denials = [
+    authResponse(200, {
+      kind: "authorized",
+      actorId: "operator-1",
+      authorizationTier: "operator",
+      source: "current-role",
+    }),
+    authResponse(403, { kind: "denied", reason: "recent-auth-required" }),
+    authResponse(403, { kind: "denied", reason: "csrf-invalid" }),
+  ];
+  for (const denial of denials) {
+    let calls = 0;
+    const app = server({
+      auth: { authorize: async () => denial },
+      ports: {
+        async correctGameIncident() {
+          calls += 1;
+          return { message: "unexpected" };
+        },
+      },
+    });
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/game/incidents/correct",
+      headers: mutationHeaders,
+      payload: {
+        incidentId: "incident:000001",
+        expectedVersion: 4,
+        reason: "오탐 정정",
+        confirmation: true,
+      },
+    });
+    assert.equal(response.statusCode, 403);
+    assert.equal(calls, 0);
+    await app.close();
+  }
 });
 
 test("Riot administrator routes require current admin, CSRF, recent auth, confirmation and version", async () => {
