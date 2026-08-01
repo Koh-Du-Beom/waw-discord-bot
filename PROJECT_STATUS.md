@@ -4,6 +4,16 @@
 
 ## 현재 단계
 
+2026-08-02 owner가 PLAN-0016 Gate B의 fresh encrypted backup, empty-target restore와
+migration 0012를 승인했다. Gate A 핵심 상태를 재검증한 뒤 production
+`waw-backup.service` one-shot을 한 번 실행했고 schema 11, encrypted bytes `101036`,
+expected row count `300`, archive SHA-256
+`9f66ba4551a73c036047884cf5fb6bade48851116a18af92352787a22fc22097`로 publication이
+성공했다. 현재 Windows에는 offline age identity/age 도구가 없고 Docker engine도
+실행 중이 아니어서 restore verification 전에 fail-closed했다. Migration 0012,
+release/flag/service 변경은 실행하지 않았다. 상세 결과는
+`docs/operations/plan-0016-game-dashboard-gate-b-result-2026-08-02.md`에 있다.
+
 2026-08-01 PLAN-0016 GitHub Actions 승격 준비에서 production 이력을 기준으로
 `release/plan-0016-production-candidate`와 PR #8을 만들었다. 첫 release head
 `9dbf710a83e7b88bc5092aec0c4fb6724b924ca0`의 CI는 production data-reset guard가

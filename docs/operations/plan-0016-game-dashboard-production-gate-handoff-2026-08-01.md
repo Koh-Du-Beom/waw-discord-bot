@@ -149,7 +149,8 @@ HTTPS를 재검증한다.
 
 - Gate A: PASS on 2026-08-01; evidence in
   `plan-0016-game-dashboard-gate-a-result-2026-08-01.md`
-- Gate B: Not approved
+- Gate B: Approved; backup published, restore/migration incomplete — see
+  `plan-0016-game-dashboard-gate-b-result-2026-08-02.md`
 - Gate C: Not approved
 - Gate D: Not approved
 - First real incident mutation: Not approved
