@@ -9,7 +9,7 @@ begin
     raise exception 'production_data_reset_not_approved';
   end if;
   if (select array_agg(version order by version) from app_schema_version)
-       is distinct from array[1,2,3,4,5,6,7,8,9,10,11] then
+       is distinct from array[1,2,3,4,5,6,7,8,9,10,11,12] then
     raise exception 'production_data_reset_schema_mismatch';
   end if;
 end
