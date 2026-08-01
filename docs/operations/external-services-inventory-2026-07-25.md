@@ -2,6 +2,27 @@
 
 이 문서는 저장소 계약, 완료된 production inventory와 실제 AWS read-back을 기준으로 외부 서비스의 현재 상태와 배포 후 정리 경계를 구분한다. 비밀값, 계정 이메일, bucket 이름, public IP는 기록하지 않는다.
 
+## 2026-07-31 production SSH delta
+
+이 절은 아래 2026-07-25 snapshot 중 SSH 운영 경로만 최신 verified 상태로
+보정한다.
+
+- 정상 human SSH client는 Termius이고 host account는 `waw-operator`다.
+- Human-only passphrase-protected Ed25519 key는 기존 GitHub Actions deploy
+  account/key와 분리됐다.
+- Effective SSH는 public-key authentication을 유지하고 password와
+  keyboard-interactive authentication, root login 및 forwarding을 차단한다.
+- fail2ban package와 `sshd` jail이 active다.
+- GitHub의 no-mutation production SSH preflight는 owner-confirmed PASS이며
+  exact run ID는 기록되지 않았다. Exact-commit deployment 경로는 변경되지
+  않았다.
+- Owner 결정으로 TCP 22와 Lightsail의 any IPv4/IPv6 source rule을 유지한다.
+  80/443 rule도 변경하지 않았다. Port 변경과 source restriction은 수행하지
+  않았다.
+- Lightsail browser SSH와 CloudShell은 normal path가 아닌 break-glass다.
+- AI agent의 production, CloudShell, GitHub와 external terminal 입력은
+  금지하며 human owner가 Git-untracked command handoff를 직접 실행한다.
+
 ## 현재 유지되는 production 서비스
 
 | 공급자/서비스 | 현재 역할 | 배포 후 상태 |
@@ -32,7 +53,9 @@
 - 새 credential version은 health 확인 뒤 current가 되고, 이전 runtime credential version은 폐기한다. root-owned source와 backup writer credential은 필요한 최소 production 자산으로 남는다.
 - failed release는 rollback에 필요한 직전 release만 보존하고 임시 worktree, extracted staging directory와 불완전 release는 제거한다.
 - G5/G7 전환이 끝나면 `waw-spike-operator`의 임시 spike/CloudShell 권한과 더 이상 필요 없는 access key를 제거한다. 현재 운영자 전환 검증 전이므로 아직 삭제하지 않는다.
-- root CloudShell은 bootstrap/read-only 확인용 임시 운영 표면이다. 일상 운영은 MFA가 적용된 `waw-production-operator`로 전환하며 root 세션은 종료한다.
+- Root CloudShell과 Lightsail browser SSH는 break-glass 운영 표면이다. 일상
+  host 운영은 `waw-operator`의 human-only Termius key를 사용한다. AWS IAM
+  `waw-production-operator`와 Linux `waw-operator`는 서로 다른 identity다.
 
 ## 이미 제거됐거나 production에서 사용하지 않는 서비스
 

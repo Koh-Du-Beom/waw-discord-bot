@@ -1,6 +1,6 @@
 # 구현 계획: 신선한 Discord Voice 증거와 주기 재조정
 
-- Status: Local/Disposable Complete — Tasks 1-6 GREEN; Task 7 production gate
+- Status: Complete — Tasks 1-7 production activated
 - Related requirements: FUN-010, FUN-013, FUN-015, DAT-005
 - Related ADRs: ADR-0016, ADR-0027, ADR-0028
 - Owner: Product owner
@@ -223,5 +223,20 @@ Additive source timestamp column은 삭제하지 않으며 historical `observed_
 - Docker daemon이 꺼져 container wrapper는 실행되지 않았다. Host PostgreSQL
   17의 빈 cluster에 migrations 0001~0011을 적용해 schema `11|11`과 신규 store
   integration을 대신 검증했다.
-- Production access, migration 적용, 배포, restart, credential 및 외부 API
-  호출은 수행하지 않았다.
+- Exact candidate `4f8832124f194e92a29003eb7f8c7056bce5e60b`의 fresh encrypted
+  backup과 별도 PostgreSQL 17 restore, schema `10→11`, immutable stage와
+  production tree 동일성을 검증했다.
+- Production current `4f8832124f19`, previous `19ea83925f6b`, schema `11`,
+  effective observation/reconciliation/freshness `1/120000/180000`을
+  read-back했다. Loopback/canonical health, Gateway connected와 240초 동안
+  5개 fresh checkpoint, backup/monitor timer가 PASS했다.
+- 최종 관측 구간에는 active target이 없어 sanitized Voice 결과는
+  `NO_ACTIVE_TARGET`였다. 실제 솔로랭크 경기별 fresh source timestamp 회귀는
+  PLAN-0013의 real-game smoke와 함께 남아 있다.
+- Production merge가 자동 deploy workflow를 시작해 build 중 취소했다. 비활성
+  release와 remote temp를 제거하고 승인된 candidate만 수동 activation했다.
+  자동 production deploy 승인 경계 수정은 별도 후속 architecture task다.
+- 첫 activation verifier는 Gateway 연결 완료 뒤의 시각부터 journal을 조회해
+  state row가 없다는 이유로 잘못 실패했다. 5개 health checkpoint는 정상이었고
+  최종 symlink read-back은 candidate active 상태였다. 최종 판정은 restart 없는
+  read-only acceptance로 수행했다.

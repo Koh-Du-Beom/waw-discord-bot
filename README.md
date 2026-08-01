@@ -145,6 +145,7 @@ Live 자동 관측 대상이며, 연결 해제 후에는 후속 관측에서 제
 - 활성 Riot 연결 조회와 관리자 단건 해제
 - 요약 활성 설정
 - 설정 변경과 운영 감사 기록
+- 관리자 전용 몰랭 사건 정정·취소와 stale/timeout 안전 처리
 - desktop/mobile 반응형 UI, keyboard와 axe 접근성 검사
 
 ## 시스템 구조
@@ -579,6 +580,26 @@ Production 절차는
 인증은 [`docs/operations/authentication-runbook.md`](docs/operations/authentication-runbook.md),
 복구는 [`docs/operations/backup-restore-runbook.md`](docs/operations/backup-restore-runbook.md)를
 따릅니다.
+검거 대시보드 운영은
+[`docs/operations/game-enforcement-dashboard-runbook.md`](docs/operations/game-enforcement-dashboard-runbook.md),
+별도 production 승인 경계는
+[`docs/operations/plan-0016-game-dashboard-production-gate-handoff-2026-08-01.md`](docs/operations/plan-0016-game-dashboard-production-gate-handoff-2026-08-01.md)를
+따릅니다.
+
+### Human production SSH
+
+- 사람이 수행하는 정상 production SSH 운영은 Termius의 `waw-operator`
+  account와 passphrase-protected human-only Ed25519 key를 사용합니다.
+- Human key는 GitHub Actions deploy key와 account, rotation 및 revocation
+  경계를 공유하지 않습니다.
+- AI agent는 production SSH, CloudShell과 외부 서비스 terminal에 명령을
+  입력하지 않고, 필요한 명령은 repository root의 Git-untracked
+  `TEMP_*.md` handoff로만 제공합니다.
+- Root SSH login과 SSH forwarding은 차단하고 password authentication은
+  사용하지 않으며 fail2ban `sshd` jail을 유지합니다.
+- SSH port는 기존 GitHub exact-commit deployment와 동일한 TCP 22를 유지합니다.
+  Lightsail source restriction은 Owner 결정으로 적용하지 않으며 browser
+  SSH와 CloudShell은 break-glass 경로로만 사용합니다.
 
 ## 문서와 의사결정 체계
 
@@ -935,6 +956,36 @@ Discord 방송은 실제로 켜지지 않았는데도 일부 후속 경기는 �
 - 증거:
   [ADR-0028](docs/adr/ADR-0028-fresh-discord-voice-evidence.md),
   [PLAN-0014](docs/implementation/PLAN-0014-fresh-discord-voice-evidence.md)
+
+### Production merge가 승인 전에 자동 deploy를 시작함
+
+PLAN-0014는 stage, migration과 activation을 별도 Owner gate로 진행했지만
+production PR merge가 `push` 기반 `Deploy production` workflow를 즉시
+시작했습니다. 승인 범위 밖이라 원격 build 중 취소했으며, read-only 확인에서
+activation/restart는 없고 비활성 release와 임시 디렉터리만 남은 것을 확인해
+정확한 대상만 제거했습니다.
+
+- 임시 대응: 자동 run을 즉시 취소하고 current/previous, unit, PID, schema와
+  health를 read-back한 뒤 승인된 staged candidate만 수동 activation했습니다.
+- 남은 해결: Production push와 activation을 분리하도록 기존 GitHub deployment
+  ADR을 재검토하고, manual dispatch 또는 required reviewer gate를 별도
+  architecture decision으로 확정해야 합니다.
+- 남긴 원칙: Branch merge 권한은 production activation 권한을 암묵적으로
+  포함하지 않습니다. Workflow trigger도 승인 경계의 일부입니다.
+
+### Activation verifier가 정상 Gateway를 journal 누락으로 실패 처리함
+
+최종 activation 뒤 Gateway health는 240초 동안 다섯 번 모두 connected/FRESH
+였지만 verifier가 Gateway 연결 완료 이후의 시각부터 journal을 조회해
+`gateway.state` 행이 없다는 이유로 실패했습니다. Rollback 성공 출력과 실제
+symlink read-back도 일치하지 않아 출력만으로 상태를 추정하지 않았습니다.
+
+- 해결: 실제 current/previous를 별도 read-only로 확인하고, 이미 active인
+  candidate를 다시 restart하지 않은 채 schema, effective settings, Gateway
+  health와 두 reconciliation interval을 최종 검증했습니다.
+- 남긴 원칙: Event가 검색 구간에 없다는 것은 실패 event가 아닙니다. Transition
+  log와 current health snapshot을 구분하고 mutation 뒤에는 symlink를 직접
+  read-back합니다.
 
 ### macOS에서만 Unix socket test가 `EINVAL`
 

@@ -17,9 +17,33 @@ export function buildBrowserFixtureServer({ authenticated = true } = {}) {
   let audit = emptyAuditFixture;
 
   app.get("/api/session", async (_request, reply) =>
-    authenticated ? sessionFixture : reply.code(401).send());
+    authenticated
+      ? { ...sessionFixture, actor: { ...sessionFixture.actor, tier: "administrator" as const } }
+      : reply.code(401).send());
   app.get("/api/overview", async () => healthyOverviewFixture);
   app.get("/api/riot/links", async () => ({ links: [] }));
+  app.get("/api/game/stacks", async () => ({
+    entries: [{ memberLabel: "합성 사용자", stack: 1 }],
+  }));
+  app.get("/api/game/active", async () => ({ entries: [] }));
+  app.get("/api/game/incidents", async () => ({ entries: [{
+    incidentId: "incident:browser01",
+    memberLabel: "합성 사용자",
+    riotId: null,
+    gameKey: "KR:browser-game",
+    riotState: "active",
+    riotObservedAt: "2026-08-01T00:05:00.000Z",
+    goLiveState: "inactive",
+    goLiveObservedAt: "2026-08-01T00:05:00.000Z",
+    comparisonState: "violation",
+    incidentStatus: "confirmed",
+    expectedVersion: 2,
+    gameStartedAt: "2026-08-01T00:00:00.000Z",
+    gameEndedAt: null,
+    incidentUpdatedAt: "2026-08-01T00:06:00.000Z",
+  }] }));
+  app.post("/api/game/incidents/correct", async () => ({ message: "사건을 정정했습니다." }));
+  app.post("/api/game/incidents/cancel", async () => ({ message: "사건을 취소했습니다." }));
   app.post("/api/riot/requests/list", async () => ({ requests: [] }));
   app.get("/api/settings/summary", async () => settings);
   app.get("/api/audit", async () => audit);

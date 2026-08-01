@@ -31,8 +31,28 @@ function base() {
   };
 }
 
-test("parses and serializes all five exact command payloads", () => {
+test("parses and serializes all seven exact command payloads", () => {
   const wires = [
+    {
+      ...base(),
+      command: "game_incident_correct",
+      payload: {
+        incidentId: "incident:000001",
+        expectedVersion: 3,
+        reason: "오탐 정정",
+        confirmation: true,
+      },
+    },
+    {
+      ...base(),
+      command: "game_incident_cancel",
+      payload: {
+        incidentId: "incident:000001",
+        expectedVersion: 3,
+        reason: "중복 사건",
+        confirmation: true,
+      },
+    },
     {
       ...base(),
       command: "riot_link_remove",
@@ -104,6 +124,16 @@ test("rejects unknown, missing and command-specific payload fields", () => {
       expectedVersion: 0,
     },
   };
+  assert.equal(parseAdminCommandRequest(JSON.stringify({
+    ...base(),
+    command: "game_incident_correct",
+    payload: {
+      incidentId: "incident:000001",
+      expectedVersion: 0,
+      reason: " ",
+      confirmation: true,
+    },
+  })), undefined);
   assert.equal(parseAdminCommandRequest(JSON.stringify({
     ...valid,
     authorizationTier: "administrator",

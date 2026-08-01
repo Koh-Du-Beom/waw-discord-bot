@@ -143,7 +143,9 @@ function parseRiotId(value: string): { gameName: string; tagLine: string } {
     separator <= 0 ||
     gameName.length > 32 ||
     /[\r\n\0/]/u.test(gameName) ||
-    !/^[A-Z0-9]{2,8}$/u.test(tagLine)
+    tagLine.length < 2 ||
+    tagLine.length > 8 ||
+    /[\r\n\0\/#]/u.test(tagLine)
   ) {
     throw new CommandFailure(
       "invalid_riot_id",

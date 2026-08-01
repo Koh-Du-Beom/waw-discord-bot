@@ -193,6 +193,53 @@ test("dispatches an exact confirmed optimistic Riot link removal", async () => {
   });
 });
 
+test("dispatches exact incident correction and cancellation with terminal reconciliation", async () => {
+  const captured: AdminCommandRequest[] = [];
+  const ports = createAdminCommandDashboardPorts({
+    guildId: "223456789012345678",
+    now: () => now,
+    generateId: ids(),
+    audit: { async append() {} },
+    transport: {
+      async execute(request) {
+        captured.push(request);
+        return success(request, request.command === "game_incident_correct"
+          ? { kind: "game_incident_mutation", status: "corrected" }
+          : { kind: "game_incident_mutation", status: "cancelled" });
+      },
+    },
+  });
+  await ports.correctGameIncident({
+    ...context,
+    request: {
+      incidentId: "incident:000001",
+      expectedVersion: 4,
+      reason: "오탐 정정",
+      confirmation: true,
+    },
+  });
+  await ports.cancelGameIncident({
+    ...context,
+    operationId: "dashboard-operation-02",
+    request: {
+      incidentId: "incident:000002",
+      expectedVersion: 2,
+      reason: "중복 사건",
+      confirmation: true,
+    },
+  });
+  assert.deepEqual(captured.map(({ command, payload }) => ({ command, payload })), [
+    {
+      command: "game_incident_correct",
+      payload: { incidentId: "incident:000001", expectedVersion: 4, reason: "오탐 정정", confirmation: true },
+    },
+    {
+      command: "game_incident_cancel",
+      payload: { incidentId: "incident:000002", expectedVersion: 2, reason: "중복 사건", confirmation: true },
+    },
+  ]);
+});
+
 function portsReturning(response: AdminCommandResponse) {
   return createAdminCommandDashboardPorts({
     guildId: "223456789012345678",

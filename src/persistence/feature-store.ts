@@ -12,6 +12,7 @@ import type {
   IncidentMutation,
   IncidentMutationStore,
 } from "../game/incident-service.ts";
+import type { AdminIncidentMutationStore } from "../ipc/admin-command-application.ts";
 import { PersistenceError } from "./postgres-persistence.ts";
 
 type RiotLinkRow = {
@@ -29,7 +30,8 @@ type RiotLinkRow = {
 };
 
 export class PostgresFeatureStore
-  implements RiotAccountLinkStore, IncidentMutationStore, GameCommandStore
+  implements RiotAccountLinkStore, IncidentMutationStore, GameCommandStore,
+    AdminIncidentMutationStore
 {
   constructor(private readonly pool: Pool) {}
 
@@ -98,9 +100,39 @@ export class PostgresFeatureStore
   async mutateWithAudit(
     input: IncidentMutation,
   ): Promise<"updated" | "conflict" | "not_found"> {
+    const result = await this.mutateIncident(input);
+    return result === "duplicate_operation" ? "conflict" : result;
+  }
+
+  async mutateAdminIncidentWithAudit(
+    input: Parameters<AdminIncidentMutationStore["mutateAdminIncidentWithAudit"]>[0],
+  ): Promise<"updated" | "conflict" | "not_found" | "duplicate_operation"> {
+    return this.mutateIncident({
+      ...input,
+      authorizationTier: "administrator",
+    }, input.commandName);
+  }
+
+  private async mutateIncident(
+    input: IncidentMutation,
+    commandName?: "game_incident_correct" | "game_incident_cancel",
+  ): Promise<"updated" | "conflict" | "not_found" | "duplicate_operation"> {
     const client = await this.pool.connect();
     try {
       await client.query("begin");
+      if (commandName !== undefined) {
+        const operation = await client.query(
+          `insert into operation_ledger (
+            operation_id, actor_id, accepted_at, outcome, reason_code
+          ) values ($1,$2,$3,'accepted','accepted')
+          on conflict do nothing`,
+          [input.operationId, input.actorId, input.occurredAt],
+        );
+        if (operation.rowCount !== 1) {
+          await client.query("rollback");
+          return "duplicate_operation";
+        }
+      }
       const current = await client.query<{
         status: string;
         version: string;
@@ -113,26 +145,50 @@ export class PostgresFeatureStore
       );
       const row = current.rows[0];
       if (!row) {
-        await client.query("rollback");
+        if (commandName !== undefined) {
+          await appendIncidentAudit(
+            client, input, "failure", "game_incident_not_found",
+          );
+          await appendAdminIncidentResult(
+            client, input, commandName, "failure", "game_incident_not_found",
+          );
+          await client.query("commit");
+        } else await client.query("rollback");
         return "not_found";
       }
       if (Number(row.version) !== input.expectedVersion) {
-        await client.query("rollback");
+        if (commandName !== undefined) {
+          await appendIncidentAudit(
+            client, input, "failure", "game_incident_stale",
+          );
+          await appendAdminIncidentResult(
+            client, input, commandName, "conflict", "game_incident_stale",
+          );
+          await client.query("commit");
+        } else await client.query("rollback");
         return "conflict";
       }
       if (row.status === "corrected" || row.status === "cancelled") {
-        await client.query("rollback");
+        if (commandName !== undefined) {
+          await appendIncidentAudit(
+            client, input, "failure", "game_incident_stale",
+          );
+          await appendAdminIncidentResult(
+            client, input, commandName, "conflict", "game_incident_stale",
+          );
+          await client.query("commit");
+        } else await client.query("rollback");
         return "conflict";
       }
       const nextStatus = input.action === "cancel" ? "cancelled" : "corrected";
-      const operation = await client.query(
+      const operation = commandName === undefined ? await client.query(
         `insert into operation_ledger (
           operation_id, actor_id, accepted_at, outcome, reason_code
         ) values ($1,$2,$3,'accepted','accepted')
         on conflict do nothing`,
         [input.operationId, input.actorId, input.occurredAt],
-      );
-      if (operation.rowCount !== 1) {
+      ) : undefined;
+      if (operation !== undefined && operation.rowCount !== 1) {
         await client.query("rollback");
         return "conflict";
       }
@@ -143,20 +199,14 @@ export class PostgresFeatureStore
         [input.incidentId, nextStatus, input.occurredAt],
       );
       await appendRevision(client, input, row.status, nextStatus);
-      await client.query(
-        `insert into audit_event (
-          event_id, operation_id, occurred_at, event_type, actor_id,
-          outcome, reason_code, correlation_id
-        ) values ($1,$2,$3,$4,$5,'success',$6,$2)`,
-        [
-          `incident:${input.operationId}`,
-          input.operationId,
-          input.occurredAt,
-          `game.${input.action}`,
-          input.actorId,
-          `${input.action}_completed`,
-        ],
+      await appendIncidentAudit(
+        client, input, "success", `${input.action}_completed`,
       );
+      if (commandName !== undefined) {
+        await appendAdminIncidentResult(
+          client, input, commandName, "success", "completed",
+        );
+      }
       await client.query("commit");
       return "updated";
     } catch {
@@ -306,6 +356,44 @@ async function appendRevision(
       nextStatus,
       input.reason,
       input.occurredAt,
+    ],
+  );
+}
+
+async function appendAdminIncidentResult(
+  client: PoolClient,
+  input: IncidentMutation,
+  commandName: "game_incident_correct" | "game_incident_cancel",
+  outcome: "success" | "conflict" | "failure",
+  reasonCode: "completed" | "game_incident_not_found" | "game_incident_stale",
+): Promise<void> {
+  await client.query(
+    `insert into admin_command_result (
+      operation_id, command_name, outcome, reason_code, completed_at
+    ) values ($1,$2,$3,$4,$5)`,
+    [input.operationId, commandName, outcome, reasonCode, input.occurredAt],
+  );
+}
+
+async function appendIncidentAudit(
+  client: PoolClient,
+  input: IncidentMutation,
+  outcome: "success" | "failure",
+  reasonCode: string,
+): Promise<void> {
+  await client.query(
+    `insert into audit_event (
+      event_id, operation_id, occurred_at, event_type, actor_id,
+      outcome, reason_code, correlation_id
+    ) values ($1,$2,$3,$4,$5,$6,$7,$2)`,
+    [
+      `incident:${input.operationId}`,
+      input.operationId,
+      input.occurredAt,
+      `game.${input.action}`,
+      input.actorId,
+      outcome,
+      reasonCode,
     ],
   );
 }

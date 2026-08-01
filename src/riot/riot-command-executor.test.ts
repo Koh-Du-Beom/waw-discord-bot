@@ -99,9 +99,25 @@ test("accepts a display Riot ID as one option and rejects a login username", asy
   assert.equal(requests[0]?.gameName, "표시 이름");
   assert.equal(requests[0]?.tagLine, "KR1");
 
+  await executor.execute(request("라이엇계정 연결", {
+    계정: "simsul복숭아#심복타도",
+  }));
+  assert.equal(requests[1]?.gameName, "simsul복숭아");
+  assert.equal(requests[1]?.tagLine, "심복타도");
+
   await assert.rejects(
     executor.execute(request("라이엇계정 연결", {
       계정: "login-username",
+    })),
+    (error: unknown) =>
+      error instanceof Error &&
+      "reasonCode" in error &&
+      error.reasonCode === "invalid_riot_id",
+  );
+
+  await assert.rejects(
+    executor.execute(request("라이엇계정 연결", {
+      계정: "표시 이름#잘못/된태그",
     })),
     (error: unknown) =>
       error instanceof Error &&
