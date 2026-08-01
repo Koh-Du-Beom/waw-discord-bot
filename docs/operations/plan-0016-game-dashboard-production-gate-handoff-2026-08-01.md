@@ -151,6 +151,8 @@ HTTPS를 재검증한다.
   `plan-0016-game-dashboard-gate-a-result-2026-08-01.md`
 - Gate B: Approved; backup published, restore/migration incomplete — see
   `plan-0016-game-dashboard-gate-b-result-2026-08-02.md`
-- Gate C: Not approved
+- Gate C: Owner override approved and PASS on 2026-08-02 with IPC OFF while Gate B
+  restore/migration remains incomplete — see
+  `plan-0016-game-dashboard-gate-c-override-result-2026-08-02.md`
 - Gate D: Not approved
 - First real incident mutation: Not approved

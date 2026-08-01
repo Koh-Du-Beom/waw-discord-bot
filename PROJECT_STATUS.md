@@ -4,6 +4,17 @@
 
 ## 현재 단계
 
+2026-08-02 owner가 Gate B restore verification 및 migration 0012 미완료 위험을 수용하고
+Gate C application 배포를 명시적으로 override했다. PR #8을 production merge commit
+`568522974a8f80f6df7533005bbb9b0a1146a9c6` (`568522974a8f`)로 병합했고 source archive
+SHA-256 `75516091ffa7e5dbf75673f554e3307891818d7941ddf2f04b7d6899acfa28cc`를 배포했다.
+GitHub Actions run `30706321869`가 exact archive stage, unit 설치, web/bot restart,
+loopback health와 current symlink를 모두 PASS했고 canonical `/health`도 HTTP `200`,
+`healthy`다. Admin IPC flag는 release 기본값 `0`을 유지했고 Gate D 및 실제 사건 mutation은
+실행하지 않았다. Production schema는 마지막 확인 기준 `11`이고 migration 0012는
+미적용이므로 사건 정정·취소는 계속 금지다. 상세 결과는
+`docs/operations/plan-0016-game-dashboard-gate-c-override-result-2026-08-02.md`에 있다.
+
 2026-08-02 owner가 PLAN-0016 Gate B의 fresh encrypted backup, empty-target restore와
 migration 0012를 승인했다. Gate A 핵심 상태를 재검증한 뒤 production
 `waw-backup.service` one-shot을 한 번 실행했고 schema 11, encrypted bytes `101036`,
