@@ -4,14 +4,27 @@
 
 ## 현재 단계
 
+2026-08-01 PLAN-0016 Gate A read-only production preflight를 PASS했다. 첫 시도의
+잘못된 source archive 입력값이 실제 `package-lock.json` hash임을 확인해 fail-closed한
+뒤 exact production archive hash를
+`e0ea44670f933bc62d90170e4e86587c29019a61fdc5ef8d9163f30572cdebfb`로 교정했다.
+Owner가 Termius SSH와 sudo 인증을 직접 완료한 후 current/previous release, PostgreSQL
+17.6·schema 11·accepted ledger·15/60 connections, 24시간 이내 published backup,
+service/timer/alarm/canonical health, web/bot/PUBLIC grant, Admin IPC metadata와 최근
+journal canary를 비민감 집계값으로 확인했다. Exact candidate의 격리 Linux asset 및
+rollback fixture와 migration ledger test도 PASS했다. 상세 증거는
+`docs/operations/plan-0016-game-dashboard-gate-a-result-2026-08-01.md`에 있다. Gate B–D와
+실제 사건 mutation은 실행하지 않았고 production 변경은 `0`이다.
+
 2026-08-01 clean application candidate를
 `f469c19029d139267fced0ffcb289aabe20132fc` (`f469c19029d1`)로 고정했다. Exact
 source archive SHA-256은
-`62c133871fed8355fd43fb4f626f50ca9ad3ee090694edfd5cd5d3579744065a`, lockfile은
+`e0ea44670f933bc62d90170e4e86587c29019a61fdc5ef8d9163f30572cdebfb`, lockfile은
 `466d9e633206ac07c6ed216bde1a481a27a95c6d7bc8d56e994a973835408803`, migration
 0012 LF archive는 `188395af5cf3cbc55b3ca796143f3be9f5ac9381b7df9fcddb191bd9a24db07c`다.
 Exact archive의 Linux application asset과 rollback fixture가 PASS했다. Gate A와
-production은 아직 미승인이며 maintenance window와 운영 담당자 지정이 남았다.
+관련 read-only production preflight는 완료됐고 Gate B–D는 미승인이다. Maintenance
+window와 운영 담당자 지정은 후속 gate 전에 남아 있다.
 
 2026-08-01 PLAN-0016 release 준비에서 Git index exact archive의 Linux application
 asset·rollback fixture를 재검증했다. Windows worktree 실패는 systemd asset의 CRLF

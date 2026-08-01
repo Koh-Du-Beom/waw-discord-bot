@@ -16,7 +16,7 @@ SHA-256, maintenance window와 rollback owner가 채워지기 전에는 어떤 g
 
 - Candidate commit: `f469c19029d139267fced0ffcb289aabe20132fc`
 - Release ID: `f469c19029d1`
-- Source archive SHA-256: `62c133871fed8355fd43fb4f626f50ca9ad3ee090694edfd5cd5d3579744065a`
+- Source archive SHA-256: `e0ea44670f933bc62d90170e4e86587c29019a61fdc5ef8d9163f30572cdebfb`
 - `package-lock.json` SHA-256:
   `466d9e633206ac07c6ed216bde1a481a27a95c6d7bc8d56e994a973835408803`
 - Migration 0012 archive SHA-256:
@@ -147,7 +147,8 @@ HTTPS를 재검증한다.
 
 ## Owner decision placeholders
 
-- Gate A: Not approved
+- Gate A: PASS on 2026-08-01; evidence in
+  `plan-0016-game-dashboard-gate-a-result-2026-08-01.md`
 - Gate B: Not approved
 - Gate C: Not approved
 - Gate D: Not approved
