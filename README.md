@@ -381,6 +381,11 @@ npm audit --omit=dev
 Production runtime은 `.env`에 secret을 모으지 않습니다. Root-owned source
 file과 systemd `LoadCredential=`로 service별 최소 credential만 주입합니다.
 
+이 절에는 배포·장애 진단에 필요한 설정의 **이름과 계약만** 공개합니다.
+Secret 값과 production의 실제 ID·경로는 README 대상이 아닙니다. 정확한 기본값과
+검증 규칙은 runtime 설정 코드, production 주입 경계는 `deploy/systemd/`의
+unit이 source of truth입니다.
+
 ### Web credential
 
 `CREDENTIALS_DIRECTORY` 아래에 다음 이름이 필요합니다.
@@ -424,6 +429,8 @@ Credential directory는 절대 경로여야 합니다. 값은 비어 있거나 �
 | `WAW_BACKUP_MARKER_PATH` | 최신 backup publication marker |
 | `WAW_SERVICE_VERSION` | 구조화 로그와 상태에 표시할 release version |
 | `WAW_GAME_ALERT_CHANNEL_ID` | 자동 관측 활성 시 공개 알림 channel snowflake |
+| `WAW_DISCORD_VOICE_RECONCILIATION_INTERVAL_MS` | 대상 Voice State 재조정 주기; 기본 120000ms |
+| `WAW_DISCORD_VOICE_FRESHNESS_MS` | Discord 증거 freshness; 기본 180000ms |
 
 ### Feature flags
 
@@ -433,8 +440,6 @@ Credential directory는 절대 경로여야 합니다. 값은 비어 있거나 �
 |---|---|
 | `WAW_ADMIN_COMMAND_IPC_ENABLED` | Dashboard→bot 관리자 명령 |
 | `WAW_GAME_OBSERVATION_ENABLED` | Riot/Go Live 자동 관측 |
-| `WAW_DISCORD_VOICE_RECONCILIATION_INTERVAL_MS` | 대상 Voice State 재조정 주기; 기본 120000ms |
-| `WAW_DISCORD_VOICE_FRESHNESS_MS` | Discord 증거 freshness; 기본 180000ms |
 | `WAW_SUMMARY_QUOTA_ENABLED` | 등록 사용자별 rolling-hour 예약 |
 | `WAW_SUMMARY_PROVIDER_ENABLED` | OpenAI 요약 provider와 credential load |
 
@@ -766,10 +771,69 @@ Production 절차는
 
 ## Troubleshooting
 
-이 절은 일반적인 설치 FAQ가 아니라 프로젝트를 실제로 진행하면서 architecture,
-외부 platform과 production 환경에서 막혔던 문제를 기록합니다. 단순 증상보다
-잘못된 가정, 확인된 root cause, 해결 방법과 이후의 운영 원칙을 남기는 것이
-목적입니다.
+먼저 대시보드의 사건 상태와 bot health를 확인합니다. Discord 메시지 원문,
+PUUID, Riot ID와 credential은 journal 검색어나 진단 결과에 넣지 않습니다.
+
+### DB에는 검거됐지만 Discord 알림이 오지 않음
+
+`confirmed/violation` 사건과 stack은 DB transaction에서 먼저 확정되고 Discord
+알림은 그 다음에 발송됩니다. 따라서 channel 조회, `Send Messages` 권한 또는
+Discord API가 실패하면 DB에는 누적됐지만 알림만 없을 수 있습니다.
+
+- 같은 bot process가 살아 있으면 미발송 알림을 다음 poll에서 재시도합니다.
+- 재시작하면 현재의 in-memory 재시도 상태는 유실될 수 있으므로 사건을 다시
+  만들거나 stack을 수동 증가시키지 않습니다.
+- `WAW_GAME_ALERT_CHANNEL_ID`가 허용 guild의 발송 가능한 channel인지, bot에
+  `View Channel`과 `Send Messages`가 있는지 확인한 뒤 사건 시각의 고정 reason
+  code를 확인합니다.
+- 알림의 process 재시작 내구성이 필요하면 durable outbox가 별도 결정으로
+  필요합니다. 현재 계약은 중복 사건·중복 stack 방지를 우선합니다.
+
+### 몰랭을 아예 감지하지 못함
+
+다음 경우에는 자동 검거가 만들어지지 않거나 `unknown`/`grace`로 남는 것이
+의도된 동작입니다.
+
+- Riot 연결이 승인된 활성 상태가 아니거나 `WAW_GAME_OBSERVATION_ENABLED=1`이 아님
+- Riot Spectator가 30초 poll 사이의 게임을 보지 못했거나 API timeout·rate
+  limit으로 현재 게임을 증명하지 못함
+- solo ranked queue ID `420`이 아님
+- 게임 시작 5분 안에 Spectator에서 사라져 post-grace 증거가 없음
+- Discord Voice 증거가 없거나 3분보다 오래됐고 2분 주기 대상 reconciliation도
+  실패함
+
+증거 부족은 위반으로 추정하지 않습니다. 활성 연결과 feature flag, Riot 관측
+상태, Discord Gateway·reconciliation freshness 순서로 확인합니다. 특히 5분 안에
+끝난 게임은 현재 live Spectator 경계만으로 사후 복구하지 못하며, Match-V5 기반
+복구는 아직 별도 ADR 대상입니다.
+
+### 방송을 하지 않았는데 정상으로 기록됨
+
+과거에는 이전 경기의 cached `active` Voice State를 새 poll 시각으로 저장해 후속
+경기를 `compliant`로 판정한 결함이 있었습니다. 현재는 실제
+`source_observed_at`을 보존하고 3분이 지나면 `unknown`으로 낮추며, 2분마다 관측
+대상만 재조정합니다.
+
+같은 증상이 다시 보이면 사건의 poll 시각과 Discord source 관측 시각을 구분해
+확인하고, 오래된 증거를 정상으로 간주하지 않습니다. 자세한 판정 계약은
+[ADR-0028](docs/adr/ADR-0028-fresh-discord-voice-evidence.md), 운영 조치는
+[game enforcement runbook](docs/operations/game-enforcement-dashboard-runbook.md)을
+따릅니다.
+
+### 검거 알림과 stack이 서로 다름
+
+첫 `violation`은 같은 DB transaction에서 사건을 `confirmed`로 만들고 stack 하나를
+생성하며, 그때만 공개 알림을 예약합니다. 후속 poll과 게임 종료 관측은 확정된
+위반을 정상으로 덮어쓰거나 stack을 추가하지 않습니다. 불일치가 보이면 수동으로
+수를 맞추지 말고 사건 status·comparison과 revision을 확인합니다. 계약과 과거
+결함은 [ADR-0027](docs/adr/ADR-0027-confirm-observed-game-violations.md)에 있습니다.
+
+<details>
+<summary>개발·배포 과정의 과거 장애 기록</summary>
+
+아래 내용은 사용자 기능 troubleshooting이 아니라 architecture와 production
+workflow를 결정한 이력입니다. 새 운영 장애는 위의 증상별 절차와 관련 runbook을
+우선합니다.
 
 ### 분리 배포 경계가 세 번 연속 실패
 
@@ -1010,6 +1074,8 @@ suite가 통과했습니다.
   실행에서 제거하고 최종 absence를 postcondition으로 확인했습니다.
 - AI agent의 추론은 증거와 분리했습니다. 원인을 좁히지 못했으면 `UNKNOWN`으로
   남기고 architecture를 불필요하게 확장하지 않았습니다.
+
+</details>
 
 ## 보안 원칙
 
