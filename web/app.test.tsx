@@ -9,6 +9,8 @@ import type {
   DashboardOverviewDto,
   LowRiskSettingsDto,
   PendingRiotLinkRequestsDto,
+  KboCreditAdjustmentRequestDto,
+  KboManagementDto,
   SessionDto,
   UpdateLowRiskSettingsRequestDto,
 } from "../src/contracts/dashboard.ts";
@@ -368,6 +370,55 @@ test("administrator confirms and removes one active Riot link once", async () =>
   assert.equal(screen.queryByText("계정#KR1 · 대표"), null);
 });
 
+test("administrator confirms one optimistic KBO credit adjustment", async () => {
+  let received: KboCreditAdjustmentRequestDto | undefined;
+  const management: KboManagementDto = {
+    accounts: [{
+      accountId: "account:active0001",
+      displayLabel: "야구팬",
+      enrollmentStatus: "active",
+      availableBalance: "1500",
+      correctionDebt: "0",
+      version: 7,
+      dailyClaims: 2,
+      bets: 3,
+      pendingBets: 1,
+      settledBets: 2,
+      voidBets: 0,
+      corrections: 0,
+      outcomeHits: 1,
+      scoreHits: 0,
+      adminAdjusted: false,
+      lastLedgerAt: null,
+    }],
+    provider: { games: 5, latestStatus: "scheduled", sourceUpdatedAt: null, collectedAt: null },
+  };
+  render(<App api={apiFixture({
+    session: { ...sessionFixture, actor: { ...sessionFixture.actor, tier: "administrator" } },
+    kboManagement: management,
+    adjustKboCredit: async (request) => {
+      received = request;
+      return { message: "크레딧을 조정했습니다.", availableBalance: "1250", version: 8 };
+    },
+  })} />);
+
+  fireEvent.click(await screen.findByRole("button", { name: "KBO 베팅" }));
+  assert.ok(screen.getByRole("heading", { name: "KBO 베팅 관리" }));
+  fireEvent.click(screen.getByRole("button", { name: "크레딧 조정" }));
+  fireEvent.change(screen.getByRole("spinbutton", { name: "크레딧 증감액" }), { target: { value: "-250" } });
+  fireEvent.click(screen.getByRole("checkbox", { name: /선택한 계정의 잔액/ }));
+  fireEvent.click(screen.getByRole("button", { name: "조정 실행" }));
+
+  await screen.findByText("크레딧을 조정했습니다.");
+  assert.deepEqual(received, {
+    accountId: "account:active0001",
+    expectedVersion: 7,
+    delta: -250,
+    reasonCode: "support_correction",
+    confirmation: true,
+  });
+});
+
 test("game tab distinguishes loading, empty and retryable error states", async () => {
   let finish!: () => void;
   const pending = new Promise<void>((resolve) => { finish = resolve; });
@@ -545,6 +596,7 @@ function apiFixture(
     overview?: DashboardOverviewDto;
     overviewError?: Error;
     riotLinks?: import("../src/contracts/dashboard.ts").ActiveRiotLinksDto;
+    kboManagement?: KboManagementDto;
     getRiotLinks?: DashboardApi["getRiotLinks"];
     settings?: LowRiskSettingsDto;
     update?: DashboardApi["updateSettings"];
@@ -553,6 +605,7 @@ function apiFixture(
     approveRiotRequest?: DashboardApi["approveRiotRequest"];
     rejectRiotRequest?: DashboardApi["rejectRiotRequest"];
     removeRiotLink?: DashboardApi["removeRiotLink"];
+    adjustKboCredit?: DashboardApi["adjustKboCredit"];
     correctGameIncident?: DashboardApi["correctGameIncident"];
     cancelGameIncident?: DashboardApi["cancelGameIncident"];
     commandLog?: DashboardApi["getCommandLog"];
@@ -574,6 +627,12 @@ function apiFixture(
     },
     async getRiotLinks() {
       return overrides.getRiotLinks?.() ?? overrides.riotLinks ?? { links: [] };
+    },
+    async getKboManagement() {
+      return overrides.kboManagement ?? {
+        accounts: [],
+        provider: { games: 0, latestStatus: null, sourceUpdatedAt: null, collectedAt: null },
+      };
     },
     async getGameStacks() {
       return overrides.getGameStacks?.() ?? overrides.gameStacks ?? { entries: [] };
@@ -612,6 +671,9 @@ function apiFixture(
     removeRiotLink:
       overrides.removeRiotLink ??
       (async () => ({ message: "연결을 해제했습니다." })),
+    adjustKboCredit:
+      overrides.adjustKboCredit ??
+      (async () => ({ message: "크레딧을 조정했습니다.", availableBalance: "0", version: 1 })),
     correctGameIncident:
       overrides.correctGameIncident ??
       (async () => ({ message: "사건을 정정했습니다." })),

@@ -1,8 +1,8 @@
 # WAW Discord Bot
 
 개인 Discord 서버에서 대화 요약, Riot 계정 관리, 리그 오브 레전드 솔로
-랭크와 Discord Go Live 비교, 운영 대시보드, 감사·백업·복구를 제공하는 통합
-봇입니다.
+랭크와 Discord Go Live 비교, KBO 가상 크레딧 승부 예측, 운영 대시보드,
+감사·백업·복구를 제공하는 통합 봇입니다.
 
 - Production dashboard: **<https://waw.dubeom.com>**
 - 기준 브랜치: `develop`
@@ -62,6 +62,7 @@ WAW는 하나의 운영 가능한 시스템으로 다음 기능을 제공합니�
 - Discord 사용자의 Riot 계정 연결 요청과 관리자 승인·거절·해제
 - Riot 솔로 랭크와 Discord Go Live 상태를 이용한 자동 몰랭 관측
 - 몰랭 사건 현황, 정정, 취소와 스택 조회
+- 명시적 가입과 비현금성 크레딧을 사용하는 KBO 승부 예측·정산·랭킹
 - Discord OAuth 기반 관리자 대시보드
 - 명령·설정·관리자 작업의 감사 기록
 - 상태 확인, 운영 경보, 암호화 백업과 실제 복구 검증
@@ -104,6 +105,14 @@ WAW는 하나의 운영 가능한 시스템으로 다음 기능을 제공합니�
 | `/몰랭검거 현황 [사용자]` | 전체 몰랭스택 또는 특정 사용자의 관측 기록 조회 |
 | `/몰랭검거 정정 사건:<ID> 사유:<내용>` | 관리자 전용 사건 정정 |
 | `/몰랭검거 취소 사건:<ID> 사유:<내용>` | 관리자 전용 사건 취소 |
+| `/베팅 가입 동의:true` | 비현금성 크레딧·공개 랭킹·보존 정책에 동의하고 KBO 기능 가입 |
+| `/크레딧 내정보` | 내 가용 크레딧과 정정 부채 조회 |
+| `/크레딧 받기` | KST 날짜별 50,000 크레딧 직접 지급 |
+| `/베팅 경기` | 최신 접수 가능 경기와 베팅용 경기 ID 조회 |
+| `/베팅 하기 경기:<ID> 결과:<결과> 금액:<1,000~50,000>` | 시작 전 KBO 경기 결과 또는 정확 점수 예측 |
+| `/베팅 내역` | 최근 베팅 5개와 정산·무효·정정 결과 조회 |
+| `/랭킹 크레딧` | 현재 보유 크레딧 공동 순위 조회 |
+| `/랭킹 결과\|점수\|적중률 대회:<ID> 시즌:<ID>` | 대회·시즌별 승부 예측 공동 순위 조회 |
 
 관리자가 승인한 Riot 연결은 Riot 공식 소유권 인증이 아닌
 `admin_approved_unverified` 상태입니다. 활성 연결은 솔로 랭크와 Discord Go
@@ -145,6 +154,7 @@ Live 자동 관측 대상이며, 연결 해제 후에는 후속 관측에서 제
 - 활성 Riot 연결 조회와 관리자 단건 해제
 - 요약 활성 설정
 - 설정 변경과 운영 감사 기록
+- Administrator 전용 KBO 계정·지급·베팅·정산·공급 상태와 signed 크레딧 조정
 - 관리자 전용 몰랭 사건 정정·취소와 stale/timeout 안전 처리
 - desktop/mobile 반응형 UI, keyboard와 axe 접근성 검사
 
@@ -222,6 +232,7 @@ systemd/journald ──► local monitor ──► Discord operational alert
 │   ├── game/                # 몰랭 관측·판정·scheduler
 │   ├── http/                # Fastify dashboard API
 │   ├── ipc/                 # 관리자 명령 Unix socket
+│   ├── kbo/                 # 크레딧·베팅·정산·랭킹 domain
 │   ├── persistence/         # PostgreSQL stores와 migration runner
 │   ├── riot/                # Riot identity·spectator adapter
 │   ├── summary/             # 요약 provider와 quota
@@ -437,10 +448,17 @@ Credential directory는 절대 경로여야 합니다. 값은 비어 있거나 �
 | `WAW_DISCORD_VOICE_FRESHNESS_MS` | Discord 증거 freshness; 기본 180000ms |
 | `WAW_SUMMARY_QUOTA_ENABLED` | 등록 사용자별 rolling-hour 예약 |
 | `WAW_SUMMARY_PROVIDER_ENABLED` | OpenAI 요약 provider와 credential load |
+| `WAW_KBO_DATA_RIGHTS_AUTHORIZED` | 승인된 KBO 데이터 권리와 ingestion 사용 |
+| `WAW_KBO_RANKINGS_ENABLED` | KBO 공개 크레딧·예측 랭킹 |
+| `WAW_KBO_BETTING_ENABLED` | KBO 신규 베팅 접수 |
 
 새 release의 기본 systemd asset은 이 flag들을 `0`으로 둡니다. Application
 배포는 migration, credential 변경이나 feature activation을 자동 승인하지
 않습니다.
+
+KBO는 정상 경기·공식 정정 schema, 외부 봇 개발자 허가와 공개 운영 gate가
+확인될 때까지 세 flag를 모두 `0`으로 유지합니다. 이미 접수된 bet의 정산과
+탈퇴·보존 생명주기는 신규 접수 flag와 분리합니다.
 
 Production unit의 정확한 capability와 sandbox 설정은
 [`deploy/systemd/waw-web.service`](deploy/systemd/waw-web.service)와

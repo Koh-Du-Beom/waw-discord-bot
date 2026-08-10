@@ -30,6 +30,9 @@ import {
   type DecideRiotLinkRequestDto,
   type RiotLinkDecisionResponseDto,
   type RemoveRiotLinkRequestDto,
+  type KboManagementDto,
+  type KboCreditAdjustmentRequestDto,
+  type KboCreditAdjustmentResponseDto,
   type UpdateLowRiskSettingsRequestDto,
 } from "../contracts/dashboard.ts";
 import type { AuthorizationTier } from "../contracts/local-command.ts";
@@ -47,6 +50,7 @@ export type DashboardHttpPorts = {
   readDisplayName(): Promise<string>;
   readOverview(): Promise<DashboardOverviewDto>;
   readActiveRiotLinks(): Promise<ActiveRiotLinksDto>;
+  readKboManagement(): Promise<KboManagementDto>;
   readGameStacks(): Promise<GameStacksDto>;
   readActiveGameObservations(): Promise<ActiveGameObservationsDto>;
   readGameIncidentHistory(
@@ -89,6 +93,12 @@ export type DashboardHttpPorts = {
     authorizationTier: AuthorizationTier;
     operationId: string;
   }): Promise<RiotLinkDecisionResponseDto>;
+  adjustKboCredit(input: {
+    request: KboCreditAdjustmentRequestDto;
+    actorId: string;
+    authorizationTier: AuthorizationTier;
+    operationId: string;
+  }): Promise<KboCreditAdjustmentResponseDto>;
   correctGameIncident(input: {
     request: MutateGameIncidentRequestDto;
     actorId: string;
@@ -534,6 +544,84 @@ const riotDecisionResponseSchema = {
   properties: { message: { type: "string" } },
 } as const;
 
+const kboManagementSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["accounts", "provider"],
+  properties: {
+    accounts: {
+      type: "array",
+      maxItems: 500,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "accountId", "displayLabel", "enrollmentStatus", "availableBalance",
+          "correctionDebt", "version", "dailyClaims", "bets", "pendingBets",
+          "settledBets", "voidBets", "corrections", "outcomeHits", "scoreHits",
+          "adminAdjusted", "lastLedgerAt",
+        ],
+        properties: {
+          accountId: { type: "string" },
+          displayLabel: { type: "string" },
+          enrollmentStatus: { type: "string", enum: ["active", "departed"] },
+          availableBalance: { type: "string", pattern: "^(0|[1-9][0-9]*)$" },
+          correctionDebt: { type: "string", pattern: "^(0|[1-9][0-9]*)$" },
+          version: { type: "integer", minimum: 0 },
+          dailyClaims: { type: "integer", minimum: 0 },
+          bets: { type: "integer", minimum: 0 },
+          pendingBets: { type: "integer", minimum: 0 },
+          settledBets: { type: "integer", minimum: 0 },
+          voidBets: { type: "integer", minimum: 0 },
+          corrections: { type: "integer", minimum: 0 },
+          outcomeHits: { type: "integer", minimum: 0 },
+          scoreHits: { type: "integer", minimum: 0 },
+          adminAdjusted: { type: "boolean" },
+          lastLedgerAt: { anyOf: [{ type: "string", format: "date-time" }, { type: "null" }] },
+        },
+      },
+    },
+    provider: {
+      type: "object",
+      additionalProperties: false,
+      required: ["games", "latestStatus", "sourceUpdatedAt", "collectedAt"],
+      properties: {
+        games: { type: "integer", minimum: 0 },
+        latestStatus: { anyOf: [{ type: "string" }, { type: "null" }] },
+        sourceUpdatedAt: { anyOf: [{ type: "string", format: "date-time" }, { type: "null" }] },
+        collectedAt: { anyOf: [{ type: "string", format: "date-time" }, { type: "null" }] },
+      },
+    },
+  },
+} as const;
+
+const kboCreditAdjustmentSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["accountId", "expectedVersion", "delta", "reasonCode", "confirmation"],
+  properties: {
+    accountId: { type: "string", minLength: 8, maxLength: 128 },
+    expectedVersion: { type: "integer", minimum: 0 },
+    delta: { type: "integer", minimum: -1_000_000, maximum: 1_000_000, not: { const: 0 } },
+    reasonCode: {
+      type: "string",
+      enum: ["support_correction", "policy_correction", "incident_recovery"],
+    },
+    confirmation: { type: "boolean", const: true },
+  },
+} as const;
+
+const kboCreditAdjustmentResponseSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["message", "availableBalance", "version"],
+  properties: {
+    message: { type: "string" },
+    availableBalance: { type: "string", pattern: "^(0|[1-9][0-9]*)$" },
+    version: { type: "integer", minimum: 0 },
+  },
+} as const;
+
 const gameIncidentMutationSchema = {
   type: "object",
   additionalProperties: false,
@@ -779,6 +867,31 @@ export function buildDashboardServer(
       },
     },
     protectedRead(options.auth, options.ports.readActiveRiotLinks),
+  );
+  app.get(
+    DASHBOARD_API_PATHS.kboManagement,
+    {
+      schema: {
+        querystring: emptyObjectSchema,
+        response: { 200: kboManagementSchema, "4xx": errorSchema, "5xx": errorSchema },
+      },
+    },
+    async (request, reply) => {
+      const authorization = await authorize(options.auth, request, "read");
+      if (!authorization.allowed) {
+        sendAuthorizationError(reply, authorization.response, request.id);
+        return;
+      }
+      if (authorization.tier !== "administrator") {
+        sendError(reply, 403, "forbidden", request.id);
+        return;
+      }
+      try {
+        reply.send(await options.ports.readKboManagement());
+      } catch (error) {
+        sendPortError(reply, error, request.id);
+      }
+    },
   );
   app.get(
     DASHBOARD_API_PATHS.gameStacks,
@@ -1069,6 +1182,47 @@ export function buildDashboardServer(
       }
       try {
         reply.send(await options.ports.removeRiotLink({
+          request: request.body,
+          actorId: authorization.actorId,
+          authorizationTier: authorization.tier,
+          operationId: request.id,
+        }));
+      } catch (error) {
+        sendPortError(reply, error, request.id);
+      }
+    },
+  );
+  app.post<{ Body: KboCreditAdjustmentRequestDto }>(
+    DASHBOARD_API_PATHS.kboCreditAdjust,
+    {
+      schema: {
+        querystring: emptyObjectSchema,
+        body: kboCreditAdjustmentSchema,
+        response: {
+          200: kboCreditAdjustmentResponseSchema,
+          409: errorSchema,
+          "4xx": errorSchema,
+          "5xx": errorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const authorization = await authorize(
+        options.auth,
+        request,
+        "high-risk",
+        request.body.confirmation,
+      );
+      if (!authorization.allowed) {
+        sendAuthorizationError(reply, authorization.response, request.id);
+        return;
+      }
+      if (authorization.tier !== "administrator") {
+        sendError(reply, 403, "forbidden", request.id);
+        return;
+      }
+      try {
+        reply.send(await options.ports.adjustKboCredit({
           request: request.body,
           actorId: authorization.actorId,
           authorizationTier: authorization.tier,

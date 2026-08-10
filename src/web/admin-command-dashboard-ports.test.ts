@@ -193,6 +193,53 @@ test("dispatches an exact confirmed optimistic Riot link removal", async () => {
   });
 });
 
+test("audits then dispatches an exact confirmed KBO credit adjustment", async () => {
+  const order: string[] = [];
+  let captured: AdminCommandRequest | undefined;
+  const ports = createAdminCommandDashboardPorts({
+    guildId: "223456789012345678",
+    now: () => now,
+    generateId: ids(),
+    audit: { async append(event) { order.push(`audit:${event.commandName}`); } },
+    transport: {
+      async execute(request) {
+        order.push("transport");
+        captured = request;
+        return success(request, {
+          kind: "credit_account_adjustment",
+          status: "adjusted",
+          availableBalance: "1250",
+          version: 8,
+        });
+      },
+    },
+  });
+  const result = await ports.adjustKboCredit({
+    ...context,
+    request: {
+      accountId: "account:active0001",
+      expectedVersion: 7,
+      delta: -250,
+      reasonCode: "support_correction",
+      confirmation: true,
+    },
+  });
+  assert.deepEqual(order, ["audit:credit_account_adjust", "transport"]);
+  assert.equal(captured?.command, "credit_account_adjust");
+  assert.deepEqual(captured?.payload, {
+    accountId: "account:active0001",
+    expectedVersion: 7,
+    delta: -250,
+    reasonCode: "support_correction",
+    confirmation: true,
+  });
+  assert.deepEqual(result, {
+    message: "크레딧을 조정했습니다.",
+    availableBalance: "1250",
+    version: 8,
+  });
+});
+
 test("dispatches exact incident correction and cancellation with terminal reconciliation", async () => {
   const captured: AdminCommandRequest[] = [];
   const ports = createAdminCommandDashboardPorts({

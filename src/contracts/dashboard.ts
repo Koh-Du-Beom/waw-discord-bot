@@ -192,6 +192,49 @@ export type RiotLinkDecisionResponseDto = {
   message: string;
 };
 
+export type KboManagementAccountDto = {
+  accountId: string;
+  displayLabel: string;
+  enrollmentStatus: "active" | "departed";
+  availableBalance: string;
+  correctionDebt: string;
+  version: number;
+  dailyClaims: number;
+  bets: number;
+  pendingBets: number;
+  settledBets: number;
+  voidBets: number;
+  corrections: number;
+  outcomeHits: number;
+  scoreHits: number;
+  adminAdjusted: boolean;
+  lastLedgerAt: string | null;
+};
+
+export type KboManagementDto = {
+  accounts: KboManagementAccountDto[];
+  provider: {
+    games: number;
+    latestStatus: string | null;
+    sourceUpdatedAt: string | null;
+    collectedAt: string | null;
+  };
+};
+
+export type KboCreditAdjustmentRequestDto = {
+  accountId: string;
+  expectedVersion: number;
+  delta: number;
+  reasonCode: "support_correction" | "policy_correction" | "incident_recovery";
+  confirmation: true;
+};
+
+export type KboCreditAdjustmentResponseDto = {
+  message: string;
+  availableBalance: string;
+  version: number;
+};
+
 export type MutateGameIncidentRequestDto = {
   incidentId: string;
   expectedVersion: number;
@@ -240,6 +283,8 @@ export const DASHBOARD_API_PATHS = {
   riotApprove: "/api/riot/requests/approve",
   riotReject: "/api/riot/requests/reject",
   riotRemove: "/api/riot/links/remove",
+  kboManagement: "/api/kbo/management",
+  kboCreditAdjust: "/api/kbo/credits/adjust",
   commandLog: "/api/command-log",
   gameStacks: "/api/game/stacks",
   activeGames: "/api/game/active",

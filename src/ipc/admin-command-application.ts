@@ -11,6 +11,7 @@ import type {
   PendingRiotLinkRequest,
   PuuidValidationPort,
 } from "../riot/riot-admin-executor.ts";
+import type { KboAdminCreditAdjustmentStore } from "../kbo/admin-credit-adjustment.ts";
 
 export type TerminalAdminCommandResult = {
   operationId: string;
@@ -95,6 +96,7 @@ export class AdminCommandApplication {
       authorization: CurrentAuthorizationReader;
       validator: PuuidValidationPort;
       store: AdminCommandApplicationStore;
+      credits?: KboAdminCreditAdjustmentStore;
       incidents: AdminIncidentMutationStore;
       displayName?: (discordUserId: string) => Promise<string | undefined>;
       now: () => Date;
@@ -140,6 +142,8 @@ export class AdminCommandApplication {
         return this.reject(request, receivedAt);
       case "riot_link_remove":
         return this.remove(request, receivedAt);
+      case "credit_account_adjust":
+        return this.adjustCredit(request, receivedAt);
       case "game_incident_correct":
       case "game_incident_cancel":
         return this.mutateIncident(request, receivedAt);
@@ -348,6 +352,60 @@ export class AdminCommandApplication {
       : failure(request, "unavailable", "riot_link_not_found");
   }
 
+  private async adjustCredit(
+    request: Extract<AdminCommandRequest, { command: "credit_account_adjust" }>,
+    occurredAt: Date,
+  ): Promise<AdminCommandResponse> {
+    if (!this.input.credits) {
+      await this.input.store.recordAdminAudit(
+        audit(request, occurredAt, "failure", "credit_account_adjustment_unavailable"),
+        request.command,
+      );
+      return failure(request, "unavailable", "credit_account_adjustment_unavailable");
+    }
+    const result = await this.input.credits.adjust({
+      operationId: request.operationId,
+      accountId: request.payload.accountId,
+      expectedVersion: request.payload.expectedVersion,
+      delta: BigInt(request.payload.delta),
+      reasonCode: request.payload.reasonCode,
+      administratorId: request.actorId,
+      adjustedAt: occurredAt,
+      audit: audit(request, occurredAt, "success", "completed"),
+    });
+    if (result.status === "duplicate_operation") {
+      return terminalResponse(
+        request,
+        await this.input.store.findAdminCommandResult(request.operationId),
+      );
+    }
+    if (result.status === "adjusted") {
+      return {
+        ...responseBase(request),
+        outcome: "success",
+        reasonCode: "completed",
+        result: {
+          kind: "credit_account_adjustment",
+          status: "adjusted",
+          availableBalance: result.availableBalance.toString(),
+          version: result.version,
+        },
+      };
+    }
+    const reasonCode = result.status === "stale"
+      ? "credit_account_stale"
+      : result.status === "not_found"
+        ? "credit_account_not_found"
+        : result.status === "self_adjustment"
+          ? "credit_account_self_adjustment"
+          : "credit_account_insufficient_balance";
+    return failure(
+      request,
+      result.status === "stale" ? "conflict" : "denied",
+      reasonCode,
+    );
+  }
+
   private async mutateIncident(
     request: Extract<AdminCommandRequest, {
       command: "game_incident_correct" | "game_incident_cancel";
@@ -444,6 +502,8 @@ function audit(
           ? "라이엇계정 거절"
           : request.command === "riot_link_remove"
             ? "라이엇계정 연결해제"
+            : request.command === "credit_account_adjust"
+              ? "크레딧 관리자조정"
             : request.command === "game_incident_correct"
               ? "몰랭검거 정정"
               : request.command === "game_incident_cancel"

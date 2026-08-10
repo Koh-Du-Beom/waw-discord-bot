@@ -347,7 +347,9 @@ function transportFailure(
 function isMutation(request: AdminCommandRequest): boolean {
   return (
     request.command === "riot_link_request_approve" ||
-    request.command === "riot_link_request_reject"
+    request.command === "riot_link_request_reject" ||
+    request.command === "riot_link_remove" ||
+    request.command === "credit_account_adjust"
   );
 }
 
