@@ -1,6 +1,6 @@
 # PLAN-0040: KBO command master gate와 안전한 Discord 등록
 
-- Status: Source complete; PR #14 open
+- Status: Source complete
 - Related requirements: `/크보` 전체를 등록 전에 fail-closed로 만들 것
 - Related ADRs: ADR-0029, ADR-0032
 - Owner decision: 2026-08-10 기술 선택과 production 직전 구현 승인
