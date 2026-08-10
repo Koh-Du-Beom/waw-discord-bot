@@ -26,6 +26,14 @@ const commandManager = await readFile(
   "scripts/manage-discord-guild-commands.mjs",
   "utf8",
 );
+const kboCommandWorkflow = await readFile(
+  ".github/workflows/kbo-discord-registration-production.yml",
+  "utf8",
+);
+const kboCommandRemote = await readFile(
+  "scripts/manage-production-kbo-commands-remote.sh",
+  "utf8",
+);
 
 test("CI has no deployment authority", () => {
   assert.match(ci, /branches: \[develop, production\]/u);
@@ -102,6 +110,24 @@ test("Discord command registration is exact and rolls back failed writes", () =>
   assert.match(commandManager, /await request\(route, token, "PUT", previous\)/u);
   assert.match(commandManager, /rollback=PASS/u);
   assert.doesNotMatch(commandManager, /console\.log\([^)]*(?:token|guildId|user\.id)/u);
+});
+
+test("KBO Gate C0 keeps commands master-off and preserves rollback until smoke", () => {
+  assert.match(kboCommandWorkflow, /workflow_dispatch:/u);
+  assert.match(kboCommandWorkflow, /options: \[register, verify_smoke, restore\]/u);
+  assert.match(kboCommandWorkflow, /group: waw-production/u);
+  assert.match(kboCommandWorkflow, /test "\$GITHUB_REF" = refs\/heads\/develop/u);
+  assert.match(kboCommandWorkflow, /StrictHostKeyChecking=yes/u);
+  assert.doesNotMatch(kboCommandWorkflow, /set -x/u);
+
+  assert.match(kboCommandRemote, /\/proc\/\$bot_pid\/environ/u);
+  assert.match(kboCommandRemote, /WAW_KBO_COMMANDS_ENABLED/u);
+  assert.match(kboCommandRemote, /value == "0"/u);
+  assert.match(kboCommandRemote, /manage-discord-guild-commands\.mjs/u);
+  assert.match(kboCommandRemote, /'도움말,요약,라이엇계정,몰랭검거'/u);
+  assert.match(kboCommandRemote, /kbo_commands_smoke_row_delta/u);
+  assert.match(kboCommandRemote, /row_delta=0/u);
+  assert.match(kboCommandRemote, /restore "\$backup"/u);
 });
 
 test("manual SSH preflight proves only a pinned connection", () => {

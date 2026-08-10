@@ -42,7 +42,9 @@ export function schemasMatch(expected, actual) {
   for (const key of ["options", "choices"]) {
     if (!(key in expected) && Array.isArray(actual[key]) && actual[key].length > 0) return false;
   }
-  return Object.entries(expected).every(([key, value]) => schemasMatch(value, actual[key]));
+  return Object.entries(expected).every(([key, value]) =>
+    (key === "required" && value === false && !(key in actual)) || schemasMatch(value, actual[key])
+  );
 }
 
 function expectedNames(value) {
@@ -195,6 +197,14 @@ function selfTest() {
     ...desired[0],
   }];
   assert.equal(schemasMatch(desired, actual), true);
+  assert.equal(schemasMatch({ type: 3, name: "optional", required: false }, {
+    type: 3,
+    name: "optional",
+  }), true);
+  assert.equal(schemasMatch({ type: 3, name: "required", required: true }, {
+    type: 3,
+    name: "required",
+  }), false);
   assert.equal(schemasMatch(desired, [{ ...actual[0], options: [] }]), false);
   assert.equal(schemasMatch(desired, [{ ...actual[0], options: [
     ...actual[0].options,
