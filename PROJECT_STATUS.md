@@ -4,6 +4,12 @@
 
 ## 2026-08-10 — KBO Gate A/B rollout과 `/크보` namespace
 
+- Owner 승인에 따라 exact bridge `15052952358d`를 Production에 non-force
+  fast-forward했고 deploy run `31376248112`가 exact archive stage, release activate,
+  service/canonical health를 PASS했습니다. 새 unit의 KBO command master 기본값은
+  `0`이며 Discord REST와 KBO flag 변경은 수행하지 않았습니다. 별도 Production SSH
+  세션이 없어 effective 네 flag의 직접 `systemctl show` read-back은 다음 C0에
+  재확인합니다.
 - Discord 등록만으로 가입·일일 크레딧 mutation이 열리는 경계를 제거하기 위해
   exact `WAW_KBO_COMMANDS_ENABLED` master gate를 추가했습니다. 기본값 `0`에서는
   모든 `/크보` 내부 command를 store 접근 전에 같은 고정 reason code로 차단하고,
