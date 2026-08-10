@@ -448,6 +448,7 @@ Credential directory는 절대 경로여야 합니다. 값은 비어 있거나 �
 | `WAW_DISCORD_VOICE_FRESHNESS_MS` | Discord 증거 freshness; 기본 180000ms |
 | `WAW_SUMMARY_QUOTA_ENABLED` | 등록 사용자별 rolling-hour 예약 |
 | `WAW_SUMMARY_PROVIDER_ENABLED` | OpenAI 요약 provider와 credential load |
+| `WAW_KBO_COMMANDS_ENABLED` | 모든 `/크보` 하위 명령의 master gate |
 | `WAW_KBO_DATA_RIGHTS_AUTHORIZED` | 승인된 KBO 데이터 권리와 ingestion 사용 |
 | `WAW_KBO_RANKINGS_ENABLED` | KBO 공개 크레딧·예측 랭킹 |
 | `WAW_KBO_BETTING_ENABLED` | KBO 신규 베팅 접수 |
@@ -457,7 +458,9 @@ Credential directory는 절대 경로여야 합니다. 값은 비어 있거나 �
 않습니다.
 
 KBO는 정상 경기·공식 정정 schema, 외부 봇 개발자 허가와 공개 운영 gate가
-확인될 때까지 세 flag를 모두 `0`으로 유지합니다. 이미 접수된 bet의 정산과
+확인될 때까지 네 flag를 모두 `0`으로 유지합니다. Command master flag가 `0`이면
+가입과 일일 크레딧을 포함한 모든 `/크보` 요청이 persistence 접근 전에 실패
+폐쇄됩니다. 이미 접수된 bet의 정산과
 탈퇴·보존 생명주기는 신규 접수 flag와 분리합니다.
 
 Production unit의 정확한 capability와 sandbox 설정은

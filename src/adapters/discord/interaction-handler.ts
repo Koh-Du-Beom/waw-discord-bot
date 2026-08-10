@@ -5,6 +5,7 @@ import {
 } from "../../commands/command-handler.ts";
 
 export type DiscordCommandOptions = {
+  getSubcommandGroup?(required?: boolean): string | null;
   getSubcommand(required?: boolean): string | null;
   getString(name: string, required: true): string;
   getInteger?(name: string, required?: boolean): number | null;
@@ -100,23 +101,23 @@ function normalizeInteraction(
         { 계정: interaction.options.getString("계정", true) },
       );
     }
-    case "크레딧": {
+    case "크보": {
+      const group = interaction.options.getSubcommandGroup?.(true);
       const subcommand = interaction.options.getSubcommand(true);
-      if (subcommand !== "내정보" && subcommand !== "받기") {
-        throw new Error("unsupported credit subcommand");
+      if (group === "크레딧") {
+        if (subcommand !== "내정보" && subcommand !== "받기") {
+          throw new Error("unsupported credit subcommand");
+        }
+        return request(
+          interaction,
+          correlationId,
+          guildId,
+          channelId,
+          subcommand === "내정보" ? "크레딧 내정보" : "크레딧 받기",
+          {},
+        );
       }
-      return request(
-        interaction,
-        correlationId,
-        guildId,
-        channelId,
-        subcommand === "내정보" ? "크레딧 내정보" : "크레딧 받기",
-        {},
-      );
-    }
-    case "베팅": {
-      const subcommand = interaction.options.getSubcommand(true);
-      if (subcommand === "가입") {
+      if (group === "베팅" && subcommand === "가입") {
         return request(
           interaction,
           correlationId,
@@ -126,32 +127,34 @@ function normalizeInteraction(
           { 동의: interaction.options.getBoolean?.("동의", true) === true ? "true" : "false" },
         );
       }
-      if (subcommand === "경기" || subcommand === "내역") {
-        return request(
-          interaction,
-          correlationId,
-          guildId,
-          channelId,
-          subcommand === "경기" ? "베팅 경기" : "베팅 내역",
-          {},
-        );
+      if (group === "베팅") {
+        if (subcommand === "경기" || subcommand === "내역") {
+          return request(
+            interaction,
+            correlationId,
+            guildId,
+            channelId,
+            subcommand === "경기" ? "베팅 경기" : "베팅 내역",
+            {},
+          );
+        }
+        if (subcommand !== "하기" || !interaction.options.getInteger) {
+          throw new Error("unsupported betting subcommand");
+        }
+        const homeScore = interaction.options.getInteger("홈점수");
+        const awayScore = interaction.options.getInteger("원정점수");
+        return request(interaction, correlationId, guildId, channelId, "베팅 하기", {
+          경기: interaction.options.getString("경기", true),
+          결과: interaction.options.getString("결과", true),
+          금액: String(interaction.options.getInteger("금액", true)),
+          홈점수: homeScore === null ? undefined : String(homeScore),
+          원정점수: awayScore === null ? undefined : String(awayScore),
+        });
       }
-      if (subcommand !== "하기" || !interaction.options.getInteger) {
-        throw new Error("unsupported betting subcommand");
-      }
-      const homeScore = interaction.options.getInteger("홈점수");
-      const awayScore = interaction.options.getInteger("원정점수");
-      return request(interaction, correlationId, guildId, channelId, "베팅 하기", {
-        경기: interaction.options.getString("경기", true),
-        결과: interaction.options.getString("결과", true),
-        금액: String(interaction.options.getInteger("금액", true)),
-        홈점수: homeScore === null ? undefined : String(homeScore),
-        원정점수: awayScore === null ? undefined : String(awayScore),
-      });
-    }
-    case "랭킹": {
-      const subcommand = interaction.options.getSubcommand(true);
-      if (subcommand === null || !["크레딧", "결과", "점수", "적중률"].includes(subcommand)) {
+      if (
+        group !== "랭킹" || subcommand === null ||
+        !["크레딧", "결과", "점수", "적중률"].includes(subcommand)
+      ) {
         throw new Error("unsupported ranking subcommand");
       }
       const page = interaction.options.getInteger?.("페이지");
