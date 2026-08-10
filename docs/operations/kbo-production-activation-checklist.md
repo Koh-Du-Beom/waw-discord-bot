@@ -2,7 +2,7 @@
 
 - Status: Source/local complete — production execution not authorized
 - Canonical dashboard: `https://waw.dubeom.com`
-- Scope: migrations `0011`~`0017`, KBO Discord commands, dashboard and flags
+- Scope: migrations `0013`~`0019`, KBO Discord commands, dashboard and flags
 
 이 문서는 KBO 구현을 Production에 적용할 때 사용할 실행 전 체크리스트다. 현재
 완료 상태는 배포 후보 준비까지이며, migration, Discord REST 등록, release 배포와
@@ -50,7 +50,7 @@ host-key 경계를 그대로 사용한다. Mismatch는 preflight 안에서 수�
 ## Gate B — migration과 release
 
 - [ ] One-shot migration identity와 maintenance window를 고정하고 reviewed additive
-      migrations `0011`~`0017`만 순서대로 적용한다.
+      migrations `0013`~`0019`만 순서대로 적용한다.
 - [ ] Version/checksum, constraints, RLS, grants와 `purge_expired_kbo_accounts`의 exact
       bot EXECUTE/web deny를 read back한다.
 - [ ] Migration credential을 제거하거나 폐기한다.
