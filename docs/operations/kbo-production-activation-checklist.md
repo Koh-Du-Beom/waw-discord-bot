@@ -1,6 +1,6 @@
 # KBO production activation checklist
 
-- Status: Gate B default-off rollout complete; operator deny evidence and Gate C remain
+- Status: Gate C0 Discord registration complete; all KBO features default-off
 - Canonical dashboard: `https://waw.dubeom.com`
 - Scope: migrations `0013`~`0019`, KBO Discord commands, dashboard and flags
 
@@ -70,11 +70,11 @@ ledger/audit/settlement를 down-migrate하거나 삭제하지 않는다.
 
 ## Gate C — Discord 등록과 단계적 활성화
 
-- [ ] current release와 systemd read-back에서 KBO command/data rights/rankings/betting
+- [x] current release와 systemd read-back에서 KBO command/data rights/rankings/betting
       네 flag가 모두 exact `0`인지 확인한다.
-- [ ] `scripts/manage-discord-guild-commands.mjs`로 현재 4-root 계약과 reviewed payload
+- [x] `scripts/manage-discord-guild-commands.mjs`로 현재 4-root 계약과 reviewed payload
       SHA-256을 확인하고 root-only rollback JSON을 보관한 뒤 `/크보`를 등록·read back한다.
-- [ ] 등록 뒤 master `0` 상태에서 `/크보` 한 건이 고정
+- [x] 등록 뒤 master `0` 상태에서 `/크보` 한 건이 고정
       `kbo_commands_unavailable`로 끝나고 KBO row가 증가하지 않는지 확인한다.
 - [ ] 시험 guild에서 ephemeral 가입·잔액·지급·내역, 경기 ID 노출, public ranking과
       administrator dashboard를 최소 계정으로 smoke test한다.
@@ -108,9 +108,9 @@ rankings나 betting flag를 켜지 않는다.
 - Source/local 구현: `PLAN-0017`~`PLAN-0038` 완료
 - 검증: 전체 `399 pass / 7 기존 환경 skip / 0 fail`, PostgreSQL 포함,
   typecheck/build/production asset/diff check 통과
-- Build asset: migrations `0001`~`0019`; 배포된 Production KBO flags `0/0/0`, 새
-  source candidate flags `0/0/0/0`
-- Production 완료: migrations `0012`~`0019`, exact-tree release `79be3fc04c07`,
-  administrator empty KBO aggregate read, KBO flags `0/0/0`
-- 미수행: operator deny, Discord REST 등록, 시험 guild command smoke, feature 활성화
+- Build asset: migrations `0001`~`0019`; Production KBO flags `0/0/0/0`
+- Production 완료: migrations `0012`~`0019`, exact release `d26e7fb1b25d`,
+  administrator empty KBO aggregate read, five-root Discord payload 등록과 master-off
+  smoke, KBO 핵심 table row delta `0`
+- 미수행: operator deny, 실제 기능 smoke와 단계별 feature 활성화
 - 외부 잔여: Gate 0 전체와 정상 경기·정정 schema 기반 ingestion/parser

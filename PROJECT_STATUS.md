@@ -2,6 +2,24 @@
 
 마지막 갱신일: 2026-08-10
 
+## 2026-08-10 — KBO Gate C0 `/크보` 등록 PASS, default-off 유지
+
+- Exact Production release `d26e7fb1b25d`를 배포한 뒤 effective KBO flags
+  `commands/data-rights/rankings/betting=0/0/0/0`을 read back하고 Discord guild
+  commands에 `/크보`를 등록했습니다. 등록 payload는 5 roots, SHA-256
+  `9222fee3b18f6c231ff0c90735a1d85897cab7cbd86c08acb782806e63223c6a`로
+  exact GET read-back을 통과했습니다.
+- Orca에서 `/크보 베팅 가입 동의:true`를 한 번 호출해 고정 master-off 응답을
+  확인했고, postflight에서 같은 payload, flags `0/0/0/0`, KBO 핵심 table row
+  delta `0`을 확인했습니다. 모든 KBO 기능은 계속 default-off입니다.
+- 첫 등록 시 Discord가 optional `required:false`를 생략한 응답을 strict 비교기가
+  거부했으나 이전 4-command payload 자동 복원은 PASS했습니다. 문서화된 기본값만
+  동등하게 취급하는 hotfix를 CI와 exact release로 배포한 뒤 재등록했습니다.
+- 상세 증거는
+  `docs/operations/kbo-gate-c0-discord-registration-result-2026-08-10.md`에
+  기록했습니다. Gate 0 외부 권리·정상 경기/정정 schema·정책 조건과 후속 단계별
+  flag 활성화는 여전히 미수행입니다.
+
 ## 2026-08-10 — KBO Gate A/B rollout과 `/크보` namespace
 
 - Owner 승인에 따라 exact bridge `15052952358d`를 Production에 non-force
