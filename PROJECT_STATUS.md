@@ -4,6 +4,11 @@
 
 ## 2026-08-10 — KBO Gate A/B rollout과 `/크보` namespace
 
+- Discord 등록만으로 가입·일일 크레딧 mutation이 열리는 경계를 제거하기 위해
+  exact `WAW_KBO_COMMANDS_ENABLED` master gate를 추가했습니다. 기본값 `0`에서는
+  모든 `/크보` 내부 command를 store 접근 전에 같은 고정 reason code로 차단하고,
+  별도 등록 도구는 exact payload hash/current roots/read-back과 실패 시 자동 복원을
+  강제합니다. Production과 Discord는 변경하지 않았습니다.
 - Gate A 5/5, migrations `0012`~`0019`, exact-tree default-off release
   `79be3fc04c07`와 administrator KBO empty aggregate read가 Production에서
   PASS했습니다. KBO effective flags는 `0/0/0`이며 operator deny는 별도 operator
@@ -13,8 +18,9 @@
   `/크보 랭킹 크레딧|결과|점수|적중률`을 사용하며 내부 command/audit 이름과
   persistence 계약은 변경하지 않습니다.
 - 현재 Production Discord에는 기존 비-KBO 명령 4개만 등록돼 있어 사용자 영향은
-  없습니다. `/크보` source를 포함한 새 immutable release와 CI를 만든 뒤에만
-  Discord REST 등록을 진행합니다. Gate 0와 세 KBO flag 활성화는 여전히 금지됩니다.
+  없습니다. `/크보` source와 master gate를 포함한 새 immutable release와 CI를 만든
+  뒤에만 Discord REST 등록을 진행합니다. Gate 0와 네 KBO flag 활성화는 여전히
+  금지됩니다.
 
 ## 2026-08-10 — ADR-0032 승인, PLAN-0027~0038 완료
 

@@ -60,7 +60,10 @@ import { PostgresKboEnrollmentActorStore } from "../persistence/postgres-kbo-enr
 import { PostgresKboDailyCreditClaimStore } from "../persistence/postgres-kbo-daily-credit-claim-store.ts";
 import { PostgresKboBetStore } from "../persistence/postgres-kbo-bet-store.ts";
 import { KboBetCommandExecutor, KboBettingCommandExecutor } from "../kbo/bet-command-executor.ts";
-import { kboBettingFeatureEnabled } from "../kbo/betting-feature.ts";
+import {
+  kboBettingFeatureEnabled,
+  kboCommandsFeatureEnabled,
+} from "../kbo/betting-feature.ts";
 import { KboBetQueryCommandExecutor } from "../kbo/bet-query-command-executor.ts";
 import { PostgresKboBetQueryStore } from "../persistence/postgres-kbo-bet-query-store.ts";
 import { KboRankingCommandExecutor } from "../kbo/ranking-command-executor.ts";
@@ -132,6 +135,9 @@ const kboBettingEnabled = kboBettingFeatureEnabled(
 const kboRankingsEnabled = kboBettingFeatureEnabled(
   process.env.WAW_KBO_RANKINGS_ENABLED,
   process.env.WAW_KBO_DATA_RIGHTS_AUTHORIZED,
+);
+const kboCommandsEnabled = kboCommandsFeatureEnabled(
+  process.env.WAW_KBO_COMMANDS_ENABLED,
 );
 const client = new Client({ intents: [...DISCORDJS_MINIMUM_INTENTS] });
 const pool = new Pool({
@@ -222,6 +228,7 @@ const commandHandler = new KoreanCommandHandler({
         kboRankingsEnabled,
       ),
     ),
+    kboCommandsEnabled,
   ),
   audit: new PostgresCommandAuditSink(pool),
   ...(summaryApiKey === undefined
