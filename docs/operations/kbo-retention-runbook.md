@@ -58,7 +58,7 @@ commit;
 ## 장애와 복구
 
 - Purge 실패 진단이 발생하면 신규 지급·베팅을 자동으로 열지 말고 DB health와
-  migration 17, hold, pending bet을 읽기 전용으로 확인한다.
+  migration 19, hold, pending bet을 읽기 전용으로 확인한다.
 - 삭제 함수나 table DELETE를 수동 반복하지 않는다. 원인을 수정한 뒤 다음 bounded
   invocation을 사용한다.
 - 삭제 완료 데이터는 운영 DB에서 복구하지 않는다. 재가입은 새 명시적 가입과

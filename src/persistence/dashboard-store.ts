@@ -5,7 +5,14 @@ import type { Pool, PoolClient } from "pg";
 import type {
   AuditEventsDto,
   ActiveRiotLinksDto,
+  ActiveGameObservationsDto,
   CommandLogPageDto,
+  GameEvidenceStateDto,
+  GameIncidentHistoryPageDto,
+  GameIncidentStatusDto,
+  GameComparisonStateDto,
+  GameStacksDto,
+  ListGameIncidentHistoryRequestDto,
   ListCommandLogRequestDto,
   LowRiskSettingsDto,
   KboManagementDto,
@@ -185,6 +192,102 @@ export class PostgresDashboardStore {
     } catch (error) {
       if (error instanceof PersistenceError) throw error;
       throw new PersistenceError("dashboard_kbo_management_read_failed");
+    }
+  }
+
+  async readGameStacks(): Promise<GameStacksDto> {
+    try {
+      const result = await this.pool.query<{ display_label: string; stack: string }>(
+        `select users.display_label,
+                count(incident.incident_id) filter (
+                  where incident.status = 'confirmed'
+                )::text stack
+           from registered_discord_user users
+           left join game_incident incident
+             on incident.discord_user_id = users.discord_user_id
+          group by users.guild_id, users.discord_user_id, users.display_label
+          order by count(incident.incident_id) filter (
+                     where incident.status = 'confirmed'
+                   ) desc,
+                   users.display_label,
+                   users.discord_user_id`,
+      );
+      return {
+        entries: result.rows.map((row) => ({
+          memberLabel: row.display_label,
+          stack: nonNegativeInteger(row.stack),
+        })),
+      };
+    } catch (error) {
+      if (error instanceof PersistenceError) throw error;
+      throw new PersistenceError("dashboard_game_stacks_read_failed");
+    }
+  }
+
+  async readActiveGameObservations(): Promise<ActiveGameObservationsDto> {
+    try {
+      const result = await this.pool.query<GameDashboardRow>(
+        `${GAME_DASHBOARD_SELECT}
+          where game.ended_at is null
+          order by game.started_at desc, incident.incident_id desc`,
+      );
+      return { entries: result.rows.map(mapActiveGameObservation) };
+    } catch {
+      throw new PersistenceError("dashboard_active_games_read_failed");
+    }
+  }
+
+  async readGameIncidentHistory(
+    input: ListGameIncidentHistoryRequestDto,
+  ): Promise<GameIncidentHistoryPageDto> {
+    const limit = input.limit ?? 50;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100 ||
+        (input.status !== undefined &&
+          !GAME_INCIDENT_STATUSES.includes(input.status)) ||
+        (input.memberLabel !== undefined &&
+          (input.memberLabel.trim() !== input.memberLabel ||
+            input.memberLabel.length < 1 || input.memberLabel.length > 80 ||
+            /[\r\n\0]/u.test(input.memberLabel)))) {
+      throw new PersistenceError("game_incident_history_request_invalid");
+    }
+    const cursor = input.cursor === undefined
+      ? undefined
+      : decodeGameIncidentCursor(input.cursor);
+    try {
+      const result = await this.pool.query<GameDashboardRow>(
+        `${GAME_DASHBOARD_SELECT}
+          where ($1::timestamptz is null or
+                 (incident.updated_at, incident.incident_id) < ($1, $2))
+            and ($3::text is null or incident.status = $3)
+            and ($4::text is null or users.display_label = $4)
+          order by incident.updated_at desc, incident.incident_id desc
+          limit $5`,
+        [
+          cursor?.updatedAt ?? null,
+          cursor?.incidentId ?? null,
+          input.status ?? null,
+          input.memberLabel ?? null,
+          limit + 1,
+        ],
+      );
+      const visible = result.rows.slice(0, limit);
+      const last = visible.at(-1);
+      return {
+        entries: visible.map((row) => ({
+          ...mapActiveGameObservation(row),
+          gameEndedAt: row.game_ended_at?.toISOString() ?? null,
+          incidentUpdatedAt: row.incident_updated_at.toISOString(),
+        })),
+        ...(result.rows.length > limit && last
+          ? { nextCursor: encodeGameIncidentCursor(
+              last.incident_updated_at,
+              last.incident_id,
+            ) }
+          : {}),
+      };
+    } catch (error) {
+      if (error instanceof PersistenceError) throw error;
+      throw new PersistenceError("dashboard_game_history_read_failed");
     }
   }
 
@@ -431,4 +534,121 @@ function publicReason(code: string): string {
     summary_quota_cooldown: "1시간 대기",
   };
   return labels[code] ?? "처리 결과";
+}
+
+type GameDashboardRow = {
+  incident_id: string;
+  display_label: string;
+  riot_platform_id: string | null;
+  riot_game_name: string | null;
+  riot_tag_line: string | null;
+  game_key: string;
+  riot_state: GameEvidenceStateDto | null;
+  riot_observed_at: Date | null;
+  go_live_state: GameEvidenceStateDto | null;
+  go_live_observed_at: Date | null;
+  comparison_state: GameComparisonStateDto;
+  incident_status: GameIncidentStatusDto;
+  incident_version: string;
+  game_started_at: Date;
+  game_ended_at: Date | null;
+  incident_updated_at: Date;
+};
+
+const GAME_INCIDENT_STATUSES: readonly GameIncidentStatusDto[] = [
+  "open",
+  "confirmed",
+  "corrected",
+  "cancelled",
+];
+
+const GAME_DASHBOARD_SELECT = `select incident.incident_id,
+  users.display_label, account.platform_id riot_platform_id,
+  account.game_name riot_game_name, account.tag_line riot_tag_line,
+  game.game_key, riot.state riot_state, riot.observed_at riot_observed_at,
+  voice.state go_live_state,
+  coalesce(voice.source_observed_at, voice.observed_at) go_live_observed_at,
+  incident.comparison_state, incident.status incident_status,
+  incident.version::text incident_version, game.started_at game_started_at,
+  game.ended_at game_ended_at, incident.updated_at incident_updated_at
+  from game_incident incident
+  join riot_game game on game.game_key = incident.game_key
+  join registered_discord_user users
+    on users.discord_user_id = incident.discord_user_id
+  left join lateral (
+    select min(platform_id) platform_id, min(game_name) game_name,
+           min(tag_line) tag_line
+      from riot_account_link
+     where discord_user_id = incident.discord_user_id and removed_at is null
+    having count(*) = 1
+  ) account on true
+  left join lateral (
+    select state, observed_at from game_observation
+     where game_key = incident.game_key
+       and discord_user_id = incident.discord_user_id
+       and source = 'riot_spectator'
+     order by observed_at desc, generation desc limit 1
+  ) riot on true
+  left join lateral (
+    select state, observed_at, source_observed_at from game_observation
+     where game_key = incident.game_key
+       and discord_user_id = incident.discord_user_id
+       and source = 'discord_voice'
+     order by observed_at desc, generation desc limit 1
+  ) voice on true`;
+
+function mapActiveGameObservation(row: GameDashboardRow) {
+  const hasRiotId = row.riot_platform_id !== null &&
+    row.riot_game_name !== null && row.riot_tag_line !== null;
+  return {
+    incidentId: row.incident_id,
+    memberLabel: row.display_label,
+    riotId: hasRiotId
+      ? {
+          platformId: row.riot_platform_id!,
+          gameName: row.riot_game_name!,
+          tagLine: row.riot_tag_line!,
+        }
+      : null,
+    gameKey: row.game_key,
+    riotState: row.riot_state ?? "unknown",
+    riotObservedAt: row.riot_observed_at?.toISOString() ?? null,
+    goLiveState: row.go_live_state ?? "unknown",
+    goLiveObservedAt: row.go_live_observed_at?.toISOString() ?? null,
+    comparisonState: row.comparison_state,
+    incidentStatus: row.incident_status,
+    expectedVersion: nonNegativeInteger(row.incident_version),
+    gameStartedAt: row.game_started_at.toISOString(),
+  };
+}
+
+function nonNegativeInteger(value: string): number {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    throw new PersistenceError("dashboard_game_row_invalid");
+  }
+  return parsed;
+}
+
+function encodeGameIncidentCursor(updatedAt: Date, incidentId: string): string {
+  return Buffer.from(JSON.stringify([updatedAt.toISOString(), incidentId]))
+    .toString("base64url");
+}
+
+function decodeGameIncidentCursor(value: string): {
+  updatedAt: string;
+  incidentId: string;
+} {
+  try {
+    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as unknown;
+    if (!Array.isArray(parsed) || parsed.length !== 2 ||
+        typeof parsed[0] !== "string" || !Number.isFinite(Date.parse(parsed[0])) ||
+        typeof parsed[1] !== "string" || parsed[1].length < 1 ||
+        parsed[1].length > 160) {
+      throw new Error();
+    }
+    return { updatedAt: parsed[0], incidentId: parsed[1] };
+  } catch {
+    throw new PersistenceError("game_incident_history_cursor_invalid");
+  }
 }

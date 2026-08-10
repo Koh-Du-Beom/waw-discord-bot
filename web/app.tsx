@@ -5,8 +5,13 @@ import {
   DASHBOARD_API_PATHS,
   type ApiErrorCode,
   type ActiveRiotLinksDto,
+  type ActiveGameObservationsDto,
   type AuditEventsDto,
   type DashboardOverviewDto,
+  type GameIncidentHistoryPageDto,
+  type GameIncidentStatusDto,
+  type GameStacksDto,
+  type ListGameIncidentHistoryRequestDto,
   type CommandLogPageDto,
   type ListCommandLogRequestDto,
   type LowRiskSettingsDto,
@@ -18,6 +23,8 @@ import {
   type DecideRiotLinkRequestDto,
   type RiotLinkDecisionResponseDto,
   type RemoveRiotLinkRequestDto,
+  type MutateGameIncidentRequestDto,
+  type GameIncidentMutationResponseDto,
   type SessionDto,
   type UpdateLowRiskSettingsRequestDto,
 } from "../src/contracts/dashboard.ts";
@@ -28,6 +35,11 @@ export type DashboardApi = {
   getOverview(): Promise<DashboardOverviewDto>;
   getRiotLinks(): Promise<ActiveRiotLinksDto>;
   getKboManagement(): Promise<KboManagementDto>;
+  getGameStacks(): Promise<GameStacksDto>;
+  getActiveGames(): Promise<ActiveGameObservationsDto>;
+  getGameIncidents(
+    request?: ListGameIncidentHistoryRequestDto,
+  ): Promise<GameIncidentHistoryPageDto>;
   getSettings(): Promise<LowRiskSettingsDto>;
   updateSettings(request: UpdateLowRiskSettingsRequestDto): Promise<LowRiskSettingsDto>;
   getAudit(): Promise<AuditEventsDto>;
@@ -37,6 +49,8 @@ export type DashboardApi = {
   rejectRiotRequest(request: DecideRiotLinkRequestDto): Promise<RiotLinkDecisionResponseDto>;
   removeRiotLink(request: RemoveRiotLinkRequestDto): Promise<RiotLinkDecisionResponseDto>;
   adjustKboCredit(request: KboCreditAdjustmentRequestDto): Promise<KboCreditAdjustmentResponseDto>;
+  correctGameIncident(request: MutateGameIncidentRequestDto): Promise<GameIncidentMutationResponseDto>;
+  cancelGameIncident(request: MutateGameIncidentRequestDto): Promise<GameIncidentMutationResponseDto>;
 };
 
 type ViewState =
@@ -140,7 +154,7 @@ function Dashboard({
   const [result, setResult] = useState<{ kind: "success" | "error"; message: string }>();
   const resultRef = useRef<HTMLParagraphElement>(null);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [tab, setTab] = useState<"dashboard" | "riot" | "kbo" | "commands" | "settings" | "operations">("dashboard");
+  const [tab, setTab] = useState<DashboardTab>("dashboard");
   const [commandLog, setCommandLog] = useState(value.commandLog);
   const [commandHistory, setCommandHistory] = useState<CommandLogPageDto[]>([]);
   const [loadingCommands, setLoadingCommands] = useState(false);
@@ -148,10 +162,113 @@ function Dashboard({
     new Set(),
   );
   const riotRequestsInFlight = useRef(new Set<string>());
+  const [gameView, setGameView] = useState<GameViewState>({ kind: "idle" });
+  const [incidentStatus, setIncidentStatus] = useState<GameIncidentStatusDto | "">("");
+  const [memberLabel, setMemberLabel] = useState("");
+  const [incidentHistory, setIncidentHistory] = useState<GameIncidentHistoryPageDto[]>([]);
+  const [incidentAction, setIncidentAction] = useState<IncidentActionState>();
+  const incidentsInFlight = useRef(new Set<string>());
 
   useEffect(() => {
     if (result) resultRef.current?.focus();
   }, [result]);
+
+  useEffect(() => {
+    if (tab === "games" && gameView.kind === "idle") void loadGames();
+  }, [tab, gameView.kind]);
+
+  async function loadGames(request: ListGameIncidentHistoryRequestDto = {}) {
+    setGameView({ kind: "loading" });
+    try {
+      const [stacks, active, incidents] = await Promise.all([
+        api.getGameStacks(),
+        api.getActiveGames(),
+        api.getGameIncidents({ limit: 50, ...request }),
+      ]);
+      setGameView({ kind: "ready", stacks, active, incidents });
+    } catch {
+      setGameView({ kind: "error" });
+    }
+  }
+
+  async function applyGameFilters(event: React.FormEvent) {
+    event.preventDefault();
+    setIncidentHistory([]);
+    await loadGames({
+      ...(incidentStatus === "" ? {} : { status: incidentStatus }),
+      ...(memberLabel.trim() === "" ? {} : { memberLabel: memberLabel.trim() }),
+    });
+  }
+
+  async function nextIncidentPage() {
+    if (gameView.kind !== "ready" || !gameView.incidents.nextCursor) return;
+    const previous = gameView;
+    const cursor = gameView.incidents.nextCursor;
+    setGameView({ kind: "loading" });
+    try {
+      const incidents = await api.getGameIncidents({
+        limit: 50,
+        cursor,
+        ...(incidentStatus === "" ? {} : { status: incidentStatus }),
+        ...(memberLabel.trim() === "" ? {} : { memberLabel: memberLabel.trim() }),
+      });
+      setIncidentHistory((pages) => [...pages, previous.incidents]);
+      setGameView({ ...previous, incidents });
+    } catch {
+      setGameView({ kind: "error" });
+    }
+  }
+
+  function previousIncidentPage() {
+    if (gameView.kind !== "ready") return;
+    const previous = incidentHistory.at(-1);
+    if (!previous) return;
+    setGameView({ ...gameView, incidents: previous });
+    setIncidentHistory((pages) => pages.slice(0, -1));
+  }
+
+  async function mutateIncident(event: React.FormEvent) {
+    event.preventDefault();
+    if (!incidentAction || !incidentAction.confirmed) return;
+    const key = incidentAction.entry.incidentId;
+    if (incidentsInFlight.current.has(key)) return;
+    incidentsInFlight.current.add(key);
+    setResult(undefined);
+    const request = {
+      incidentId: key,
+      expectedVersion: incidentAction.entry.expectedVersion,
+      reason: incidentAction.reason,
+      confirmation: true as const,
+    };
+    try {
+      const response = incidentAction.action === "correct"
+        ? await api.correctGameIncident(request)
+        : await api.cancelGameIncident(request);
+      setResult({ kind: "success", message: response.message });
+      setIncidentAction(undefined);
+      await loadGames({
+        ...(incidentStatus === "" ? {} : { status: incidentStatus }),
+        ...(memberLabel.trim() === "" ? {} : { memberLabel: memberLabel.trim() }),
+      });
+    } catch (error) {
+      setResult({
+        kind: "error",
+        message: errorCode(error) === "conflict"
+          ? "사건 상태가 이미 변경되었습니다. 최신 이력을 다시 불러왔습니다."
+          : errorCode(error) === "forbidden"
+            ? "보안을 위해 Discord 재인증이 필요합니다. 로그아웃 후 다시 로그인하세요."
+            : errorCode(error) === "timeout"
+              ? "처리 결과를 확인하지 못했습니다. 새 요청을 보내지 말고 잠시 후 다시 확인하세요."
+              : "사건을 변경하지 못했습니다.",
+      });
+      await loadGames({
+        ...(incidentStatus === "" ? {} : { status: incidentStatus }),
+        ...(memberLabel.trim() === "" ? {} : { memberLabel: memberLabel.trim() }),
+      });
+    } finally {
+      incidentsInFlight.current.delete(key);
+    }
+  }
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -413,6 +530,7 @@ function Dashboard({
           <NavButton active={tab === "dashboard"} icon="⌂" label="대시보드" onClick={() => setTab("dashboard")} />
           <NavButton active={tab === "riot"} count={riotRequests.requests.length} icon="R" label="Riot 계정" onClick={() => setTab("riot")} />
           {value.session.actor.tier === "administrator" && <NavButton active={tab === "kbo"} icon="⚾" label="KBO 베팅" onClick={() => setTab("kbo")} />}
+          <NavButton active={tab === "games"} icon="!" label="몰랭" onClick={() => setTab("games")} />
           <NavButton active={tab === "commands"} icon="≡" label="명령어 로그" onClick={() => setTab("commands")} />
           <NavButton active={tab === "settings"} icon="⚙" label="설정" onClick={() => setTab("settings")} />
           <NavButton active={tab === "operations"} icon="●" label="운영 기록" onClick={() => setTab("operations")} />
@@ -550,6 +668,34 @@ function Dashboard({
                 </>
               )}
             </section>
+          )}
+
+          {tab === "games" && (
+            <GameDashboard
+              state={gameView}
+              status={incidentStatus}
+              memberLabel={memberLabel}
+              page={incidentHistory.length + 1}
+              onStatusChange={setIncidentStatus}
+              onMemberLabelChange={setMemberLabel}
+              onApplyFilters={(event) => void applyGameFilters(event)}
+              onRetry={() => void loadGames()}
+              administrator={value.session.actor.tier === "administrator"}
+              incidentAction={incidentAction}
+              onBeginIncidentAction={(entry, action) => setIncidentAction({
+                entry,
+                action,
+                reason: "",
+                confirmed: false,
+              })}
+              onCancelIncidentAction={() => setIncidentAction(undefined)}
+              onIncidentActionChange={setIncidentAction}
+              onMutateIncident={(event) => void mutateIncident(event)}
+              incidentProcessing={incidentAction !== undefined && incidentsInFlight.current.has(incidentAction.entry.incidentId)}
+              onNext={() => void nextIncidentPage()}
+              onPrevious={previousIncidentPage}
+              hasPrevious={incidentHistory.length > 0}
+            />
           )}
 
           {tab === "commands" && (
@@ -718,6 +864,196 @@ function CommandTable({
   );
 }
 
+function GameDashboard({
+  administrator,
+  hasPrevious,
+  incidentAction,
+  incidentProcessing,
+  memberLabel,
+  onApplyFilters,
+  onBeginIncidentAction,
+  onCancelIncidentAction,
+  onIncidentActionChange,
+  onMemberLabelChange,
+  onNext,
+  onPrevious,
+  onRetry,
+  onMutateIncident,
+  onStatusChange,
+  page,
+  state,
+  status,
+}: {
+  administrator: boolean;
+  hasPrevious: boolean;
+  incidentAction: IncidentActionState | undefined;
+  incidentProcessing: boolean;
+  memberLabel: string;
+  onApplyFilters(event: React.FormEvent): void;
+  onBeginIncidentAction(
+    entry: GameIncidentHistoryPageDto["entries"][number],
+    action: "correct" | "cancel",
+  ): void;
+  onCancelIncidentAction(): void;
+  onIncidentActionChange(value: IncidentActionState): void;
+  onMemberLabelChange(value: string): void;
+  onNext(): void;
+  onPrevious(): void;
+  onRetry(): void;
+  onMutateIncident(event: React.FormEvent): void;
+  onStatusChange(value: GameIncidentStatusDto | ""): void;
+  page: number;
+  state: GameViewState;
+  status: GameIncidentStatusDto | "";
+}) {
+  if (state.kind === "idle" || state.kind === "loading") {
+    return (
+      <section className="panel game-state" aria-labelledby="games-loading-title" aria-live="polite">
+        <h2 id="games-loading-title">몰랭 현황을 불러오는 중</h2>
+        <span className="loading-spinner" role="progressbar" aria-label="몰랭 데이터 불러오는 중" />
+      </section>
+    );
+  }
+  if (state.kind === "error") {
+    return (
+      <section className="panel game-state" aria-labelledby="games-error-title" role="alert">
+        <h2 id="games-error-title">몰랭 현황을 불러오지 못했습니다</h2>
+        <p>네트워크 또는 서버 상태를 확인한 뒤 다시 시도하세요.</p>
+        <button type="button" onClick={onRetry}>다시 시도</button>
+      </section>
+    );
+  }
+  return (
+    <div className="game-dashboard">
+      <section aria-labelledby="stacks-title">
+        <div className="section-heading">
+          <div><p className="eyebrow">확정 사건</p><h2 id="stacks-title">몰랭 스택</h2></div>
+        </div>
+        {state.stacks.entries.length === 0 ? <p className="empty">등록된 사용자가 없습니다.</p> : (
+          <div className="card-grid game-stack-grid">
+            {state.stacks.entries.map((entry, index) => (
+              <MetricCard key={`${entry.memberLabel}-${index}`} status={entry.stack > 0 ? "attention" : "connected"} title={entry.memberLabel} value={`${entry.stack}스택`} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="panel" aria-labelledby="active-games-title">
+        <p className="eyebrow">현재 관측</p>
+        <h2 id="active-games-title">진행 중 게임</h2>
+        <p className="section-description">Riot과 Discord Go Live는 별도 증거이며, 오래된 관측은 현재 상태로 간주하지 않습니다.</p>
+        {state.active.entries.length === 0 ? <p className="empty">진행 중인 게임 관측이 없습니다.</p> : (
+          <div className="table-scroll"><table><thead><tr><th>사용자</th><th>Riot ID</th><th>Riot</th><th>Go Live</th><th>판정</th></tr></thead>
+            <tbody>{state.active.entries.map((entry) => <tr key={entry.incidentId}>
+              <td data-label="사용자">{entry.memberLabel}</td>
+              <td data-label="Riot ID">{riotIdLabel(entry.riotId)}</td>
+              <td data-label="Riot"><EvidenceLabel state={entry.riotState} observedAt={entry.riotObservedAt} /></td>
+              <td data-label="Go Live"><EvidenceLabel state={entry.goLiveState} observedAt={entry.goLiveObservedAt} /></td>
+              <td data-label="판정">{comparisonLabel(entry.comparisonState)}</td>
+            </tr>)}</tbody></table></div>
+        )}
+      </section>
+
+      <section className="panel wide-panel" aria-labelledby="incidents-title">
+        <p className="eyebrow">변경 불가능한 원본 이력</p>
+        <h2 id="incidents-title">검거 이력</h2>
+        <form className="game-filters" aria-label="검거 이력 필터" onSubmit={onApplyFilters}>
+          <label>상태
+            <select value={status} onChange={(event) => onStatusChange(event.target.value as GameIncidentStatusDto | "")}>
+              <option value="">전체</option><option value="open">열림</option><option value="confirmed">확정</option><option value="corrected">정정됨</option><option value="cancelled">취소됨</option>
+            </select>
+          </label>
+          <label>사용자 표시명
+            <input value={memberLabel} maxLength={80} onChange={(event) => onMemberLabelChange(event.target.value)} />
+          </label>
+          <button type="submit">필터 적용</button>
+        </form>
+        {state.incidents.entries.length === 0 ? <p className="empty">조건에 맞는 검거 이력이 없습니다.</p> : (
+          <div className="table-scroll"><table><thead><tr><th>갱신 시각</th><th>사용자</th><th>상태</th><th>판정</th><th>Riot</th><th>Go Live</th>{administrator && <th>관리</th>}</tr></thead>
+            <tbody>{state.incidents.entries.map((entry) => <tr key={entry.incidentId}>
+              <td data-label="갱신 시각"><time dateTime={entry.incidentUpdatedAt}>{formatDate(entry.incidentUpdatedAt)}</time></td>
+              <td data-label="사용자">{entry.memberLabel}</td>
+              <td data-label="상태">{incidentStatusLabel(entry.incidentStatus)}</td>
+              <td data-label="판정">{comparisonLabel(entry.comparisonState)}</td>
+              <td data-label="Riot"><EvidenceLabel state={entry.riotState} observedAt={entry.riotObservedAt} /></td>
+              <td data-label="Go Live"><EvidenceLabel state={entry.goLiveState} observedAt={entry.goLiveObservedAt} /></td>
+              {administrator && <td data-label="관리">
+                <div className="incident-actions">
+                  <button className="secondary" type="button" disabled={entry.incidentStatus === "corrected" || entry.incidentStatus === "cancelled"} onClick={() => onBeginIncidentAction(entry, "correct")}>정정</button>
+                  <button className="danger" type="button" disabled={entry.incidentStatus === "corrected" || entry.incidentStatus === "cancelled"} onClick={() => onBeginIncidentAction(entry, "cancel")}>취소</button>
+                </div>
+              </td>}
+            </tr>)}</tbody></table></div>
+        )}
+        {administrator && incidentAction && (
+          <form className="incident-confirmation" aria-label={`사건 ${incidentAction.action === "correct" ? "정정" : "취소"} 확인`} onSubmit={onMutateIncident}>
+            <h3>사건을 {incidentAction.action === "correct" ? "정정" : "취소"}하시겠습니까?</h3>
+            <p>현재 화면의 버전 {incidentAction.entry.expectedVersion}에만 적용됩니다.</p>
+            <label>변경 사유
+              <textarea required minLength={1} maxLength={500} value={incidentAction.reason} onChange={(event) => onIncidentActionChange({ ...incidentAction, reason: event.target.value })} />
+            </label>
+            <label className="confirmation-check">
+              <input type="checkbox" checked={incidentAction.confirmed} onChange={(event) => onIncidentActionChange({ ...incidentAction, confirmed: event.target.checked })} />
+              이 변경이 감사 기록에 남고 되돌릴 수 없음을 확인합니다.
+            </label>
+            <div className="incident-actions">
+              <button className="secondary" type="button" disabled={incidentProcessing} onClick={onCancelIncidentAction}>돌아가기</button>
+              <button className="danger" type="submit" disabled={incidentProcessing || !incidentAction.confirmed || incidentAction.reason.trim().length === 0 || incidentAction.reason !== incidentAction.reason.trim()}>{incidentProcessing ? "처리 중…" : "확인 후 실행"}</button>
+            </div>
+          </form>
+        )}
+        <div className="pagination" aria-label="검거 이력 페이지 이동">
+          <button className="secondary" type="button" disabled={!hasPrevious} onClick={onPrevious}>이전</button>
+          <span>{page}페이지</span>
+          <button type="button" disabled={!state.incidents.nextCursor} onClick={onNext}>다음</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function EvidenceLabel({
+  observedAt,
+  state,
+}: {
+  observedAt: string | null;
+  state: ActiveGameObservationsDto["entries"][number]["riotState"];
+}) {
+  const freshness = evidenceFreshness(observedAt);
+  return <span className={`evidence ${state} ${freshness}`}>
+    {evidenceLabel(state)} · {freshness === "stale" ? "오래됨" : freshness === "missing" ? "시각 없음" : "최신"}
+    {observedAt && <time dateTime={observedAt}>{formatDate(observedAt)}</time>}
+  </span>;
+}
+
+export function evidenceFreshness(
+  observedAt: string | null,
+  now = Date.now(),
+): "fresh" | "stale" | "missing" {
+  if (observedAt === null) return "missing";
+  const observed = Date.parse(observedAt);
+  const age = now - observed;
+  return Number.isFinite(observed) && age >= 0 && age <= 3 * 60 * 1000
+    ? "fresh"
+    : "stale";
+}
+
+function riotIdLabel(value: ActiveGameObservationsDto["entries"][number]["riotId"]): string {
+  return value === null ? "계정 식별 불가" : `${value.gameName}#${value.tagLine}`;
+}
+
+function evidenceLabel(value: string): string {
+  return value === "active" ? "활성" : value === "inactive" ? "비활성" : "알 수 없음";
+}
+
+function comparisonLabel(value: string): string {
+  return { compliant: "준수", grace: "시작 유예", interrupted: "중단 허용", violation: "위반", unknown: "알 수 없음" }[value] ?? value;
+}
+
+function incidentStatusLabel(value: string): string {
+  return { open: "열림", confirmed: "확정", corrected: "정정됨", cancelled: "취소됨" }[value] ?? value;
+}
+
 function StatePanel({
   children,
   detail,
@@ -769,11 +1105,32 @@ function MetricCard({
   );
 }
 
-function tabTitle(tab: "dashboard" | "riot" | "kbo" | "commands" | "settings" | "operations") {
+type DashboardTab = "dashboard" | "riot" | "kbo" | "games" | "commands" | "settings" | "operations";
+
+type IncidentActionState = {
+  entry: GameIncidentHistoryPageDto["entries"][number];
+  action: "correct" | "cancel";
+  reason: string;
+  confirmed: boolean;
+};
+
+type GameViewState =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "error" }
+  | {
+      kind: "ready";
+      stacks: GameStacksDto;
+      active: ActiveGameObservationsDto;
+      incidents: GameIncidentHistoryPageDto;
+    };
+
+function tabTitle(tab: DashboardTab) {
   return {
     dashboard: "대시보드",
     riot: "Riot 계정",
     kbo: "KBO 베팅",
+    games: "몰랭",
     commands: "명령어 로그",
     settings: "설정",
     operations: "운영 기록",

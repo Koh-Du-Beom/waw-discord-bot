@@ -94,7 +94,7 @@ not success.
 - [ ] Use an exact-object temporary reader and offline identity to verify bytes,
       reject a wrong identity and restore into a disposable empty PostgreSQL 17
       target.
-- [ ] Verify schema version 17, expected row count, foreign keys and documented
+- [ ] Verify schema version 19, expected row count, foreign keys and documented
       invariant.
 - [ ] Remove the reader/key, downloaded archive, decrypted dump, disposable
       database and temporary credential material.

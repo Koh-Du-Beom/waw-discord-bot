@@ -149,6 +149,100 @@ test("dashboard store maps allowlisted KBO management aggregates", async () => {
   assert.match(calls[0]?.text ?? "", /reason_code = 'admin_adjustment'/);
 });
 
+test("game dashboard reads confirmed stacks without exposing member identifiers", async () => {
+  const calls: Call[] = [];
+  const pool = {
+    async query(text: string, values?: readonly unknown[]) {
+      calls.push({ text, ...(values === undefined ? {} : { values }) });
+      return result([{ display_label: "등록 사용자", stack: "2" }]);
+    },
+  } as unknown as Pool;
+
+  assert.deepEqual(await new PostgresDashboardStore(pool).readGameStacks(), {
+    entries: [{ memberLabel: "등록 사용자", stack: 2 }],
+  });
+  assert.match(calls[0]?.text ?? "", /incident\.status = 'confirmed'/);
+  assert.doesNotMatch(calls[0]?.text ?? "", /select users\.discord_user_id/);
+});
+
+test("active game read keeps evidence separate and omits ambiguous Riot accounts", async () => {
+  const calls: Call[] = [];
+  const pool = {
+    async query(text: string, values?: readonly unknown[]) {
+      calls.push({ text, ...(values === undefined ? {} : { values }) });
+      return result([gameRow({
+        riot_platform_id: null,
+        riot_game_name: null,
+        riot_tag_line: null,
+        go_live_observed_at: new Date("2026-08-01T00:04:00.000Z"),
+      })]);
+    },
+  } as unknown as Pool;
+
+  assert.deepEqual(
+    await new PostgresDashboardStore(pool).readActiveGameObservations(),
+    {
+      entries: [{
+        incidentId: "incident-1",
+        memberLabel: "등록 사용자",
+        riotId: null,
+        gameKey: "KR:game-1",
+        riotState: "active",
+        riotObservedAt: "2026-08-01T00:05:00.000Z",
+        goLiveState: "inactive",
+        goLiveObservedAt: "2026-08-01T00:04:00.000Z",
+        comparisonState: "violation",
+        incidentStatus: "confirmed",
+        expectedVersion: 3,
+        gameStartedAt: "2026-08-01T00:00:00.000Z",
+      }],
+    },
+  );
+  assert.match(calls[0]?.text ?? "", /game\.ended_at is null/);
+  assert.match(calls[0]?.text ?? "", /having count\(\*\) = 1/);
+  assert.doesNotMatch(calls[0]?.text ?? "", /puuid/);
+});
+
+test("incident history uses a stable updated-at and incident-id cursor", async () => {
+  const calls: Call[] = [];
+  let query = 0;
+  const pool = {
+    async query(text: string, values?: readonly unknown[]) {
+      calls.push({ text, ...(values === undefined ? {} : { values }) });
+      query += 1;
+      return query === 1
+        ? result([
+            gameRow({ incident_id: "incident-2" }),
+            gameRow({ incident_id: "incident-1" }),
+          ])
+        : result([]);
+    },
+  } as unknown as Pool;
+  const store = new PostgresDashboardStore(pool);
+
+  const first = await store.readGameIncidentHistory({
+    limit: 1,
+    status: "confirmed",
+    memberLabel: "등록 사용자",
+  });
+  assert.equal(first.entries.length, 1);
+  assert.ok(first.nextCursor);
+  assert.deepEqual(calls[0]?.values, [
+    null,
+    null,
+    "confirmed",
+    "등록 사용자",
+    2,
+  ]);
+
+  await store.readGameIncidentHistory({ limit: 1, cursor: first.nextCursor });
+  assert.deepEqual(calls[1]?.values?.slice(0, 2), [
+    "2026-08-01T00:06:00.000Z",
+    "incident-2",
+  ]);
+  assert.match(calls[0]?.text ?? "", /\(incident\.updated_at, incident\.incident_id\) < \(\$1, \$2\)/);
+});
+
 test("dashboard setting update and audit commit in one transaction", async () => {
   const calls: Call[] = [];
   const client = transactionClient(calls, true);
@@ -275,5 +369,27 @@ function result<T extends Record<string, unknown>>(rows: T[]): QueryResult<T> {
     oid: 0,
     fields: [],
     rows,
+  };
+}
+
+function gameRow(overrides: Record<string, unknown> = {}) {
+  return {
+    incident_id: "incident-1",
+    display_label: "등록 사용자",
+    riot_platform_id: "KR",
+    riot_game_name: "계정",
+    riot_tag_line: "KR1",
+    game_key: "KR:game-1",
+    riot_state: "active",
+    riot_observed_at: new Date("2026-08-01T00:05:00.000Z"),
+    go_live_state: "inactive",
+    go_live_observed_at: new Date("2026-08-01T00:05:00.000Z"),
+    comparison_state: "violation",
+    incident_status: "confirmed",
+    incident_version: "3",
+    game_started_at: new Date("2026-08-01T00:00:00.000Z"),
+    game_ended_at: null,
+    incident_updated_at: new Date("2026-08-01T00:06:00.000Z"),
+    ...overrides,
   };
 }

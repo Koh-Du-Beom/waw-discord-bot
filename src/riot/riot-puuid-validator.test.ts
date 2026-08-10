@@ -17,6 +17,46 @@ test("resolves an exact KR Riot ID to PUUID", async () => {
   );
 });
 
+test("resolves a Unicode Riot tag through an encoded Account API path", async () => {
+  const validator = new RiotPuuidValidator(secret, async (input) => {
+    assert.match(
+      String(input),
+      /\/by-riot-id\/simsul%EB%B3%B5%EC%88%AD%EC%95%84\/%EC%8B%AC%EB%B3%B5%ED%83%80%EB%8F%84$/u,
+    );
+    return Response.json({
+      puuid,
+      gameName: "simsul복숭아",
+      tagLine: "심복타도",
+    });
+  });
+
+  assert.deepEqual(
+    await validator.resolve({
+      gameName: "simsul복숭아",
+      tagLine: "심복타도",
+      platformId: "KR",
+    }),
+    { kind: "valid", normalizedPuuid: puuid },
+  );
+});
+
+test("accepts the provider's canonical Riot ID casing", async () => {
+  const validator = new RiotPuuidValidator(secret, async () => Response.json({
+    puuid,
+    gameName: "Simsul복숭아",
+    tagLine: "심복타도",
+  }));
+
+  assert.deepEqual(
+    await validator.resolve({
+      gameName: "simsul복숭아",
+      tagLine: "심복타도",
+      platformId: "KR",
+    }),
+    { kind: "valid", normalizedPuuid: puuid },
+  );
+});
+
 test("accepts only an exact Account API PUUID match", async () => {
   const requests: Array<{ url: string; token: string | null }> = [];
   const validator = new RiotPuuidValidator(secret, async (input, init) => {

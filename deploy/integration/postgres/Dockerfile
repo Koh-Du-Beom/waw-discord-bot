@@ -9,6 +9,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 
 COPY scripts ./scripts
+COPY .github ./.github
+COPY deploy ./deploy
 COPY src ./src
 COPY web ./web
 COPY migrations ./migrations

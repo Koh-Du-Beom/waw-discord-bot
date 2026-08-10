@@ -16,3 +16,37 @@ export function gameAlertChannelId(
   }
   return value;
 }
+
+export function observationTimingConfiguration(input: {
+  reconciliationInterval?: string;
+  freshness?: string;
+}): {
+  reconciliationIntervalMilliseconds: number;
+  freshnessMilliseconds: number;
+} {
+  const reconciliationIntervalMilliseconds = milliseconds(
+    input.reconciliationInterval,
+    120_000,
+  );
+  const freshnessMilliseconds = milliseconds(input.freshness, 180_000);
+  if (
+    reconciliationIntervalMilliseconds < 30_000 ||
+    freshnessMilliseconds <= reconciliationIntervalMilliseconds ||
+    freshnessMilliseconds > 300_000
+  ) {
+    throw new Error("invalid Discord voice observation timing");
+  }
+  return { reconciliationIntervalMilliseconds, freshnessMilliseconds };
+}
+
+function milliseconds(value: string | undefined, defaultValue: number): number {
+  if (value === undefined) return defaultValue;
+  if (!/^[1-9][0-9]*$/u.test(value)) {
+    throw new Error("invalid Discord voice observation timing");
+  }
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) {
+    throw new Error("invalid Discord voice observation timing");
+  }
+  return parsed;
+}

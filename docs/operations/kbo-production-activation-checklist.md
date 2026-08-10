@@ -36,7 +36,7 @@ schema는 아직 관찰되지 않았다. 관찰되지 않은 field나 parser를 
 - [ ] `npm test`, `npm run typecheck`, `npm run build`,
       `bash deploy/test-production-application-assets.sh`, `git diff --check`가 같은
       candidate에서 통과했다.
-- [ ] Build가 source와 byte-identical한 migration 17개를 포함하고 KBO flag 세 개가
+- [ ] Build가 source와 byte-identical한 migration 19개를 포함하고 KBO flag 세 개가
       모두 `0`임을 확인했다.
 - [ ] Active/previous release, schema version/checksum, workload grants/RLS, backup·
       monitoring·Gateway 상태를 approved read-only identity로 확인했다.
@@ -95,9 +95,9 @@ rankings나 betting flag를 켜지 않는다.
 
 ## 현재 출발 상태
 
-- Source/local 구현: `PLAN-0014`~`PLAN-0035` 완료
-- 검증: 전체 `356 pass / 7 기존 환경 skip / 0 fail`, PostgreSQL `29/29`,
+- Source/local 구현: `PLAN-0017`~`PLAN-0038` 완료
+- 검증: 전체 `395 pass / 7 기존 환경 skip / 0 fail`, PostgreSQL `31/31`,
   typecheck/build/production asset/diff check 통과
-- Build asset: migrations `0001`~`0017`, KBO Production flags `0/0/0`
+- Build asset: migrations `0001`~`0019`, KBO Production flags `0/0/0`
 - 미수행: Production migration, Discord REST 등록, release 배포, feature 활성화
 - 외부 잔여: Gate 0 전체와 정상 경기·정정 schema 기반 ingestion/parser

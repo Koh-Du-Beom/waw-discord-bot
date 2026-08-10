@@ -2,8 +2,12 @@ import {
   DASHBOARD_API_PATHS,
   type ApiErrorDto,
   type ActiveRiotLinksDto,
+  type ActiveGameObservationsDto,
   type AuditEventsDto,
   type DashboardOverviewDto,
+  type GameIncidentHistoryPageDto,
+  type GameStacksDto,
+  type ListGameIncidentHistoryRequestDto,
   type CommandLogPageDto,
   type ListCommandLogRequestDto,
   type LowRiskSettingsDto,
@@ -15,6 +19,8 @@ import {
   type DecideRiotLinkRequestDto,
   type RiotLinkDecisionResponseDto,
   type RemoveRiotLinkRequestDto,
+  type MutateGameIncidentRequestDto,
+  type GameIncidentMutationResponseDto,
   type SessionDto,
   type UpdateLowRiskSettingsRequestDto,
   type UpdateLowRiskSettingsResponseDto,
@@ -68,6 +74,29 @@ export function createBrowserApi(fetcher: typeof fetch = fetch): DashboardApi {
     async getKboManagement() {
       return readJson<KboManagementDto>(
         await fetcher(DASHBOARD_API_PATHS.kboManagement, requestInit()),
+      );
+    },
+    async getGameStacks() {
+      return readJson<GameStacksDto>(
+        await fetcher(DASHBOARD_API_PATHS.gameStacks, requestInit()),
+      );
+    },
+    async getActiveGames() {
+      return readJson<ActiveGameObservationsDto>(
+        await fetcher(DASHBOARD_API_PATHS.activeGames, requestInit()),
+      );
+    },
+    async getGameIncidents(request: ListGameIncidentHistoryRequestDto = {}) {
+      const query = new URLSearchParams();
+      if (request.limit !== undefined) query.set("limit", String(request.limit));
+      if (request.cursor !== undefined) query.set("cursor", request.cursor);
+      if (request.status !== undefined) query.set("status", request.status);
+      if (request.memberLabel !== undefined) query.set("memberLabel", request.memberLabel);
+      return readJson<GameIncidentHistoryPageDto>(
+        await fetcher(
+          `${DASHBOARD_API_PATHS.gameIncidents}${query.size ? `?${query}` : ""}`,
+          requestInit(),
+        ),
       );
     },
     async getSettings() {
@@ -125,6 +154,18 @@ export function createBrowserApi(fetcher: typeof fetch = fetch): DashboardApi {
     },
     async adjustKboCredit(request: KboCreditAdjustmentRequestDto) {
       return mutate<KboCreditAdjustmentResponseDto>(DASHBOARD_API_PATHS.kboCreditAdjust, request);
+    },
+    async correctGameIncident(request: MutateGameIncidentRequestDto) {
+      return mutate<GameIncidentMutationResponseDto>(
+        DASHBOARD_API_PATHS.gameIncidentCorrect,
+        request,
+      );
+    },
+    async cancelGameIncident(request: MutateGameIncidentRequestDto) {
+      return mutate<GameIncidentMutationResponseDto>(
+        DASHBOARD_API_PATHS.gameIncidentCancel,
+        request,
+      );
     },
   };
 

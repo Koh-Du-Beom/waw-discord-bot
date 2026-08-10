@@ -2,10 +2,10 @@
 
 마지막 갱신일: 2026-08-10
 
-## 2026-08-10 — ADR-0031 승인, PLAN-0024~0035 완료
+## 2026-08-10 — ADR-0032 승인, PLAN-0027~0038 완료
 
 - Owner가 남은 기술 선택을 승인해 외부 KBO 봇 공개 응답의 제한적 수집을
-  `ADR-0031` Accepted로 전환하고 `ADR-0028`을 Superseded 처리했습니다. 제품
+  `ADR-0032` Accepted로 전환하고 `ADR-0028`을 Superseded 처리했습니다. 제품
   정책은 정확한 application·서버·채널·schema allowlist만 허용하며 개발자 허가,
   Discord 정책 적합성, 정상 경기 schema와 정정 기준이 확인될 때까지
   production ingestion·베팅을 default-off로 유지합니다.
@@ -13,69 +13,73 @@
   실행해 2026-08-10 월요일 휴식일 `no_game` public Components V2 응답을
   확인했습니다. 정상 경기 ID·팀·시작 시각·revision은 관찰되지 않아 parser를
   추측하지 않았습니다.
-- `PLAN-0024`의 공급자 독립 접수 정책은 가입, 권리·신선도, 경기 상태·시작 시각,
+- 최신 `develop`의 경기 관측·사건 관리 migration `0011`~`0012`를 통합하고 KBO
+  migration을 `0013`~`0019`로 재배치했습니다. 관리자 결과 제약은 경기 사건과
+  KBO 크레딧 명령의 합집합을 유지하며, browser fixture도 두 dashboard read
+  model을 함께 제공합니다.
+- `PLAN-0027`의 공급자 독립 접수 정책은 가입, 권리·신선도, 경기 상태·시작 시각,
   correction debt, 잔액, stake와 KST 일일 한도를 고정 판정합니다.
-- `PLAN-0025` additive `0014`는 정확한 source application, 안정적 source game ID,
+- `PLAN-0028` additive `0016`는 정확한 source application, 안정적 source game ID,
   competition/season, 팀·상태·점수·시각의 canonical game과 원문 없는 불변
   revision을 추가하고 `kbo_bet.game_id` FK 및 web/bot RLS를 연결했습니다.
-- `PLAN-0026`은 account → game lock, 5분 evidence, 권리·접수 정책과 기존 bet을
+- `PLAN-0029`은 account → game lock, 5분 evidence, 권리·접수 정책과 기존 bet을
   transaction 안에서 재검증하고 operation·잔액 차감·stake 원장·bet·audit를
   원자적으로 기록합니다. 같은 operation의 동시 요청은 한 성공으로 결합하고
   audit 실패는 전체 rollback합니다.
-- `PLAN-0027`은 기존 `/베팅 가입`과 `/베팅 하기`를 한 executor 경계로 연결하고
+- `PLAN-0030`은 기존 `/베팅 가입`과 `/베팅 하기`를 한 executor 경계로 연결하고
   경기 ID·결과·금액·선택 점수를 원자 registration store로 전달합니다. 기능과
   데이터 권리 flag가 모두 exact `1`일 때만 접수를 허용합니다.
-- `PLAN-0028` additive `0015`는 bet·game revision별 불변 settlement와 같은
+- `PLAN-0031` additive `0017`는 bet·game revision별 불변 settlement와 같은
   bet의 공식 정정 chain, 현재 canonical settlement pointer를 추가했습니다.
   bot의 bet 변경은 terminal status와 pointer 두 열로 제한합니다.
-- `PLAN-0029`는 account → game → bet 고정 lock 아래 final 0/2/3배, void 1배와
+- `PLAN-0032`는 account → game → bet 고정 lock 아래 final 0/2/3배, void 1배와
   공식 정정 차액을 account·불변 원장·settlement·bet projection·감사에 원자
   반영합니다. 탈퇴한 opaque account의 열린 bet도 계속 정산할 수 있습니다.
-- `PLAN-0030`은 `/베팅 경기`에 시작 전·5분 이내 canonical 경기 ID를 노출하고,
+- `PLAN-0033`은 `/베팅 경기`에 시작 전·5분 이내 canonical 경기 ID를 노출하고,
   `/베팅 내역`에 active 가입자의 최근 5개와 현재 정산·무효·정정 결과를
   표시합니다. 내역 조회는 베팅 접수 feature가 닫혀도 유지됩니다.
-- `PLAN-0031`은 active 가입자만 대상으로 현재 보유 크레딧과 competition/season별
+- `PLAN-0034`은 active 가입자만 대상으로 현재 보유 크레딧과 competition/season별
   결과·정확 점수·적중률 공동 순위를 10행 page로 제공합니다. 무효와 departed를
   제외하고 적중률은 유효 10건부터 표시하며 관리자 조정은 포함 여부만 밝힙니다.
-- `PLAN-0032`는 별도 관리자 IPC에 exact `credit_account_adjust`를 추가하고 현재
+- `PLAN-0035`는 별도 관리자 IPC에 exact `credit_account_adjust`를 추가하고 현재
   관리자 역할, self/stale/음수 잔액 거부, bounded delta와 allowlisted 사유를
   account·불변 원장·operation·감사·terminal result에 원자 반영합니다.
-- `PLAN-0033`은 canonical dashboard의 administrator 전용 KBO 탭에 opaque account,
+- `PLAN-0036`은 canonical dashboard의 administrator 전용 KBO 탭에 opaque account,
   지급·베팅·정산·정정·랭킹 성격 집계와 공급 상태를 표시하고, 기존 고위험
   Origin·CSRF·최근 OAuth·confirmation 경계를 재사용해 signed credit 조정을
   exact IPC로 실행합니다. Operator와 미인증 요청은 관리 DTO를 받지 못합니다.
-- `PLAN-0034`는 허용 guild의 `GuildMemberRemove`와 시작 시 reconciliation을
+- `PLAN-0037`는 허용 guild의 `GuildMemberRemove`와 시작 시 reconciliation을
   연결해 active 가입을 원자적으로 departed 처리하고 KBO의 Discord 직접 연결을
   제거합니다. 열린 bet은 그대로 정산하며 재가입은 과거 계정을 연결하지 않고
   명시적 가입으로 0잔액 새 계정을 만듭니다.
-- `PLAN-0035`와 additive `0017`은 1년이 지난 departed account를 legal/dispute
+- `PLAN-0038`와 additive `0019`은 1년이 지난 departed account를 legal/dispute
   hold와 pending bet이 없을 때만 100개씩 삭제하는 exact security-definer 함수를
   추가했습니다. Bot은 table DELETE 없이 함수 EXECUTE만 받고 하루 한 번
   non-overlap 호출하며 backup lifecycle은 기존 30일을 유지합니다.
-- Migration/PostgreSQL 대상 test `29/29`, 전체 test
-  `356 pass / 7 기존 환경 skip / 0 fail`, typecheck, migration 17개 production
+- Migration/PostgreSQL 대상 test `31/31`, 전체 test
+  `395 pass / 7 기존 환경 skip / 0 fail`, typecheck, migration 19개 production
   build, production application asset test와 diff check가 통과했습니다.
 - Production unit의 `WAW_KBO_BETTING_ENABLED`, `WAW_KBO_RANKINGS_ENABLED`,
   `WAW_KBO_DATA_RIGHTS_AUTHORIZED`는 모두 `0`으로 고정해 배포 후보도 fail-closed로
   유지합니다.
 - Production data-only reset의 schema guard와 disposable fixture를 migration
-  `1`~`17`, 명시적 data table 23개로 확장해 KBO account·원장·경기·bet·정산·
+  `1`~`19`, 명시적 data table 23개로 확장해 KBO account·원장·경기·bet·정산·
   retention hold도 한 transaction에서 삭제되고 schema/RLS/grant는 보존됨을
   검증했습니다.
 - 관리자 조정 PostgreSQL fixture가 실행 시각에 따라 account 생성 시각보다 이른
   고정 시각을 쓰던 문제를 제거했습니다. 기존 전이 dependency 7개는 호환 보안
   patch로만 갱신했으며 production dependency audit 취약점은 `0`입니다.
-- PostgreSQL 강제 전체 test `356 pass / 7 기존 환경 skip / 0 fail`, browser
-  accessibility `2/2`, typecheck, migration 17개 build, application asset,
+- PostgreSQL 강제 전체 test `395 pass / 7 기존 환경 skip / 0 fail`, browser
+  accessibility `2/2`, typecheck, migration 19개 build, application asset,
   Linux release manager, deployment controller, game activation, health retry와
   data-reset fixture가 모두 통과했습니다.
   Production migration·Discord 등록·배포·feature 활성화는 수행하지 않았습니다.
   정상 경기·정정 공개 응답 schema, 외부 봇 개발자 허가, Discord 정책 및 국내
   공개 제공 승인 확인 뒤 별도 activation checklist로 진행해야 합니다.
 
-## 2026-08-07 — 외부 KBO Discord 봇 연동 의도 정정과 Proposed ADR-0031
+## 2026-08-07 — 외부 KBO Discord 봇 연동 의도 정정과 Proposed ADR-0032
 
-- Owner가 `PLAN-0023` Task 1을 승인해 additive `0013` `kbo_bet` migration을
+- Owner가 `PLAN-0026` Task 1을 승인해 additive `0015` `kbo_bet` migration을
   local/disposable 범위에 구현했습니다. 예측·선택 점수·1,000~50,000 stake,
   KST stake date, operation/ledger 1:1 참조와 pending 중복을 DB constraint로
   고정하고 web SELECT-only, bot SELECT·INSERT 권한만 부여했습니다.
@@ -83,12 +87,12 @@
   `321 pass / 7 기존 환경 skip / 0 fail`, typecheck와 diff check가 통과했습니다.
   Transaction store, canonical game FK, Discord/runtime과 Production migration
   적용·배포는 수행하지 않았습니다.
-- `ADR-0029`와 현재 KBO 원장을 기준으로 베팅 등록의 Draft `PLAN-0023`을
-  작성했습니다. Additive `0013` `kbo_bet` schema와 disposable PostgreSQL 계약
+- `ADR-0029`와 현재 KBO 원장을 기준으로 베팅 등록의 Draft `PLAN-0026`을
+  작성했습니다. Additive `0015` `kbo_bet` schema와 disposable PostgreSQL 계약
   테스트 한 작업만 계획하며 transaction store, game/provider ingestion, Discord와
   Production 연결은 제외합니다. Canonical game projection이 아직 없어 opaque
   internal game ID에는 FK를 만들지 않고 실제 접수 연결 전 별도 gate로 남겼습니다.
-- Owner가 `PLAN-0022` Task 1을 승인해 option 없는 `/크레딧 받기` definition,
+- Owner가 `PLAN-0025` Task 1을 승인해 option 없는 `/크레딧 받기` definition,
   ephemeral claim executor 분기와 local bot assembly를 구현했습니다. 서버 시각의
   KST 일일 50,000 지급은 기존 멱등 transaction을 재사용하고 가용 증가·correction
   debt 상계 결과만 표시합니다.
@@ -97,31 +101,31 @@
   Discord REST 등록, 외부 서버 변경, schema·migration과 Production 배포는
   수행하지 않았습니다.
 - `ADR-0029`와 완료된 일일 지급·가입·credit command 경계를 기준으로 option 없는
-  `/크레딧 받기`의 Draft `PLAN-0022`를 작성했습니다. 기존 claim store와 credit
+  `/크레딧 받기`의 Draft `PLAN-0025`를 작성했습니다. 기존 claim store와 credit
   executor를 재사용하는 source/local command·합성 테스트 한 작업만 계획하며
   Discord REST 등록, 새 schema와 Production 연결은 제외합니다.
-- Owner가 `PLAN-0021` Task 1을 승인해 `/베팅 가입 동의:true`, 고정 policy v1
+- Owner가 `PLAN-0024` Task 1을 승인해 `/베팅 가입 동의:true`, 고정 policy v1
   고지, 가입 전 actor registration, enrollment executor와 local bot assembly를
   구현했습니다. 신규 사용자의 첫 command가 0잔액 account를 만들며 응답은
   ephemeral이고 중앙 command audit에는 고정 결과만 남습니다.
 - 대상 unit·합성 test `14/14`, PostgreSQL suite `19/19`, 전체 test
   `317 pass / 7 기존 환경 skip / 0 fail`과 typecheck가 통과했습니다. Discord
   REST 등록, 외부 서버 변경과 Production migration·배포는 수행하지 않았습니다.
-- `ADR-0029`와 `PLAN-0016`을 기준으로 명시적 `/베팅 가입 동의:true`의 Draft
-  `PLAN-0021`을 작성했습니다. 고지·동의, 첫 command actor 등록, enrollment
+- `ADR-0029`와 `PLAN-0019`을 기준으로 명시적 `/베팅 가입 동의:true`의 Draft
+  `PLAN-0024`을 작성했습니다. 고지·동의, 첫 command actor 등록, enrollment
   executor와 source/local 합성 테스트만 계획하며 Discord REST 등록, 외부 서버와
   Production 연결은 제외합니다.
-- Owner가 `PLAN-0020` Task 1을 승인해 `/크레딧 내정보` definition, ephemeral
+- Owner가 `PLAN-0023` Task 1을 승인해 `/크레딧 내정보` definition, ephemeral
   executor와 bot source assembly를 구현했습니다. 가용 크레딧과 정정 부채만
   한국어 숫자로 표시하며 성공·미가입·조회 실패를 기존 command audit에 남깁니다.
 - 대상 command/executor/합성 Discord test `12/12`, 전체 test
   `311 pass / 7 기존 환경 skip / 0 fail`, typecheck와 diff check가 통과했습니다.
   Discord REST 등록, 외부 서버 변경과 Production 배포는 수행하지 않았습니다.
 - 현재 KBO 가입·지급·잔액 store와 기존 Discord command/audit 경계를 기준으로
-  `/크레딧 내정보`의 Draft `PLAN-0020`을 작성했습니다. 본인 잔액 executor,
+  `/크레딧 내정보`의 Draft `PLAN-0023`을 작성했습니다. 본인 잔액 executor,
   ephemeral 응답과 local assembly·합성 테스트만 계획하며 Discord REST 등록,
   외부 서버와 Production 연결은 제외합니다.
-- Owner가 `PLAN-0019` Task 1을 승인해 active KBO 가입 사용자의 가용 크레딧과
+- Owner가 `PLAN-0022` Task 1을 승인해 active KBO 가입 사용자의 가용 크레딧과
   correction debt를 단일 SELECT로 읽는 최소 contract/store를 구현했습니다.
   결과는 정확한 bigint 두 값 또는 `not_enrolled`만 반환하고 내부 식별자는
   노출하지 않습니다.
@@ -129,32 +133,32 @@
   `306 pass / 7 기존 환경 skip / 0 fail`, typecheck와 diff check가 통과했습니다.
   Discord command/runtime, schema·migration과 Production 연결은 없습니다.
 - `ADR-0029`와 현재 KBO account projection을 기준으로 가입 사용자의 가용
-  크레딧과 correction debt를 단일 SELECT로 조회하는 Draft `PLAN-0019`를
+  크레딧과 correction debt를 단일 SELECT로 조회하는 Draft `PLAN-0022`를
   작성했습니다. Active-only read contract·store와 unit/PostgreSQL 테스트만
   계획하며 command, 최근 베팅, schema와 Production은 제외합니다.
-- Owner가 `PLAN-0018` Task 1을 승인해 서버 시각의 KST 날짜 계산과 일일
+- Owner가 `PLAN-0021` Task 1을 승인해 서버 시각의 KST 날짜 계산과 일일
   50,000 크레딧의 correction debt 우선 상계 transaction store를 구현했습니다.
   Active account lock 아래 operation, projection, 불변 ledger, claim과 audit을
   원자적으로 처리하고 동일 성공 operation은 기존 결과를 반환합니다.
 - Unit test `4/4`, PostgreSQL suite `18/18`, 전체 test
   `303 pass / 7 기존 환경 skip / 0 fail`, typecheck와 diff check가 통과했습니다.
   Discord command/runtime, 새 migration·dependency와 Production 연결은 없습니다.
-- `ADR-0029`와 migrations `0011`·`0012`를 기준으로 KST 일일 50,000 지급과
-  correction debt 우선 상계를 한 transaction으로 처리하는 Draft `PLAN-0018`을
+- `ADR-0029`와 migrations `0013`·`0014`를 기준으로 KST 일일 50,000 지급과
+  correction debt 우선 상계를 한 transaction으로 처리하는 Draft `PLAN-0021`을
   작성했습니다. 계산·store와 unit/PostgreSQL 테스트 한 작업만 계획하며
   Discord/runtime, 새 migration과 Production 적용은 제외합니다.
-- Owner가 `PLAN-0017` Task 1을 승인해 additive `0012`
+- Owner가 `PLAN-0020` Task 1을 승인해 additive `0014`
   `daily_credit_claim` migration을 local/disposable 범위에 구현했습니다.
   Opaque account와 KST claim date, operation과 ledger entry 중복을 DB에서 막고
   web SELECT-only, bot SELECT·INSERT 권한으로 제한했습니다.
 - 대상 PostgreSQL suite `17/17`, 전체 test
   `298 pass / 7 기존 환경 skip / 0 fail`, typecheck와 diff check가 통과했습니다.
   지급 계산·debt 상계 store, Discord/runtime와 Production 적용은 없습니다.
-- `ADR-0029`, migration `0011`과 가입 transaction을 기준으로 KST 날짜별
-  50,000 크레딧 지급의 첫 bounded 작업을 Draft `PLAN-0017`로 작성했습니다.
-  Additive `0012` claim schema와 PostgreSQL 계약 테스트만 계획하며 지급 계산·
+- `ADR-0029`, migration `0013`과 가입 transaction을 기준으로 KST 날짜별
+  50,000 크레딧 지급의 첫 bounded 작업을 Draft `PLAN-0020`로 작성했습니다.
+  Additive `0014` claim schema와 PostgreSQL 계약 테스트만 계획하며 지급 계산·
   debt 상계 store, Discord/runtime와 Production 적용은 제외합니다.
-- Owner가 `PLAN-0016` Task 1을 승인해 명시적 KBO 가입과 0잔액 account 생성을
+- Owner가 `PLAN-0019` Task 1을 승인해 명시적 KBO 가입과 0잔액 account 생성을
   하나의 멱등 PostgreSQL transaction으로 구현했습니다. 등록 사용자 row lock,
   operation claim, active enrollment와 최소 audit을 원자적으로 처리하며 동일
   operation 재시도는 workload 권한을 늘리지 않고 `duplicate_operation`으로
@@ -162,11 +166,11 @@
 - Unit test `3/3`, PostgreSQL integration suite `16/16`, 전체 test
   `297 pass / 7 기존 환경 skip / 0 fail`이 통과했습니다. Discord command/runtime,
   새 migration과 Production 연결·적용은 수행하지 않았습니다.
-- Migration `0011`과 기존 operation claim/row-lock 패턴을 기준으로 명시적 KBO
-  가입과 0잔액 계정 생성을 한 transaction으로 처리하는 Draft `PLAN-0016`을
+- Migration `0013`과 기존 operation claim/row-lock 패턴을 기준으로 명시적 KBO
+  가입과 0잔액 계정 생성을 한 transaction으로 처리하는 Draft `PLAN-0019`을
   작성했습니다. Store와 실제 PostgreSQL 동시성·rollback 테스트 하나만 계획하며
   Discord command, 지급 원장, 새 migration과 production 적용은 제외합니다.
-- Owner가 `PLAN-0015` Task 1의 local/disposable 구현만 승인해 additive `0011`
+- Owner가 `PLAN-0018` Task 1의 local/disposable 구현만 승인해 additive `0013`
   KBO 가입·계정·불변 원장 migration을 완료했습니다. 신규 계정 0 balance/debt,
   원장 delta/전후 값, reason·operation/source 중복과 application UPDATE/DELETE
   금지를 PostgreSQL constraint·RLS·grant로 고정했습니다.
@@ -175,10 +179,10 @@
   Production migration, credential, service, runtime과 사용자 데이터 변경은
   없습니다.
 - `ADR-0029`와 기존 PostgreSQL RLS/workload role 패턴을 기준으로 KBO 가입,
-  잔액 projection과 불변 원장의 첫 additive schema 작업을 Draft `PLAN-0015`로
-  작성했습니다. `0011` migration과 실제 PostgreSQL 계약 검증 하나만 계획하며
+  잔액 projection과 불변 원장의 첫 additive schema 작업을 Draft `PLAN-0018`로
+  작성했습니다. `0013` migration과 실제 PostgreSQL 계약 검증 하나만 계획하며
   service, command, 지급·베팅·정산과 production 적용은 제외합니다.
-- Owner가 `PLAN-0014` Task 1을 승인해 공급자 독립적인 KBO 최종 베팅 반환액
+- Owner가 `PLAN-0017` Task 1을 승인해 공급자 독립적인 KBO 최종 베팅 반환액
   계산을 구현했습니다. 합성 최종 점수로 홈 승·무승부·원정 승을 판정하고
   실패 0배, 결과 적중 2배, 정확 점수 적중 3배를 반환하며 잘못된 금액·점수와
   부분 예상 점수를 거부합니다.
@@ -189,26 +193,26 @@
   Deferred했습니다. 자동 listener와 parser는 계속 미구현입니다.
 - 공급자 독립 KBO 베팅 구현을 조사한 결과 source, migration과 구현 계획이
   모두 비어 있었습니다. Accepted ADR-0029의 0/2/3배 최종 반환 계산만 순수
-  TypeScript 함수와 표 기반 단위 테스트로 고정하는 Draft `PLAN-0014`를
+  TypeScript 함수와 표 기반 단위 테스트로 고정하는 Draft `PLAN-0017`를
   작성했습니다. DB·원장·Discord·provider 연결은 범위 밖입니다.
 - Owner가 지정한 시험 서버에서 Orca 내장 브라우저로 설윤 `/야구 오늘`을 직접
   실행했고, 응답이 ephemeral이 아닌 영속 public channel message임을 확인했습니다.
 - 응답 UI는 legacy embed가 아닌 Discord Components V2 container/markdown
   구조였습니다. 취소일 응답에는 날짜·경기 수·취소/연기·사유가 있었지만 개별
   경기 ID, 팀, 시작 시각, revision·공급자 시각은 확인되지 않았습니다.
-- 따라서 ADR-0031은 Proposed 상태를 유지합니다. 정상 경기 Gateway schema,
+- 따라서 ADR-0032은 Proposed 상태를 유지합니다. 정상 경기 Gateway schema,
   정정 동작, 설윤 개발자 허용과 Discord scraping 정책 gate가 남아 있습니다.
 
 - Owner가 WAW의 목표를 “사용자가 기존 KBO Discord 봇을 호출하고 WAW가 그
   공개 응답을 읽어 경기 정보·베팅 입력·정산에 사용”하는 흐름으로 명확히
-  했습니다. 계약형 API 우선 `ADR-0030`은 Rejected, 문의 패키지는 미전송
+  했습니다. 계약형 API 우선 `ADR-0031`은 Rejected, 문의 패키지는 미전송
   Cancelled로 표시했습니다.
 - Discord Gateway상 public bot message 관측은 가능하지만 embeds/content에는
   Message Content Intent가 필요하고 ephemeral 응답은 관측할 수 없습니다.
   다른 앱 slash command 자동 실행 경로는 없어 사람 호출만 후보로 남겼습니다.
 - Discord Developer Policy의 mining/scraping 금지와 외부 봇의 이용 허가,
   안정적인 경기 ID·예외 상태·정정이 미확인이라 자동 수집을 구현하지 않았습니다.
-  설윤 하나를 별도 시험 서버에서 수동 관찰하는 Spike와 조건부 `ADR-0031`을
+  설윤 하나를 별도 시험 서버에서 수동 관찰하는 Spike와 조건부 `ADR-0032`을
   Proposed로 작성했습니다.
 - Sportradar 영문 문의문과 KBO/스포츠투아이 국문 문의문, 계약 조항 근거형
   답변 비교표, 문의·trial·ADR 결정을 분리한 owner 승인 양식을 준비했습니다.
@@ -223,7 +227,7 @@
   유지하고 같은 주문서 체크리스트로 비교하도록 했습니다.
 - 베팅 접수와 진행 경기 5분, 다른 예정 경기·순위 30분, `closed` 뒤 30분과
   5분 간격 동일 결과 2회를 신선도·정정 유예 Spike 후보값으로 제안했습니다.
-- `ADR-0030`은 정정된 제품 의도에 따라 Rejected이며 관련 문의 패키지는
+- `ADR-0031`은 정정된 제품 의도에 따라 Rejected이며 관련 문의 패키지는
   Cancelled입니다.
 - 제품 코드, schema, migration, dependency, 외부 문의와 production 변경은
   없습니다.
@@ -317,6 +321,331 @@
 - 상세 문서: `docs/research/technology-options/kbo-discord-bot-and-credit-prediction-system.md`
 
 ## 현재 단계
+
+2026-08-02 production Riot 연결 승인에서 `validator_unavailable`이 반복됐다. Admin IPC와
+목록 조회는 정상이고 exact credential을 사용한 Account-v1 조회도 HTTP `200`이어서,
+provider의 canonical game-name casing을 local exact-case 비교가 거부하는 결함으로
+진단했다. Riot ID 양쪽 구성요소를 NFC 정규화 후 case-insensitive 비교하도록 수정하고
+targeted `7/7`, typecheck, build, migration assets `12`, diff check와 PR #9 CI run
+`30707419487`을 PASS했다. Production merge commit
+`0c83785b08821e81fb5b939829564919d1681771` (`0c83785b0882`)의 deploy run
+`30707482776`도 PASS했다. 배포 후 web/bot IPC flag `1`, 두 service active, directory
+`0750`, socket `0660`, canonical health `healthy`를 재확인했다. 진단 중 실제 계정
+mutation은 실행하지 않았으며 credential과 Riot API 응답 식별값은 기록하지 않았다.
+
+2026-08-02 owner가 사건 정정·취소를 사용하지 않는 조건으로 PLAN-0016 Gate D Admin
+IPC 활성화를 승인했다. 검증된 production release `568522974a8f`는 유지하고 root-owned
+systemd drop-in에서 web/bot effective `WAW_ADMIN_COMMAND_IPC_ENABLED=1`만 설정했다.
+Bot→web 순차 restart 뒤 두 service active, admin directory `0750`, socket `0660`,
+Caddy/journald와 backup/monitor timer active, failed unit `0`, canonical health `healthy`,
+최근 journal sensitive canary `0`을 확인했다. 실제 Riot 또는 사건 mutation은 실행하지
+않았다. Schema는 마지막 확인 기준 `11`이고 migration 0012가 미적용이므로 Riot 연결
+관리만 허용하며 사건 정정·취소는 계속 실행 금지다. 상세 결과는
+`docs/operations/plan-0016-game-dashboard-gate-d-result-2026-08-02.md`에 있다.
+
+2026-08-02 owner가 Gate B restore verification 및 migration 0012 미완료 위험을 수용하고
+Gate C application 배포를 명시적으로 override했다. PR #8을 production merge commit
+`568522974a8f80f6df7533005bbb9b0a1146a9c6` (`568522974a8f`)로 병합했고 source archive
+SHA-256 `75516091ffa7e5dbf75673f554e3307891818d7941ddf2f04b7d6899acfa28cc`를 배포했다.
+GitHub Actions run `30706321869`가 exact archive stage, unit 설치, web/bot restart,
+loopback health와 current symlink를 모두 PASS했고 canonical `/health`도 HTTP `200`,
+`healthy`다. 배포 당시 Admin IPC flag는 release 기본값 `0`을 유지했고 실제 사건 mutation은
+실행하지 않았다. Production schema는 마지막 확인 기준 `11`이고 migration 0012는
+미적용이므로 사건 정정·취소는 계속 금지다. 상세 결과는
+`docs/operations/plan-0016-game-dashboard-gate-c-override-result-2026-08-02.md`에 있다.
+
+2026-08-02 owner가 PLAN-0016 Gate B의 fresh encrypted backup, empty-target restore와
+migration 0012를 승인했다. Gate A 핵심 상태를 재검증한 뒤 production
+`waw-backup.service` one-shot을 한 번 실행했고 schema 11, encrypted bytes `101036`,
+expected row count `300`, archive SHA-256
+`9f66ba4551a73c036047884cf5fb6bade48851116a18af92352787a22fc22097`로 publication이
+성공했다. 현재 Windows에는 offline age identity/age 도구가 없고 Docker engine도
+실행 중이 아니어서 restore verification 전에 fail-closed했다. Migration 0012,
+release/flag/service 변경은 실행하지 않았다. 상세 결과는
+`docs/operations/plan-0016-game-dashboard-gate-b-result-2026-08-02.md`에 있다.
+
+2026-08-01 PLAN-0016 GitHub Actions 승격 준비에서 production 이력을 기준으로
+`release/plan-0016-production-candidate`와 PR #8을 만들었다. 첫 release head
+`9dbf710a83e7b88bc5092aec0c4fb6724b924ca0`의 CI는 production data-reset guard가
+schema 12를 허용하지 않아 실패했다. `scripts/production-data-reset.sql`과 fixture의
+exact schema ledger를 1–12로 교정한 뒤 새 release head
+`246264d362534b3e3de3215b341e73d6e1003548` (`246264d36253`), archive SHA-256
+`edb35b7e323407299a6aea095799dc5fb04600b8962f1ff0ebca89e58a9e4d4c`를 고정했다.
+Exact-head CI run `30700735890`은 전체 PASS했고 no-mutation production SSH preflight
+run `30700785973`도 PASS했다. Production schema는 아직 11이며 normal deploy workflow는
+migration을 실행하지 않으므로 PR은 merge하지 않았다. 다음 경계는 별도 owner 승인된
+Gate B backup/restore와 migration 0012이고 production 변경은 계속 `0`이다.
+
+2026-08-01 PLAN-0016 Gate A read-only production preflight를 PASS했다. 첫 시도의
+잘못된 source archive 입력값이 실제 `package-lock.json` hash임을 확인해 fail-closed한
+뒤 exact production archive hash를
+`e0ea44670f933bc62d90170e4e86587c29019a61fdc5ef8d9163f30572cdebfb`로 교정했다.
+Owner가 Termius SSH와 sudo 인증을 직접 완료한 후 current/previous release, PostgreSQL
+17.6·schema 11·accepted ledger·15/60 connections, 24시간 이내 published backup,
+service/timer/alarm/canonical health, web/bot/PUBLIC grant, Admin IPC metadata와 최근
+journal canary를 비민감 집계값으로 확인했다. Exact candidate의 격리 Linux asset 및
+rollback fixture와 migration ledger test도 PASS했다. 상세 증거는
+`docs/operations/plan-0016-game-dashboard-gate-a-result-2026-08-01.md`에 있다. Gate B–D와
+실제 사건 mutation은 실행하지 않았고 production 변경은 `0`이다.
+
+2026-08-01 clean application candidate를
+`f469c19029d139267fced0ffcb289aabe20132fc` (`f469c19029d1`)로 고정했다. Exact
+source archive SHA-256은
+`e0ea44670f933bc62d90170e4e86587c29019a61fdc5ef8d9163f30572cdebfb`, lockfile은
+`466d9e633206ac07c6ed216bde1a481a27a95c6d7bc8d56e994a973835408803`, migration
+0012 LF archive는 `188395af5cf3cbc55b3ca796143f3be9f5ac9381b7df9fcddb191bd9a24db07c`다.
+Exact archive의 Linux application asset과 rollback fixture가 PASS했다. Gate A와
+관련 read-only production preflight는 완료됐고 Gate B–D는 미승인이다. Maintenance
+window와 운영 담당자 지정은 후속 gate 전에 남아 있다.
+
+2026-08-01 PLAN-0016 release 준비에서 Git index exact archive의 Linux application
+asset·rollback fixture를 재검증했다. Windows worktree 실패는 systemd asset의 CRLF
+checkout 때문이었으며 `.gitattributes`에 systemd/Caddy LF 계약을 고정했다. Index
+archive에서는 두 fixture가 PASS했고 전체 local `311 pass / 8 PostgreSQL host-tool
+skips / 0 fail`, browser `2/2`, audit 0 vulnerabilities, typecheck/build/diff가 PASS했다.
+Production과 외부 서비스 접근은 `0`이다.
+
+2026-08-01 PLAN-0016 Task 7과 전체 계획을 완료했다. 검거 대시보드 운영·보안·health·
+장애·rollback runbook 및 production handoff를 작성했고, Gate A read-only preflight,
+Gate B backup/restore와 migration 0012, Gate C IPC-off immutable release, Gate D
+administrator IPC activation을 독립 승인으로 분리했다. 현재 dirty tree는 release
+candidate가 아니며 모든 gate와 최초 실제 mutation은 `Not approved`다. 문서 contract
+`3/3`이 checksum, default-off capability, rollback과 금지사항을 검증했다. Production
+변경은 `0`이다. 다음 단계는 owner가 Gate A만 별도로 승인할지 결정하는 것이며 자동
+production 진행은 없다.
+
+2026-08-01 PLAN-0016 Task 6를 완료했다. PostgreSQL 17 disposable container에서
+migration 0012, game read RLS/grant, web write deny, 101건 stable cursor와 stack,
+dashboard incident mutation의 operation·incident·revision·terminal result·audit
+원자성을 검증했다. Terminal result 강제 실패는 모든 row와 사건 version을 rollback했고
+duplicate operation 및 기존 Discord mutation 회귀도 통과했다. Chromium에서 관리자
+정정 keyboard flow와 desktop/mobile axe를 검증했다. PostgreSQL container 전체
+`325 pass / 7 external-fixture skips / 0 fail`, PostgreSQL file `16/16`, browser
+`2/2`, local `308 pass / 8 host-tool skips / 0 fail`, typecheck/build/diff가 PASS했다.
+추가 index migration은 필요하지 않았고 production DB·service·credential·실제 사건
+변경은 `0`이다. 다음 bounded 작업은 PLAN-0016 Task 7 문서와 별도 production gate다.
+
+2026-08-01 PLAN-0016 Task 5를 완료했다. 사건 정정·취소 HTTP route를 기존
+high-risk session boundary와 Task 4 admin IPC port에 연결했다. Current
+administrator, exact Origin·CSRF, 15분 recent OAuth, explicit confirmation,
+1~500자 단일행 reason과 exact incident version을 요구한다. 몰랭 UI는 관리자에게만
+정정·취소 control을 표시하고 별도 확인 checkbox 뒤 한 번만 전송한다. Stale
+snapshot은 history를 refresh하고 timeout은 새 operation을 보내지 않도록 안내한다.
+Targeted HTTP/port/API `26/26`, UI `21/21`, browser keyboard·axe `2/2`, 전체
+`308 pass / 8 external PostgreSQL skips / 0 fail`, typecheck와 build가 PASS했다.
+Production DB·socket·service·실제 사건 데이터 변경은 `0`이며 다음 bounded 작업은
+PLAN-0016 Task 6 disposable PostgreSQL/browser 통합이다.
+
+2026-08-01 PLAN-0016 Task 4를 완료했다. 관리자 IPC에 exact versioned
+`game_incident_correct|cancel` 계약을 추가하고 reason 1~500자, explicit confirmation,
+optimistic version을 검증한다. Bot application은 사건 target 접근 전에 Discord의
+current administrator를 재확인한다. 기존 `PostgresFeatureStore` 사건 transaction을
+공유해 incident 상태, revision, audit와 terminal `admin_command_result`를 원자적으로
+기록하며 duplicate와 timeout 후 `operation_status` reconciliation을 지원한다.
+Migration 0012는 local artifact로만 추가했고 production DB, socket, service와 실제
+사건 데이터 변경은 `0`이다. 다음 bounded 작업은 PLAN-0016 Task 5다.
+
+2026-08-01 PLAN-0016 Task 3를 완료했다. Dashboard에 lazy-loaded `몰랭` tab을
+추가해 스택, 진행 중 게임과 사건 이력을 표시하고 상태·사용자 표시명 filter,
+opaque cursor 이전/다음, loading/empty/error/retry 상태를 제공한다. Riot과 Go
+Live는 별도 상태·관측시각이며 `알 수 없음`, `시각 없음`, `오래됨`을 색상 외
+텍스트로 표시한다. Filter URL에는 raw Discord ID와 PUUID가 없다. Targeted
+`22/22`, 전체 test `297 pass / 8 external PostgreSQL skips / 0 fail`, browser
+axe/keyboard `2/2`, typecheck, server/web build와 `git diff --check`가 PASS했다.
+첫 browser 실행에서 기존 login test만 Windows Edge 경로를 재사용하지 않아
+Playwright Chromium 부재로 실패했으며 harness를 동일 Edge 경로로 고친 재실행은
+`2/2` PASS했다. Effective freshness API는 아직 없으므로 현재 accepted production
+값 3분을 UI의 오래됨 표시 기준으로 사용하며 Task 4 전까지 read-only다. IPC,
+mutation, migration, production과 실제 데이터 변경은 `0`이고 다음 작업은 Task 4다.
+
+2026-08-01 PLAN-0016 Task 2를 완료했다. Task 1의 스택, 진행 게임과 사건 이력을
+`/api/game/stacks`, `/api/game/active`, `/api/game/incidents` read API와 production
+dashboard port에 연결했다. Operator와 administrator는 기존 current-role 또는
+최대 5분 read cache 계약으로 조회하고, 미인증·권한 없음·만료 cache 또는 role
+service unavailable은 port 호출 전에 `401/403/503`으로 닫는다. Response schema는
+내부 추가 field를 직렬화하지 않으며 history query는 coercion 없이 limit `1..100`,
+cursor, 상태와 표시명만 허용한다. Targeted `28/28`, 전체 test
+`293 pass / 8 external PostgreSQL skips / 0 fail`, typecheck, server/web build와
+`git diff --check`가 PASS했다. UI, IPC, migration, production과 실제 데이터 변경은
+`0`이며 다음 bounded 작업은 Task 3 몰랭 UI read slice다.
+
+2026-08-01 Owner가 ADR-0030의 web read model + 기존 관리자 Unix socket 확장과
+high-risk 사건 변경 경계를 승인해 Accepted로 전환했고 PLAN-0016을 승인했다.
+Task 1은 dashboard용 스택, 진행 중 관측, cursor 사건 이력의 allowlisted DTO와
+PostgreSQL query를 구현했다. Riot/Go Live 상태·관측시각을 분리하고 PUUID,
+Discord ID와 evidence 내부값은 DTO에서 제외했다. 사건과 특정 Riot link를 잇는
+schema가 없으므로 활성 link가 정확히 하나일 때만 현재 Riot ID를 표시하고 그
+외에는 `null`로 닫는다. 동일 `updated_at`은 `incident_id` tie-break cursor로
+페이지 누락을 막는다. Targeted `15/15`, 전체 test
+`290 pass / 8 external PostgreSQL skips / 0 fail`, typecheck, server/web build와
+`git diff --check`가 PASS했다. Production, HTTP/UI/IPC, migration과 실제 데이터
+변경은 `0`이며 다음 bounded 작업은 PLAN-0016 Task 2다.
+
+2026-08-01 한글 Riot tag line이 `/라이엇계정 연결` 입력과 Account-v1 승인
+validator에서 영문·숫자 전용 정규식에 의해 DB 저장 전에 거부되던 결함을
+수정했다. 구조 구분자와 제어문자, 기존 길이 제한은 유지하면서 Unicode tag를
+허용하고 URL encoding 뒤 Riot Account API의 exact 응답 일치로 승인한다.
+`simsul복숭아#심복타도` command/API 회귀를 포함한 targeted test `18/18`,
+전체 test `286 pass / 8 external PostgreSQL skips / 0 fail`, typecheck와
+server/web build가 PASS했다. Production DB, credential, 배포와 실제 계정
+mutation은 `0`이다.
+제품 정책에 있으나 web에 없는 검거 화면은 `ADR-0030` Proposed와 승인 조건부
+`PLAN-0016` Draft로 분리했다. ADR 승인 전 dashboard 구현은 시작하지 않는다.
+
+2026-07-31 PLAN-0014 Task 7 production activation을 완료했다. Exact candidate
+`4f8832124f194e92a29003eb7f8c7056bce5e60b`의 encrypted backup/empty
+PostgreSQL 17 restore, schema `10→11`, stage와 production tree 동일성을
+확인했고 최종 current `4f8832124f19`, previous `19ea83925f6b`다. Effective
+observation/reconciliation/freshness는 `1/120000/180000`, schema `11`,
+loopback/canonical health, Gateway connected와 240초의 5개 fresh checkpoint,
+backup/monitor timer가 PASS했다. 관측 구간에는 active target이 없어
+sanitized Voice row 검증은 `NO_ACTIVE_TARGET`로 남았으며 실제 경기 smoke가
+후속 gate다. Production merge가 자동 deploy를 시작한 문제는 build 중 취소하고
+잔여 release/temp를 정리했으며, 자동 deploy 승인 경계 수정은 별도 후속
+architecture task로 분리한다.
+
+2026-07-31 PLAN-0014 Tasks 1~6 local/disposable 구현을 완료했다. Discord
+Voice source 관측시각과 Riot poll 시각을 분리하고, 3분 stale active/inactive를
+`unknown`으로 낮춘다. Gateway가 정상이어도 현재 관측 대상 사용자만 2분마다
+targeted current Voice State로 재조정하며 guild별 single-flight, target 중복
+제거와 Gateway event 이후 도착한 late result 차단을 적용했다. 실패와 timeout은
+source 시각을 갱신하지 않는 `unknown`이다. Additive migration `0011`은 기존
+poll `observed_at`을 보존하고 nullable `source_observed_at`을 추가한다.
+전체 `307 tests / 300 pass / 7 explicit external-URL skips / 0 fail`,
+PostgreSQL 강제 모드와 별도 PostgreSQL 17 observation integration, typecheck,
+server/web build와 11 migration asset copy가 PASS했다. Docker daemon이 꺼져
+container wrapper는 실행되지 않았지만 host PostgreSQL 17 fixture로 같은 신규
+schema/store 경계를 검증했다. Production 접근, migration 적용, 배포, restart와
+외부 API 호출은 `0`이며 Task 7 exact production gate만 남아 있다.
+
+2026-07-31 PLAN-0015 production human SSH 전환을 완료했다. Human owner가
+Termius `waw-operator`와 별도 passphrase-protected Ed25519 key의 fresh login/
+sudo, `PermitRootLogin no`, `DisableForwarding yes`, fail2ban `sshd` jail과
+최종 host read-back을 확인했다. GitHub no-mutation SSH preflight도
+owner-confirmed PASS지만 exact run ID는 미기록이다. Existing GitHub deploy
+account/key와 exact-commit path는 불변이다. Owner 결정으로 SSH port 22와
+Lightsail any IPv4/IPv6 source를 유지해 firewall stage는 DEFERRED, mutation
+`0`이다. CloudShell/browser SSH는 break-glass이고 AI agent external-terminal
+input은 `0`이다. TEMP handoff는 제거하고 README, inventory, runbook, ADR/PLAN
+문서를 verified 결과에 맞췄다.
+
+2026-07-31 Owner가 PLAN-0015 Stage 2~8의 남은 실행을 모두 승인했다. Human
+owner가 통합 Git 비추적 handoff를 순서대로 직접 입력하며, 각 stage 검증 실패
+시 다음으로 진행하지 않고 해당 rollback만 수행한다. Stage 7 firewall은 stable
+source CIDR을 Owner가 화면에서 exact 확인한 family만 적용하고 미확인 family는
+DEFERRED한다. AI agent external input과 GitHub deploy/application/data 변경은
+계속 금지된다.
+
+Stage 3 첫 실행에서 `waw-operator` login 검증 전에 rollback 명령까지 순차
+실행했고, 새 account session에서 자기 account/home을 삭제해 session이 종료됐다.
+기존 `ubuntu` recovery path는 정상이고 read-only postcondition에서 account,
+home과 sudo membership 모두 absent여서 rollback은 PASS다. Human key는 local에
+유지된다. 재발 방지를 위해 corrected retry는 success path만 별도 TEMP 문서에
+두고, placeholder 대신 validated interactive public-key input을 사용하며 rollback
+명령을 제거했다. Stage 3 retry는 새 exact 승인 대기다.
+
+Corrected Stage 3 retry preflight는 `STOP account_exists`, exit `1`로 안전하게
+중단됐다. 직전 rollback postcondition은 absent였으므로 account가 다시 생성된
+시점과 partial state는 미확정이다. Install, delete와 login retry를 하지 않고
+기존 `ubuntu` recovery session에서 account/home/key/sudo/password metadata만
+읽는 별도 check를 준비했다.
+
+후속 read-only 확인에서 `waw-operator` account는 존재하지만
+`/home/waw-operator/.ssh/authorized_keys`가 absent인 partial Stage 3 상태를
+확정했다. Mac human key pair는 유지되고 fingerprint 값은 저장하지 않았다.
+Account 재생성 없이 기존 `ubuntu` recovery session에서 missing human public
+key만 mode `0700`/`0600`으로 설치하고 local/remote fingerprint를 owner가
+직접 비교하는 최소 repair handoff를 준비했다.
+
+Human owner가 missing public key repair를 완료하고 Termius의 human private
+key로 `waw-operator` SSH login에 성공했다. Existing `ubuntu` recovery path와
+GitHub deploy identity는 유지된다. Stage 3 완료 판정에는 새 session의 identity와
+sudo password 검증이 남아 있으며, PASS 전에는 root login hardening으로
+진행하지 않는다.
+
+Owner가 새 `waw-operator` Termius session에서 identity와 sudo password 검증을
+완료해 PLAN-0015 Stage 3을 PASS로 종료했다. Stage 1 inventory, Stage 2 human
+key와 Stage 3 account/key/login/sudo가 완료됐다.
+
+첫 Stage 4 apply는 첫 sudo preflight에서
+`waw-operator is not in the sudoers file`, exit `1`로 STOPPED됐다. 따라서
+`60-waw-root-login.conf` 생성, sshd reload와 다른 production mutation은 `0`이다.
+Stage 3 완료 보고와 달리 effective sudo authorization이 새 session에서
+검증되지 않은 상태였으므로 기존 `ubuntu` recovery session에서 sudo group
+membership/`visudo`/`sudo -l`을 보정하고 모든 `waw-operator` session을 새로
+열어 supplementary group과 `sudo -v`를 재검증하는 Stage 3A를 final handoff
+앞에 추가했다.
+
+Stage 3A 보정 뒤 Stage 5 새 human login은 PASS/exit `0`이다. 이어 확인 결과
+양식 `workflow=Preflight production SSH`를 SSH shell에 붙여 넣어 shell이
+`production`을 command로 해석했지만 host mutation은 없고 GitHub workflow도
+실행되지 않았다. Result template를 terminal paste 금지로 더 명확히 표시했으며,
+Stage 5 GitHub no-mutation preflight는 GitHub Actions UI에서 human owner가
+manual dispatch해야 한다.
+
+Stage 6 package install 첫 시도는 child heredoc이 stdin을 소유한 상태에서
+interactive `apt-get install` confirmation을 요청해 EOF/`Abort`, exit `1`로
+STOPPED됐다. Owner 입력으로 `n`이 선택된 것이 아니다. `apt-get update`는
+실행됐을 수 있으나 fail2ban install과 jail apply 완료 증거는 없다. 6B jail
+block은 중단하고, corrected 6A는 approved package scope에서
+`DEBIAN_FRONTEND=noninteractive`와 `-y`를 명시하며 package read-back 전에는
+6B로 진행하지 않는다.
+
+Owner는 관리 network/device source 제한을 운영하지 않기로 결정했다. SSH port
+변경은 public source restriction을 대체하지 못하고 기존 GitHub deploy/preflight
+기본 port 22 경로만 복잡하게 하므로 port 22와 현재 any IPv4/IPv6 Lightsail
+rule을 유지한다. Stage 7은 `DEFERRED BY OWNER`이며 firewall mutation은 `0`이다.
+Key-only auth, root login deny, forwarding deny, separated human/deploy keys,
+fail2ban과 browser SSH break-glass를 보완 통제로 유지하고 Stage 8 final
+read-back으로 진행한다.
+
+2026-07-31 Human owner의 승인된 PLAN-0015 Task 1 read-only inventory 1회는 SSH
+session disconnect로 `STOPPED`됐다. Production mutation은 보고되지 않았지만
+독립 검증하지 못했다. 제공한 block이 login shell에 `set -eu`를 직접 적용해
+read-only command의 non-zero exit가 shell 자체를 종료할 수 있던 handoff 결함을
+확인했다. Termius one-shot/session 동작과 transport failure는 아직 배제하지
+못했다. 승인된 1회는 소비됐으며 마지막 출력 stage 확인, subshell 격리와 새
+exact 승인 전에는 retry하지 않는다.
+
+Owner는 즉시 재접속이 정상이고 multi-line paste 직후 결과를 보기 전에 session이
+종료된 느낌이었다고 확인했다. Corrected Stage 1은 strict mode를 child `bash`
+heredoc 안에 격리하고 expected absent/inactive read를 명시적으로 허용해 child
+exit를 기존 Termius shell에 반환한다. Scope는 동일한 read-only이고 새 exact
+retry 승인은 아직 대기 중이다.
+
+Owner가 corrected Stage 1을 Termius에서 한 번 실행해 child exit `0`, mutation
+`0`으로 PASS했다. Ubuntu 24.04, SSH active, public-key auth enabled,
+password/keyboard-interactive disabled, root key login 허용, X11/TCP forwarding
+허용, `waw-operator`와 fail2ban 부재를 확인했다. Listener port는 22/53/80/443/
+18080이고 bind scope는 보존하지 않아 미확인이다. Owner가 기존 `ubuntu` key
+fingerprint를 확인하고 값은 전달하지 않았다. Lightsail console의 단일 visible
+TCP 22/80/443 rule은 모두 any IPv4 or IPv6를 허용했고 visible duplicate 22
+rule은 없었다. Stage 2 human key 생성은 별도 실행 승인 대기다.
+
+2026-07-31 Owner가 PLAN-0015의 모든 Task와 전체 작업 순서를 승인했다. 이
+승인은 계획 승인이고 각 production stage의 실행 승인은 계속 분리한다. 전체
+human-executed command/console action, verify, stop과 rollback 순서를 하나의
+Git 비추적 TEMP handoff로 제공하며 AI agent는 외부 terminal에 입력하지 않는다.
+
+2026-07-31 Owner가 PLAN-0015 Task 1 production read-only inventory를 승인했다.
+Human owner가 Git 비추적
+`TEMP_PLAN_0015_TASK_1_READONLY_INVENTORY.md`의 exact command set을 한 번
+직접 실행하고 redacted 결과만 전달한다. 승인 범위는 OS/SSH/account key
+fingerprint/fail2ban/listener와 Lightsail IPv4/IPv6 firewall read뿐이며,
+production mutation과 AI agent의 external terminal 입력은 `0`이다.
+
+2026-07-31 Owner가 PLAN-0015를 Approved로 확정했다. 모든 production 단계는
+실행 전 별도 exact 승인을 받고, AI agent는 Git 비추적 `TEMP_*.md` 명령 set만
+제공하며 human owner가 직접 입력한다. 첫 단계는 production mutation 없는
+Task 1 read-only inventory이고, exact 승인 전에는 외부 접속·명령을 실행하지
+않는다.
+
+2026-07-31 Owner가 production human SSH 운영 경로를 승인해 ADR-0029를
+Accepted로 전환했다. 기존 GitHub Actions deploy account/key와 exact-commit
+배포는 유지하고, Termius는 별도 `waw-operator` Linux account와 human-only
+SSH key를 사용한다. AI agent의 production·CloudShell·external terminal 입력은
+금지하며 CloudShell은 break-glass로만 유지한다. PLAN-0015는 Draft이고,
+production 접속·명령·dependency 설치·host/firewall mutation은 `0`이다.
 
 2026-07-30 PLAN-0013 exact release
 `19ea83925f6b27f66c924e2b1860a3c5d0904a89` production 배포와 관측 활성화를

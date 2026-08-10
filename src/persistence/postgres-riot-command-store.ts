@@ -774,6 +774,8 @@ function terminalReasonCode(reasonCode: string): AdminCommandReasonCode {
     "riot_link_request_unavailable",
     "riot_link_not_found",
     "riot_link_stale",
+    "game_incident_not_found",
+    "game_incident_stale",
     "riot_active_puuid_conflict",
     "invalid_puuid",
     "platform_mismatch",

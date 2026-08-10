@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   DASHBOARD_API_PATHS,
+  type ActiveGameObservationDto,
   type CommandLogEntryDto,
   type ActiveRiotLinkDto,
   type SessionDto,
@@ -29,6 +30,11 @@ test("dashboard API paths remain same-origin and canonical", () => {
     kboManagement: "/api/kbo/management",
     kboCreditAdjust: "/api/kbo/credits/adjust",
     commandLog: "/api/command-log",
+    gameStacks: "/api/game/stacks",
+    activeGames: "/api/game/active",
+    gameIncidents: "/api/game/incidents",
+    gameIncidentCorrect: "/api/game/incidents/correct",
+    gameIncidentCancel: "/api/game/incidents/cancel",
   });
 
   for (const path of Object.values(DASHBOARD_API_PATHS)) {
@@ -73,6 +79,34 @@ test("active Riot link DTO exposes a stale-safe version without sensitive identi
   ]);
   const rendered = JSON.stringify(link);
   for (const forbidden of ["puuid", "discordUserId", "verificationMethod"]) {
+    assert.equal(rendered.includes(forbidden), false);
+  }
+});
+
+test("game observation DTO exposes separate evidence without persistent identifiers", () => {
+  const observation: ActiveGameObservationDto = {
+    incidentId: "incident-synthetic",
+    memberLabel: "등록 사용자",
+    riotId: { platformId: "KR", gameName: "표시 이름", tagLine: "KR1" },
+    gameKey: "KR:game-synthetic",
+    riotState: "active",
+    riotObservedAt: "2026-08-01T00:05:00.000Z",
+    goLiveState: "unknown",
+    goLiveObservedAt: null,
+    comparisonState: "unknown",
+    incidentStatus: "open",
+    expectedVersion: 1,
+    gameStartedAt: "2026-08-01T00:00:00.000Z",
+  };
+  assert.deepEqual(Object.keys(observation).sort(), [
+    "comparisonState", "expectedVersion", "gameKey", "gameStartedAt",
+    "goLiveObservedAt", "goLiveState", "incidentId", "incidentStatus",
+    "memberLabel", "riotId", "riotObservedAt", "riotState",
+  ]);
+  const rendered = JSON.stringify(observation);
+  for (const forbidden of [
+    "puuid", "discordUserId", "evidenceCode", "generation", "sourceObservedAt",
+  ]) {
     assert.equal(rendered.includes(forbidden), false);
   }
 });

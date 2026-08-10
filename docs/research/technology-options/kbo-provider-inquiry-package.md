@@ -2,7 +2,7 @@
 
 - 상태: Cancelled — 외부 미전송
 - 작성일: 2026-08-07
-- 연결 문서: `ADR-0028`, Proposed `ADR-0030`,
+- 연결 문서: `ADR-0028`, Proposed `ADR-0031`,
   `kbo-provider-selection-and-freshness.md`
 - 용도: Sportradar와 KBO/스포츠투아이 문의문, 답변 비교표, owner 승인 양식
 
@@ -252,7 +252,7 @@ Owner:
 결정일:
 ```
 
-### Gate 3 — 실측 후 ADR-0030 결정
+### Gate 3 — 실측 후 ADR-0031 결정
 
 ```text
 Trial 결과 문서:
@@ -268,8 +268,8 @@ Trial 결과 문서:
 - closed 후 정산 유예와 동일 결과 확인 조건:
 
 결정:
-[ ] ADR-0030을 위 값과 선택 공급자로 Accepted 전환한다.
-[ ] ADR-0030 수정을 요구한다.
+[ ] ADR-0031을 위 값과 선택 공급자로 Accepted 전환한다.
+[ ] ADR-0031 수정을 요구한다.
 [ ] 후보를 거절하고 feature flag를 off로 유지한다.
 
 이 결정은 구현 계획 작성을 허용하지만 구현·migration·계약 체결·production

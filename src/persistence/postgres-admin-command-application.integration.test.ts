@@ -7,6 +7,7 @@ import type { AdminCommandRequest } from "../contracts/admin-command-ipc.ts";
 import { AdminCommandApplication } from "../ipc/admin-command-application.ts";
 import { PersistenceError } from "./postgres-persistence.ts";
 import { PostgresRiotCommandStore } from "./postgres-riot-command-store.ts";
+import { PostgresFeatureStore } from "./feature-store.ts";
 
 const connectionString = process.env.WAW_POSTGRES_TEST_URL;
 const enabled = connectionString !== undefined;
@@ -15,12 +16,14 @@ const actorId = "123456789012345678";
 const guildId = "223456789012345678";
 let pool: Pool;
 let store: PostgresRiotCommandStore;
+let incidents: PostgresFeatureStore;
 
 before(async () => {
   if (!connectionString) return;
   pool = new Pool({ connectionString, max: 4 });
   await pool.query("select 1");
   store = new PostgresRiotCommandStore(pool);
+  incidents = new PostgresFeatureStore(pool);
 });
 
 after(async () => {
@@ -174,6 +177,7 @@ test("current-role denial is terminal and occurs before target lookup", { skip: 
       },
     },
     store,
+    incidents,
     now: () => at,
   });
   const response = await denied.execute(command(
@@ -204,6 +208,7 @@ function createApplication(validatorUnavailable = false) {
       },
     },
     store,
+    incidents,
     now: () => at,
   });
 }

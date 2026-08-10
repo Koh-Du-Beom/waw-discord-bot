@@ -136,6 +136,9 @@ Live 자동 관측 대상이며, 연결 해제 후에는 후속 관측에서 제
 - 관리자가 승인한 모든 활성 KR Riot 계정을 30초 주기로 관측합니다.
 - Riot solo ranked queue ID `420`과 Discord Voice State의 Go Live
   `self_stream`을 별도 증거로 저장합니다.
+- Discord Voice 증거는 실제 source 관측시각과 30초 poll 시각을 분리하고,
+  3분이 지나면 `unknown`으로 낮춥니다. Gateway가 정상이어도 관측 대상만
+  2분마다 current Voice State를 재조정합니다.
 - 게임 시작 뒤 5분 유예, 스트림 중단 2분 허용을 적용합니다.
 - 외부 API 실패와 Gateway 불확실성은 `unknown`으로 기록합니다.
 - 동일 사건을 중복 생성하거나 같은 위반 알림을 반복 전송하지 않습니다.
@@ -152,6 +155,7 @@ Live 자동 관측 대상이며, 연결 해제 후에는 후속 관측에서 제
 - 요약 활성 설정
 - 설정 변경과 운영 감사 기록
 - Administrator 전용 KBO 계정·지급·베팅·정산·공급 상태와 signed 크레딧 조정
+- 관리자 전용 몰랭 사건 정정·취소와 stale/timeout 안전 처리
 - desktop/mobile 반응형 UI, keyboard와 axe 접근성 검사
 
 ## 시스템 구조
@@ -440,6 +444,8 @@ Credential directory는 절대 경로여야 합니다. 값은 비어 있거나 �
 |---|---|
 | `WAW_ADMIN_COMMAND_IPC_ENABLED` | Dashboard→bot 관리자 명령 |
 | `WAW_GAME_OBSERVATION_ENABLED` | Riot/Go Live 자동 관측 |
+| `WAW_DISCORD_VOICE_RECONCILIATION_INTERVAL_MS` | 대상 Voice State 재조정 주기; 기본 120000ms |
+| `WAW_DISCORD_VOICE_FRESHNESS_MS` | Discord 증거 freshness; 기본 180000ms |
 | `WAW_SUMMARY_QUOTA_ENABLED` | 등록 사용자별 rolling-hour 예약 |
 | `WAW_SUMMARY_PROVIDER_ENABLED` | OpenAI 요약 provider와 credential load |
 | `WAW_KBO_DATA_RIGHTS_AUTHORIZED` | 승인된 KBO 데이터 권리와 ingestion 사용 |
@@ -592,6 +598,26 @@ Production 절차는
 인증은 [`docs/operations/authentication-runbook.md`](docs/operations/authentication-runbook.md),
 복구는 [`docs/operations/backup-restore-runbook.md`](docs/operations/backup-restore-runbook.md)를
 따릅니다.
+검거 대시보드 운영은
+[`docs/operations/game-enforcement-dashboard-runbook.md`](docs/operations/game-enforcement-dashboard-runbook.md),
+별도 production 승인 경계는
+[`docs/operations/plan-0016-game-dashboard-production-gate-handoff-2026-08-01.md`](docs/operations/plan-0016-game-dashboard-production-gate-handoff-2026-08-01.md)를
+따릅니다.
+
+### Human production SSH
+
+- 사람이 수행하는 정상 production SSH 운영은 Termius의 `waw-operator`
+  account와 passphrase-protected human-only Ed25519 key를 사용합니다.
+- Human key는 GitHub Actions deploy key와 account, rotation 및 revocation
+  경계를 공유하지 않습니다.
+- AI agent는 production SSH, CloudShell과 외부 서비스 terminal에 명령을
+  입력하지 않고, 필요한 명령은 repository root의 Git-untracked
+  `TEMP_*.md` handoff로만 제공합니다.
+- Root SSH login과 SSH forwarding은 차단하고 password authentication은
+  사용하지 않으며 fail2ban `sshd` jail을 유지합니다.
+- SSH port는 기존 GitHub exact-commit deployment와 동일한 TCP 22를 유지합니다.
+  Lightsail source restriction은 Owner 결정으로 적용하지 않으며 browser
+  SSH와 CloudShell은 break-glass 경로로만 사용합니다.
 
 ## 문서와 의사결정 체계
 
@@ -924,6 +950,60 @@ activation이 readiness를 통과하지 못하고 rollback됐습니다.
 - 남긴 원칙: 같은 provider의 비싼 reconciliation을 startup에서 중복 실행하지
   않습니다. 고정 retry delay보다 provider가 준 bounded retry 정보를
   우선합니다.
+
+### 오래된 Discord Voice cache가 여러 경기에서 새 관측처럼 재사용됨
+
+2026-07-31 04:31 KST 검거 알림 전후를 익명으로 대조했을 때 네 번의 솔로랭크
+경기는 Riot Spectator에서 각각 관측됐지만 검거 stack은 한 번만 증가했습니다.
+Discord 방송은 실제로 켜지지 않았는데도 일부 후속 경기는 이전 `active` 상태를
+계속 재사용해 compliant로 판정됐습니다.
+
+- Root cause: Gateway event의 실제 source 관측 시각과 30초 poll 처리 시각을
+  구분하지 않아 cached Voice State가 poll 때마다 최신 evidence처럼 저장됐습니다.
+  또한 정상 Gateway에서는 bounded reconciliation을 하지 않았고, grace 안에
+  Spectator에서 사라진 경기에는 violation을 확정할 post-grace evidence가
+  없었습니다.
+- 해결: Discord Voice evidence에 `source_observed_at`을 별도로 전달하고 3분을
+  넘은 cached active는 `unknown`으로 처리합니다. 2분마다 대상 guild만
+  reconciliation하며 single-flight, generation 기반 late-result 거부와
+  실패·timeout의 `unknown` 처리를 적용합니다. Grace 안에서 끝난 경기는 자동
+  검거하지 않고 향후 Match-V5 사후 검증 대상으로 분리합니다.
+- 남긴 원칙: 처리 시각은 source 관측 시각의 대체물이 아닙니다. Freshness도
+  evidence 계약의 일부이며, post-grace 증거가 없다는 이유만으로 violation을
+  추론하지 않습니다.
+- 증거:
+  [ADR-0028](docs/adr/ADR-0028-fresh-discord-voice-evidence.md),
+  [PLAN-0014](docs/implementation/PLAN-0014-fresh-discord-voice-evidence.md)
+
+### Production merge가 승인 전에 자동 deploy를 시작함
+
+PLAN-0014는 stage, migration과 activation을 별도 Owner gate로 진행했지만
+production PR merge가 `push` 기반 `Deploy production` workflow를 즉시
+시작했습니다. 승인 범위 밖이라 원격 build 중 취소했으며, read-only 확인에서
+activation/restart는 없고 비활성 release와 임시 디렉터리만 남은 것을 확인해
+정확한 대상만 제거했습니다.
+
+- 임시 대응: 자동 run을 즉시 취소하고 current/previous, unit, PID, schema와
+  health를 read-back한 뒤 승인된 staged candidate만 수동 activation했습니다.
+- 남은 해결: Production push와 activation을 분리하도록 기존 GitHub deployment
+  ADR을 재검토하고, manual dispatch 또는 required reviewer gate를 별도
+  architecture decision으로 확정해야 합니다.
+- 남긴 원칙: Branch merge 권한은 production activation 권한을 암묵적으로
+  포함하지 않습니다. Workflow trigger도 승인 경계의 일부입니다.
+
+### Activation verifier가 정상 Gateway를 journal 누락으로 실패 처리함
+
+최종 activation 뒤 Gateway health는 240초 동안 다섯 번 모두 connected/FRESH
+였지만 verifier가 Gateway 연결 완료 이후의 시각부터 journal을 조회해
+`gateway.state` 행이 없다는 이유로 실패했습니다. Rollback 성공 출력과 실제
+symlink read-back도 일치하지 않아 출력만으로 상태를 추정하지 않았습니다.
+
+- 해결: 실제 current/previous를 별도 read-only로 확인하고, 이미 active인
+  candidate를 다시 restart하지 않은 채 schema, effective settings, Gateway
+  health와 두 reconciliation interval을 최종 검증했습니다.
+- 남긴 원칙: Event가 검색 구간에 없다는 것은 실패 event가 아닙니다. Transition
+  log와 current health snapshot을 구분하고 mutation 뒤에는 symlink를 직접
+  read-back합니다.
 
 ### macOS에서만 Unix socket test가 `EINVAL`
 

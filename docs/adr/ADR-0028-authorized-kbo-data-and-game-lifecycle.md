@@ -7,7 +7,7 @@
 - Related research: `docs/research/technology-options/kbo-data-sources.md`, `docs/research/technology-options/kbo-discord-bot-and-credit-prediction-system.md`
 - Related ADRs: `ADR-0001`, `ADR-0004`, `ADR-0006`, `ADR-0014`
 - Supersedes: 없음
-- Superseded by: `ADR-0031`
+- Superseded by: `ADR-0032`
 
 ## Context
 

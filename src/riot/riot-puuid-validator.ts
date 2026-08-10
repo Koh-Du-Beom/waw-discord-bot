@@ -58,7 +58,7 @@ export class RiotPuuidValidator implements PuuidValidationPort {
       typeof parsed.tagLine !== "string" ||
       parsed.tagLine.length < 2 ||
       parsed.tagLine.length > 8 ||
-      !/^[A-Za-z0-9]+$/u.test(parsed.tagLine)
+      /[\r\n\0\/#]/u.test(parsed.tagLine)
     ) {
       throw unavailable();
     }
@@ -88,7 +88,7 @@ export class RiotPuuidValidator implements PuuidValidationPort {
       tagLine.length < 2 ||
       tagLine.length > 8 ||
       /[\r\n\0/#]/u.test(gameName) ||
-      !/^[A-Za-z0-9]+$/u.test(tagLine)
+      /[\r\n\0\/#]/u.test(tagLine)
     ) {
       return { kind: "invalid", reasonCode: "invalid_puuid" };
     }
@@ -106,8 +106,8 @@ export class RiotPuuidValidator implements PuuidValidationPort {
       }
       if (
         !PUUID_PATTERN.test(typeof parsed.puuid === "string" ? parsed.puuid : "") ||
-        parsed.gameName !== gameName ||
-        String(parsed.tagLine).toUpperCase() !== tagLine.toUpperCase()
+        !sameRiotIdPart(parsed.gameName, gameName) ||
+        !sameRiotIdPart(parsed.tagLine, tagLine)
       ) {
         throw unavailable();
       }
@@ -153,4 +153,10 @@ class RiotAccountNotFoundError extends Error {}
 
 function unavailable(): Error {
   return new Error("riot_validator_unavailable");
+}
+
+function sameRiotIdPart(value: unknown, expected: string): boolean {
+  return typeof value === "string" &&
+    value.normalize("NFC").toLocaleLowerCase("en-US") ===
+      expected.normalize("NFC").toLocaleLowerCase("en-US");
 }

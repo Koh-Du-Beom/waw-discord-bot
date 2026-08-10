@@ -13,10 +13,16 @@ import {
   DASHBOARD_API_PATHS,
   type ApiErrorCode,
   type ActiveRiotLinksDto,
+  type ActiveGameObservationsDto,
   type AuditEventsDto,
   type CommandLogPageDto,
   type ListCommandLogRequestDto,
   type DashboardOverviewDto,
+  type GameIncidentHistoryPageDto,
+  type GameStacksDto,
+  type ListGameIncidentHistoryRequestDto,
+  type MutateGameIncidentRequestDto,
+  type GameIncidentMutationResponseDto,
   type LowRiskSettingsDto,
   type PendingRiotLinkRequestsDto,
   type ListPendingRiotLinksRequestDto,
@@ -45,6 +51,11 @@ export type DashboardHttpPorts = {
   readOverview(): Promise<DashboardOverviewDto>;
   readActiveRiotLinks(): Promise<ActiveRiotLinksDto>;
   readKboManagement(): Promise<KboManagementDto>;
+  readGameStacks(): Promise<GameStacksDto>;
+  readActiveGameObservations(): Promise<ActiveGameObservationsDto>;
+  readGameIncidentHistory(
+    request: ListGameIncidentHistoryRequestDto,
+  ): Promise<GameIncidentHistoryPageDto>;
   readSettings(): Promise<LowRiskSettingsDto>;
   updateSettings(
     input: {
@@ -88,6 +99,18 @@ export type DashboardHttpPorts = {
     authorizationTier: AuthorizationTier;
     operationId: string;
   }): Promise<KboCreditAdjustmentResponseDto>;
+  correctGameIncident(input: {
+    request: MutateGameIncidentRequestDto;
+    actorId: string;
+    authorizationTier: AuthorizationTier;
+    operationId: string;
+  }): Promise<GameIncidentMutationResponseDto>;
+  cancelGameIncident(input: {
+    request: MutateGameIncidentRequestDto;
+    actorId: string;
+    authorizationTier: AuthorizationTier;
+    operationId: string;
+  }): Promise<GameIncidentMutationResponseDto>;
 };
 
 export type OperationalLogEvent = Readonly<{
@@ -188,6 +211,20 @@ const commandLogQuerySchema = {
   },
 } as const;
 
+const gameIncidentHistoryQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    limit: { type: "string", pattern: "^(?:[1-9]|[1-9][0-9]|100)$" },
+    cursor: { type: "string", minLength: 16, maxLength: 512 },
+    status: {
+      type: "string",
+      enum: ["open", "confirmed", "corrected", "cancelled"],
+    },
+    memberLabel: { type: "string", minLength: 1, maxLength: 80 },
+  },
+} as const;
+
 const componentHealthSchema = {
   type: "object",
   additionalProperties: false,
@@ -258,6 +295,118 @@ const activeRiotLinksSchema = {
         },
       },
     },
+  },
+} as const;
+
+const evidenceStateSchema = {
+  type: "string",
+  enum: ["active", "inactive", "unknown"],
+} as const;
+
+const comparisonStateSchema = {
+  type: "string",
+  enum: ["compliant", "grace", "interrupted", "violation", "unknown"],
+} as const;
+
+const incidentStatusSchema = {
+  type: "string",
+  enum: ["open", "confirmed", "corrected", "cancelled"],
+} as const;
+
+const nullableDateTimeSchema = {
+  anyOf: [{ type: "string", format: "date-time" }, { type: "null" }],
+} as const;
+
+const riotIdSchema = {
+  anyOf: [
+    {
+      type: "object",
+      additionalProperties: false,
+      required: ["platformId", "gameName", "tagLine"],
+      properties: {
+        platformId: { type: "string" },
+        gameName: { type: "string" },
+        tagLine: { type: "string" },
+      },
+    },
+    { type: "null" },
+  ],
+} as const;
+
+const activeGameObservationProperties = {
+  incidentId: { type: "string" },
+  memberLabel: { type: "string" },
+  riotId: riotIdSchema,
+  gameKey: { type: "string" },
+  riotState: evidenceStateSchema,
+  riotObservedAt: nullableDateTimeSchema,
+  goLiveState: evidenceStateSchema,
+  goLiveObservedAt: nullableDateTimeSchema,
+  comparisonState: comparisonStateSchema,
+  incidentStatus: incidentStatusSchema,
+  expectedVersion: { type: "integer", minimum: 0 },
+  gameStartedAt: { type: "string", format: "date-time" },
+} as const;
+
+const activeGameObservationSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: Object.keys(activeGameObservationProperties),
+  properties: activeGameObservationProperties,
+} as const;
+
+const gameStacksSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["entries"],
+  properties: {
+    entries: {
+      type: "array",
+      maxItems: 500,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["memberLabel", "stack"],
+        properties: {
+          memberLabel: { type: "string" },
+          stack: { type: "integer", minimum: 0 },
+        },
+      },
+    },
+  },
+} as const;
+
+const activeGamesSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["entries"],
+  properties: {
+    entries: { type: "array", maxItems: 500, items: activeGameObservationSchema },
+  },
+} as const;
+
+const gameIncidentHistoryEntrySchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    ...Object.keys(activeGameObservationProperties),
+    "gameEndedAt",
+    "incidentUpdatedAt",
+  ],
+  properties: {
+    ...activeGameObservationProperties,
+    gameEndedAt: nullableDateTimeSchema,
+    incidentUpdatedAt: { type: "string", format: "date-time" },
+  },
+} as const;
+
+const gameIncidentHistorySchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["entries"],
+  properties: {
+    entries: { type: "array", maxItems: 100, items: gameIncidentHistoryEntrySchema },
+    nextCursor: { type: "string", minLength: 16, maxLength: 512 },
   },
 } as const;
 
@@ -470,6 +619,23 @@ const kboCreditAdjustmentResponseSchema = {
     message: { type: "string" },
     availableBalance: { type: "string", pattern: "^(0|[1-9][0-9]*)$" },
     version: { type: "integer", minimum: 0 },
+  },
+} as const;
+
+const gameIncidentMutationSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["incidentId", "expectedVersion", "reason", "confirmation"],
+  properties: {
+    incidentId: { type: "string", minLength: 8, maxLength: 128 },
+    expectedVersion: { type: "integer", minimum: 0 },
+    reason: {
+      type: "string",
+      minLength: 1,
+      maxLength: 500,
+      pattern: "^(?!\\s)(?!.*\\s$)[^\\u0000\\r\\n]+$",
+    },
+    confirmation: { type: "boolean", const: true },
   },
 } as const;
 
@@ -722,6 +888,71 @@ export function buildDashboardServer(
       }
       try {
         reply.send(await options.ports.readKboManagement());
+      } catch (error) {
+        sendPortError(reply, error, request.id);
+      }
+    },
+  );
+  app.get(
+    DASHBOARD_API_PATHS.gameStacks,
+    {
+      schema: {
+        querystring: emptyObjectSchema,
+        response: { 200: gameStacksSchema, "4xx": errorSchema, "5xx": errorSchema },
+      },
+    },
+    protectedRead(options.auth, options.ports.readGameStacks),
+  );
+  app.get(
+    DASHBOARD_API_PATHS.activeGames,
+    {
+      schema: {
+        querystring: emptyObjectSchema,
+        response: { 200: activeGamesSchema, "4xx": errorSchema, "5xx": errorSchema },
+      },
+    },
+    protectedRead(options.auth, options.ports.readActiveGameObservations),
+  );
+  app.get<{
+    Querystring: {
+      limit?: string;
+      cursor?: string;
+      status?: ListGameIncidentHistoryRequestDto["status"];
+      memberLabel?: string;
+    };
+  }>(
+    DASHBOARD_API_PATHS.gameIncidents,
+    {
+      schema: {
+        querystring: gameIncidentHistoryQuerySchema,
+        response: {
+          200: gameIncidentHistorySchema,
+          "4xx": errorSchema,
+          "5xx": errorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const authorization = await authorize(options.auth, request, "read");
+      if (!authorization.allowed) {
+        sendAuthorizationError(reply, authorization.response, request.id);
+        return;
+      }
+      try {
+        reply.send(await options.ports.readGameIncidentHistory({
+          ...(request.query.limit === undefined
+            ? {}
+            : { limit: Number(request.query.limit) }),
+          ...(request.query.cursor === undefined
+            ? {}
+            : { cursor: request.query.cursor }),
+          ...(request.query.status === undefined
+            ? {}
+            : { status: request.query.status }),
+          ...(request.query.memberLabel === undefined
+            ? {}
+            : { memberLabel: request.query.memberLabel }),
+        }));
       } catch (error) {
         sendPortError(reply, error, request.id);
       }
@@ -1002,6 +1233,58 @@ export function buildDashboardServer(
       }
     },
   );
+  for (const route of [
+    {
+      path: DASHBOARD_API_PATHS.gameIncidentCorrect,
+      execute: options.ports.correctGameIncident,
+    },
+    {
+      path: DASHBOARD_API_PATHS.gameIncidentCancel,
+      execute: options.ports.cancelGameIncident,
+    },
+  ] as const) {
+    app.post<{ Body: MutateGameIncidentRequestDto }>(
+      route.path,
+      {
+        schema: {
+          querystring: emptyObjectSchema,
+          body: gameIncidentMutationSchema,
+          response: {
+            200: riotDecisionResponseSchema,
+            409: errorSchema,
+            "4xx": errorSchema,
+            "5xx": errorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const authorization = await authorize(
+          options.auth,
+          request,
+          "high-risk",
+          request.body.confirmation,
+        );
+        if (!authorization.allowed) {
+          sendAuthorizationError(reply, authorization.response, request.id);
+          return;
+        }
+        if (authorization.tier !== "administrator") {
+          sendError(reply, 403, "forbidden", request.id);
+          return;
+        }
+        try {
+          reply.send(await route.execute({
+            request: request.body,
+            actorId: authorization.actorId,
+            authorizationTier: authorization.tier,
+            operationId: request.id,
+          }));
+        } catch (error) {
+          sendPortError(reply, error, request.id);
+        }
+      },
+    );
+  }
 
   if (options.spaRoot !== undefined) {
     void app.register(fastifyStatic, {

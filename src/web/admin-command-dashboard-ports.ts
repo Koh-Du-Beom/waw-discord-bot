@@ -14,6 +14,8 @@ import type {
   KboCreditAdjustmentRequestDto,
   KboCreditAdjustmentResponseDto,
   RiotLinkDecisionResponseDto,
+  MutateGameIncidentRequestDto,
+  GameIncidentMutationResponseDto,
 } from "../contracts/dashboard.ts";
 import { HttpPortError } from "../http/dashboard-server.ts";
 import type { AdminCommandTransport } from "../ipc/admin-command-ipc.ts";
@@ -150,7 +152,44 @@ export function createAdminCommandDashboardPorts(input: {
       }
       throw mapFailure(response);
     },
+    async correctGameIncident(
+      context: DispatchInput & { request: MutateGameIncidentRequestDto },
+    ): Promise<GameIncidentMutationResponseDto> {
+      const response = await dispatch(context, "game_incident_correct", {
+        incidentId: context.request.incidentId,
+        expectedVersion: context.request.expectedVersion,
+        reason: context.request.reason,
+        confirmation: true,
+      });
+      return incidentDecision(response, "사건을 정정했습니다.");
+    },
+    async cancelGameIncident(
+      context: DispatchInput & { request: MutateGameIncidentRequestDto },
+    ): Promise<GameIncidentMutationResponseDto> {
+      const response = await dispatch(context, "game_incident_cancel", {
+        incidentId: context.request.incidentId,
+        expectedVersion: context.request.expectedVersion,
+        reason: context.request.reason,
+        confirmation: true,
+      });
+      return incidentDecision(response, "사건을 취소했습니다.");
+    },
   };
+}
+
+function incidentDecision(
+  response: AdminCommandResponse,
+  message: string,
+): GameIncidentMutationResponseDto {
+  if (
+    response.outcome === "success" &&
+    (response.result.kind === "game_incident_mutation" ||
+      (response.result.kind === "operation_status" &&
+        response.result.status === "success"))
+  ) {
+    return { message };
+  }
+  throw mapFailure(response);
 }
 
 function decision(

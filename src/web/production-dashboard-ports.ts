@@ -49,6 +49,15 @@ export function createProductionDashboardPorts(input: {
     async readKboManagement() {
       return store.readKboManagement(input.guildId);
     },
+    async readGameStacks() {
+      return store.readGameStacks();
+    },
+    async readActiveGameObservations() {
+      return store.readActiveGameObservations();
+    },
+    async readGameIncidentHistory(request) {
+      return store.readGameIncidentHistory(request);
+    },
     async readSettings() {
       return store.readSettings();
     },
@@ -80,6 +89,14 @@ export function createProductionDashboardPorts(input: {
     async adjustKboCredit(request) {
       if (adminPorts) return adminPorts.adjustKboCredit(request);
       throw new HttpPortError("unavailable", "kbo_admin_ipc_unavailable");
+    },
+    async correctGameIncident(request) {
+      if (adminPorts) return adminPorts.correctGameIncident(request);
+      throw new HttpPortError("unavailable", "game_admin_ipc_unavailable");
+    },
+    async cancelGameIncident(request) {
+      if (adminPorts) return adminPorts.cancelGameIncident(request);
+      throw new HttpPortError("unavailable", "game_admin_ipc_unavailable");
     },
   };
 }

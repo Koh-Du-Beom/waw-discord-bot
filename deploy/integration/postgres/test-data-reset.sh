@@ -46,7 +46,7 @@ docker exec -e PGOPTIONS="-c waw.data_reset_approval=waw-production-data-reset-v
 
 test "$(docker exec "$container" psql -At -U postgres -c \
   "select array_agg(version order by version) from app_schema_version")" \
-  = "{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17}"
+  = "{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}"
 test "$(docker exec "$container" psql -At -U postgres -c \
   "select summary_enabled::text || ':' || version from dashboard_setting")" \
   = "false:0"

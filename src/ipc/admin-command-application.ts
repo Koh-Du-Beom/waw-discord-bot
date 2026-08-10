@@ -77,6 +77,19 @@ export type AdminCommandApplicationStore = {
   ): Promise<TerminalAdminCommandResult | undefined>;
 };
 
+export type AdminIncidentMutationStore = {
+  mutateAdminIncidentWithAudit(input: {
+    operationId: string;
+    incidentId: string;
+    expectedVersion: number;
+    actorId: string;
+    action: "correct" | "cancel";
+    reason: string;
+    occurredAt: Date;
+    commandName: "game_incident_correct" | "game_incident_cancel";
+  }): Promise<"updated" | "conflict" | "not_found" | "duplicate_operation">;
+};
+
 export class AdminCommandApplication {
   constructor(
     private readonly input: {
@@ -84,6 +97,7 @@ export class AdminCommandApplication {
       validator: PuuidValidationPort;
       store: AdminCommandApplicationStore;
       credits?: KboAdminCreditAdjustmentStore;
+      incidents: AdminIncidentMutationStore;
       displayName?: (discordUserId: string) => Promise<string | undefined>;
       now: () => Date;
     },
@@ -130,6 +144,9 @@ export class AdminCommandApplication {
         return this.remove(request, receivedAt);
       case "credit_account_adjust":
         return this.adjustCredit(request, receivedAt);
+      case "game_incident_correct":
+      case "game_incident_cancel":
+        return this.mutateIncident(request, receivedAt);
       case "operation_status":
         return this.operationStatus(request, receivedAt);
     }
@@ -388,6 +405,46 @@ export class AdminCommandApplication {
       reasonCode,
     );
   }
+
+  private async mutateIncident(
+    request: Extract<AdminCommandRequest, {
+      command: "game_incident_correct" | "game_incident_cancel";
+    }>,
+    occurredAt: Date,
+  ): Promise<AdminCommandResponse> {
+    const result = await this.input.incidents.mutateAdminIncidentWithAudit({
+      operationId: request.operationId,
+      incidentId: request.payload.incidentId,
+      expectedVersion: request.payload.expectedVersion,
+      actorId: request.actorId,
+      action: request.command === "game_incident_cancel" ? "cancel" : "correct",
+      reason: request.payload.reason,
+      occurredAt,
+      commandName: request.command,
+    });
+    if (result === "duplicate_operation") {
+      return terminalResponse(
+        request,
+        await this.input.store.findAdminCommandResult(request.operationId),
+      );
+    }
+    if (result === "updated") {
+      return {
+        ...responseBase(request),
+        outcome: "success",
+        reasonCode: "completed",
+        result: {
+          kind: "game_incident_mutation",
+          status: request.command === "game_incident_cancel"
+            ? "cancelled"
+            : "corrected",
+        },
+      };
+    }
+    return result === "conflict"
+      ? failure(request, "conflict", "game_incident_stale")
+      : failure(request, "unavailable", "game_incident_not_found");
+  }
 }
 
 function terminalResponse(
@@ -447,6 +504,10 @@ function audit(
             ? "라이엇계정 연결해제"
             : request.command === "credit_account_adjust"
               ? "크레딧 관리자조정"
+            : request.command === "game_incident_correct"
+              ? "몰랭검거 정정"
+              : request.command === "game_incident_cancel"
+                ? "몰랭검거 취소"
             : "라이엇계정 승인대기목록",
     outcome,
     reasonCode,
