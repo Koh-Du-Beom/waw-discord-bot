@@ -22,6 +22,10 @@ const alertVerifier = await readFile(
   "scripts/verify-discord-alert-channel.mjs",
   "utf8",
 );
+const commandManager = await readFile(
+  "scripts/manage-discord-guild-commands.mjs",
+  "utf8",
+);
 
 test("CI has no deployment authority", () => {
   assert.match(ci, /branches: \[develop, production\]/u);
@@ -37,6 +41,7 @@ test("CI has no deployment authority", () => {
   );
   assert.match(ci, /bash scripts\/test-deploy-production-via-lightsail\.sh/u);
   assert.match(ci, /verify-discord-alert-channel\.mjs --self-test/u);
+  assert.match(ci, /manage-discord-guild-commands\.mjs --self-test/u);
   assert.match(ci, /test-manage-production-game-observation-remote\.sh/u);
 });
 
@@ -87,6 +92,16 @@ test("game observation activation is manual, exact and reversible", () => {
   assert.match(alertVerifier, /SEND_MESSAGES/u);
   assert.match(alertVerifier, /discord_alert_channel_preflight_pass/u);
   assert.doesNotMatch(alertVerifier, /method:\s*["'](?:POST|PUT|PATCH|DELETE)/u);
+});
+
+test("Discord command registration is exact and rolls back failed writes", () => {
+  assert.match(commandManager, /WAW_SLASH_COMMANDS/u);
+  assert.match(commandManager, /sha256\(commands\) !== expectedHash/u);
+  assert.match(commandManager, /current_commands_mismatch/u);
+  assert.match(commandManager, /flag: "wx", mode: 0o600/u);
+  assert.match(commandManager, /await request\(route, token, "PUT", previous\)/u);
+  assert.match(commandManager, /rollback=PASS/u);
+  assert.doesNotMatch(commandManager, /console\.log\([^)]*(?:token|guildId|user\.id)/u);
 });
 
 test("manual SSH preflight proves only a pinned connection", () => {
