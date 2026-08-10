@@ -1,6 +1,6 @@
 # KBO production activation checklist
 
-- Status: Source/local complete — production execution not authorized
+- Status: Gate B default-off rollout complete; operator deny evidence and Gate C remain
 - Canonical dashboard: `https://waw.dubeom.com`
 - Scope: migrations `0013`~`0019`, KBO Discord commands, dashboard and flags
 
@@ -32,15 +32,15 @@ schema는 아직 관찰되지 않았다. 관찰되지 않은 field나 parser를 
 
 ## Gate A — exact candidate와 read-only preflight
 
-- [ ] 검토된 clean commit, source archive SHA-256, byte 수와 CI run을 기록했다.
-- [ ] `npm test`, `npm run typecheck`, `npm run build`,
+- [x] 검토된 clean commit, source archive SHA-256, byte 수와 CI run을 기록했다.
+- [x] `npm test`, `npm run typecheck`, `npm run build`,
       `bash deploy/test-production-application-assets.sh`, `git diff --check`가 같은
       candidate에서 통과했다.
-- [ ] Build가 source와 byte-identical한 migration 19개를 포함하고 KBO flag 세 개가
+- [x] Build가 source와 byte-identical한 migration 19개를 포함하고 KBO flag 세 개가
       모두 `0`임을 확인했다.
-- [ ] Active/previous release, schema version/checksum, workload grants/RLS, backup·
+- [x] Active/previous release, schema version/checksum, workload grants/RLS, backup·
       monitoring·Gateway 상태를 approved read-only identity로 확인했다.
-- [ ] 새 encrypted backup이 24시간 이내이며 disposable empty PostgreSQL 17에서
+- [x] 새 encrypted backup이 24시간 이내이며 disposable empty PostgreSQL 17에서
       restore rehearsal과 schema/data invariant를 통과했다.
 
 Archive staging과 host preflight는
@@ -49,15 +49,17 @@ host-key 경계를 그대로 사용한다. Mismatch는 preflight 안에서 수�
 
 ## Gate B — migration과 release
 
-- [ ] One-shot migration identity와 maintenance window를 고정하고 reviewed additive
+- [x] One-shot migration identity와 maintenance window를 고정하고 reviewed additive
       migrations `0013`~`0019`만 순서대로 적용한다.
-- [ ] Version/checksum, constraints, RLS, grants와 `purge_expired_kbo_accounts`의 exact
+- [x] Version/checksum, constraints, RLS, grants와 `purge_expired_kbo_accounts`의 exact
       bot EXECUTE/web deny를 read back한다.
-- [ ] Migration credential을 제거하거나 폐기한다.
-- [ ] Default-off unit을 포함한 exact immutable release를 배포하고 web/bot health,
+- [x] Migration credential을 제거하거나 폐기한다.
+- [x] Default-off unit을 포함한 exact immutable release를 배포하고 web/bot health,
       singleton Gateway, admin IPC, backup·monitoring을 확인한다.
 - [ ] Canonical dashboard에서 administrator만 KBO aggregate를 읽고 operator는
       거부되며, signed adjustment의 stale/confirmation/recent OAuth 경계를 확인한다.
+      Administrator empty aggregate read는 2026-08-10 PASS했다. 별도 operator 계정이
+      없어 Production operator deny는 미검증이다.
 - [ ] 탈퇴 event/reconciliation, 열린 bet 정산 보존과 daily retention 호출의 고정
       진단을 확인한다. 실제 사용자 식별자나 message content를 로그로 남기지 않는다.
 
@@ -99,5 +101,7 @@ rankings나 betting flag를 켜지 않는다.
 - 검증: 전체 `395 pass / 7 기존 환경 skip / 0 fail`, PostgreSQL `31/31`,
   typecheck/build/production asset/diff check 통과
 - Build asset: migrations `0001`~`0019`, KBO Production flags `0/0/0`
-- 미수행: Production migration, Discord REST 등록, release 배포, feature 활성화
+- Production 완료: migrations `0012`~`0019`, exact-tree release `79be3fc04c07`,
+  administrator empty KBO aggregate read, KBO flags `0/0/0`
+- 미수행: operator deny, Discord REST 등록, 시험 guild command smoke, feature 활성화
 - 외부 잔여: Gate 0 전체와 정상 경기·정정 schema 기반 ingestion/parser

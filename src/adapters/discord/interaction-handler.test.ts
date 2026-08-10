@@ -105,7 +105,7 @@ test("replies to 도움말 with private Korean usage guidance and audits it", as
   assert.match(reply.content, /\/요약/);
   assert.match(reply.content, /\/라이엇계정 연결/);
   assert.match(reply.content, /\/몰랭검거 현황/);
-  assert.match(reply.content, /\/베팅 가입/);
+  assert.match(reply.content, /\/크보 베팅 가입/);
   assert.match(reply.content, /관리자 전용/);
 });
 
@@ -130,13 +130,14 @@ test("normalizes explicit KBO enrollment consent and replies ephemerally", async
     createCorrelationId: () => "enrollment-correlation",
   })({
     id: "enrollment-interaction",
-    commandName: "베팅",
+    commandName: "크보",
     user: { id: "22345678901234567" },
     member: { displayName: "가입 사용자" },
     guildId: "12345678901234567",
     channelId: "32345678901234567",
     channel: { isThread: () => false },
     options: {
+      getSubcommandGroup: () => "베팅",
       getSubcommand: () => "가입",
       getString: () => { throw new Error("string option not requested"); },
       getUser: () => { throw new Error("user option not requested"); },
@@ -178,12 +179,13 @@ test("normalizes KBO bet options and replies ephemerally", async () => {
     createCorrelationId: () => "bet-correlation",
   })({
     id: "bet-interaction",
-    commandName: "베팅",
+    commandName: "크보",
     user: { id: "22345678901234567" },
     guildId: "12345678901234567",
     channelId: "32345678901234567",
     channel: { isThread: () => false },
     options: {
+      getSubcommandGroup: () => "베팅",
       getSubcommand: () => "하기",
       getString: (name) => name === "경기" ? "game-id-0001" : "away_win",
       getInteger: (name) => ({ 금액: 10_000, 홈점수: 2, 원정점수: 4 }[name] ?? null),
@@ -281,12 +283,13 @@ test("replies to the caller only with their formatted KBO credit balance and aud
   });
   await listen({
     id: "credit-interaction",
-    commandName: "크레딧",
+    commandName: "크보",
     user: { id: "22345678901234567" },
     guildId: "12345678901234567",
     channelId: "32345678901234567",
     channel: { isThread: () => false },
     options: {
+      getSubcommandGroup: () => "크레딧",
       getSubcommand: () => "내정보",
       getString: () => { throw new Error("string option not requested"); },
       getUser: () => { throw new Error("user option not requested"); },
@@ -339,12 +342,13 @@ test("claims daily KBO credit from a normalized interaction and replies ephemera
     createCorrelationId: () => "claim-correlation",
   })({
     id: "claim-interaction",
-    commandName: "크레딧",
+    commandName: "크보",
     user: { id: "22345678901234567" },
     guildId: "12345678901234567",
     channelId: "32345678901234567",
     channel: { isThread: () => false },
     options: {
+      getSubcommandGroup: () => "크레딧",
       getSubcommand: () => "받기",
       getString: () => { throw new Error("string option not requested"); },
       getUser: () => { throw new Error("user option not requested"); },

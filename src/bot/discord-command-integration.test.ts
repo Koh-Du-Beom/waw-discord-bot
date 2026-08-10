@@ -110,22 +110,22 @@ test("dispatches every Korean command through the bot listener and audits each a
     fixture("몰랭검거", "현황", {}, "4001"),
     fixture("몰랭검거", "정정", { 사건: "incident-1", 사유: "오탐" }),
     fixture("몰랭검거", "취소", { 사건: "incident-1", 사유: "API 장애" }),
-    fixture("크레딧", "내정보", {}),
-    fixture("크레딧", "받기", {}),
-    fixture("베팅", "가입", {}, undefined, true),
-    fixture("베팅", "하기", {
+    fixture("크보", "내정보", {}, undefined, undefined, "크레딧"),
+    fixture("크보", "받기", {}, undefined, undefined, "크레딧"),
+    fixture("크보", "가입", {}, undefined, true, "베팅"),
+    fixture("크보", "하기", {
       경기: "game-id-0001",
       결과: "home_win",
       금액: "1000",
       홈점수: "3",
       원정점수: "2",
-    }),
-    fixture("베팅", "경기", {}),
-    fixture("베팅", "내역", {}),
-    fixture("랭킹", "크레딧", {}),
-    fixture("랭킹", "결과", { 대회: "KBO_REGULAR", 시즌: "2026", 페이지: "2" }),
-    fixture("랭킹", "점수", { 대회: "KBO_REGULAR", 시즌: "2026" }),
-    fixture("랭킹", "적중률", { 대회: "KBO_REGULAR", 시즌: "2026" }),
+    }, undefined, undefined, "베팅"),
+    fixture("크보", "경기", {}, undefined, undefined, "베팅"),
+    fixture("크보", "내역", {}, undefined, undefined, "베팅"),
+    fixture("크보", "크레딧", {}, undefined, undefined, "랭킹"),
+    fixture("크보", "결과", { 대회: "KBO_REGULAR", 시즌: "2026", 페이지: "2" }, undefined, undefined, "랭킹"),
+    fixture("크보", "점수", { 대회: "KBO_REGULAR", 시즌: "2026" }, undefined, undefined, "랭킹"),
+    fixture("크보", "적중률", { 대회: "KBO_REGULAR", 시즌: "2026" }, undefined, undefined, "랭킹"),
   ];
   for (const interaction of fixtures) {
     interaction.reply = async ({ content }) => { replies.push(content); };
@@ -211,6 +211,7 @@ function fixture(
   strings: Record<string, string>,
   userId?: string,
   booleanValue?: boolean,
+  subcommandGroup?: string,
 ) {
   return {
     id: String(++fixtureId),
@@ -221,6 +222,7 @@ function fixture(
     channel: { isThread: () => false },
     isChatInputCommand: () => true,
     options: {
+      getSubcommandGroup: () => subcommandGroup ?? null,
       getSubcommand: () => subcommand,
       getString: (name: string) => strings[name]!,
       getInteger: (name: string) => strings[name] === undefined ? null : Number(strings[name]),
