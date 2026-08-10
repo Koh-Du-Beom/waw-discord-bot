@@ -36,8 +36,10 @@ schema는 아직 관찰되지 않았다. 관찰되지 않은 field나 parser를 
 - [x] `npm test`, `npm run typecheck`, `npm run build`,
       `bash deploy/test-production-application-assets.sh`, `git diff --check`가 같은
       candidate에서 통과했다.
-- [x] Build가 source와 byte-identical한 migration 19개를 포함하고 KBO flag 세 개가
+- [x] Build가 source와 byte-identical한 migration 19개를 포함하고 기존 KBO flag 세 개가
       모두 `0`임을 확인했다.
+- [x] 새 source candidate의 `WAW_KBO_COMMANDS_ENABLED=0`과 모든 KBO command의 delegate/store
+      미호출 회귀를 확인한다.
 - [x] Active/previous release, schema version/checksum, workload grants/RLS, backup·
       monitoring·Gateway 상태를 approved read-only identity로 확인했다.
 - [x] 새 encrypted backup이 24시간 이내이며 disposable empty PostgreSQL 17에서
@@ -68,8 +70,12 @@ ledger/audit/settlement를 down-migrate하거나 삭제하지 않는다.
 
 ## Gate C — Discord 등록과 단계적 활성화
 
-- [ ] 현재 application command JSON을 보관하고 exact reviewed KBO command set만
-      Discord REST에 등록한 뒤 read back한다.
+- [ ] current release와 systemd read-back에서 KBO command/data rights/rankings/betting
+      네 flag가 모두 exact `0`인지 확인한다.
+- [ ] `scripts/manage-discord-guild-commands.mjs`로 현재 4-root 계약과 reviewed payload
+      SHA-256을 확인하고 root-only rollback JSON을 보관한 뒤 `/크보`를 등록·read back한다.
+- [ ] 등록 뒤 master `0` 상태에서 `/크보` 한 건이 고정
+      `kbo_commands_unavailable`로 끝나고 KBO row가 증가하지 않는지 확인한다.
 - [ ] 시험 guild에서 ephemeral 가입·잔액·지급·내역, 경기 ID 노출, public ranking과
       administrator dashboard를 최소 계정으로 smoke test한다.
 - [ ] Gate 0의 권리와 실제 ingestion smoke가 통과한 뒤에만
@@ -78,15 +84,17 @@ ledger/audit/settlement를 down-migrate하거나 삭제하지 않는다.
       `WAW_KBO_RANKINGS_ENABLED=1`을 활성화한다.
 - [ ] 잔액·KST 한도·동시 접수·terminal 정산·정정 debt와 Discord 정책 gate가 모두
       통과한 마지막 단계에서만 `WAW_KBO_BETTING_ENABLED=1`을 활성화한다.
+- [ ] 위 gate와 backup이 모두 PASS한 뒤 마지막으로 `WAW_KBO_COMMANDS_ENABLED=1`을
+      활성화하고 전체 `/크보` command smoke를 수행한다.
 - [ ] 각 flag 변경마다 bot을 한 번만 재시작하고 health, fixed reason-code metrics,
       backup/monitoring을 확인한 뒤 다음 단계로 간다.
 
-현재 기본값은 세 flag 모두 `0`이다. 데이터 ingestion/parser가 없는 candidate에서
+현재 새 candidate의 기본값은 네 flag 모두 `0`이다. 데이터 ingestion/parser가 없는 candidate에서
 rankings나 betting flag를 켜지 않는다.
 
 ## 즉시 rollback
 
-1. 새 접수 또는 public 노출 이상이면 betting, rankings, rights flag를 모두 `0`으로
+1. 새 접수 또는 public 노출 이상이면 commands, betting, rankings, rights flag를 모두 `0`으로
    되돌리고 bot을 재시작한다.
 2. 이미 접수된 bet의 settlement와 탈퇴·retention 생명주기는 유지한다. 원장,
    operation, audit와 settlement를 수동 보정하거나 삭제하지 않는다.
@@ -98,9 +106,10 @@ rankings나 betting flag를 켜지 않는다.
 ## 현재 출발 상태
 
 - Source/local 구현: `PLAN-0017`~`PLAN-0038` 완료
-- 검증: 전체 `395 pass / 7 기존 환경 skip / 0 fail`, PostgreSQL `31/31`,
+- 검증: 전체 `399 pass / 7 기존 환경 skip / 0 fail`, PostgreSQL 포함,
   typecheck/build/production asset/diff check 통과
-- Build asset: migrations `0001`~`0019`, KBO Production flags `0/0/0`
+- Build asset: migrations `0001`~`0019`; 배포된 Production KBO flags `0/0/0`, 새
+  source candidate flags `0/0/0/0`
 - Production 완료: migrations `0012`~`0019`, exact-tree release `79be3fc04c07`,
   administrator empty KBO aggregate read, KBO flags `0/0/0`
 - 미수행: operator deny, Discord REST 등록, 시험 guild command smoke, feature 활성화

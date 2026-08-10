@@ -7,6 +7,10 @@ export function kboBettingFeatureEnabled(
   return featureEnabled && rightsAuthorized;
 }
 
+export function kboCommandsFeatureEnabled(value: string | undefined): boolean {
+  return exactFlag(value, "KBO commands");
+}
+
 function exactFlag(value: string | undefined, name: string): boolean {
   if (value === undefined || value === "0") return false;
   if (value === "1") return true;

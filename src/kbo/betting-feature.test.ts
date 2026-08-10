@@ -1,7 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { kboBettingFeatureEnabled } from "./betting-feature.ts";
+import {
+  kboBettingFeatureEnabled,
+  kboCommandsFeatureEnabled,
+} from "./betting-feature.ts";
+
+test("KBO commands require an exact flag and are default-off", () => {
+  assert.equal(kboCommandsFeatureEnabled(undefined), false);
+  assert.equal(kboCommandsFeatureEnabled("0"), false);
+  assert.equal(kboCommandsFeatureEnabled("1"), true);
+  assert.throws(() => kboCommandsFeatureEnabled("true"), /invalid KBO commands/u);
+});
 
 test("KBO betting requires exact feature and rights flags and is default-off", () => {
   assert.equal(kboBettingFeatureEnabled(undefined, undefined), false);
