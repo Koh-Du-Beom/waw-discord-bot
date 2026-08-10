@@ -1,0 +1,80 @@
+name: Manage production KBO Discord commands
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Exact owner-approved Gate C0 action
+        required: true
+        type: choice
+        options: [register, verify_smoke, restore]
+      expected_release:
+        description: Exact 40-character Production release commit
+        required: true
+        type: string
+      expected_payload_sha:
+        description: Exact compiled Discord command payload SHA-256
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: waw-production
+  cancel-in-progress: false
+
+jobs:
+  manage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Validate exact authority and prepare SSH
+        env:
+          ACTION: ${{ inputs.action }}
+          EXPECTED_RELEASE: ${{ inputs.expected_release }}
+          EXPECTED_PAYLOAD_SHA: ${{ inputs.expected_payload_sha }}
+          LIGHTSAIL_HOST: ${{ vars.LIGHTSAIL_HOST }}
+          LIGHTSAIL_USER: ${{ vars.LIGHTSAIL_USER }}
+          LIGHTSAIL_DEPLOY_SSH_KEY: ${{ secrets.LIGHTSAIL_DEPLOY_SSH_KEY }}
+          LIGHTSAIL_SSH_KNOWN_HOSTS: ${{ secrets.LIGHTSAIL_SSH_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          test "$GITHUB_REF" = refs/heads/develop
+          [[ "$ACTION" == register || "$ACTION" == verify_smoke || "$ACTION" == restore ]]
+          [[ "$EXPECTED_RELEASE" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$EXPECTED_PAYLOAD_SHA" =~ ^[a-f0-9]{64}$ ]]
+          [[ "$LIGHTSAIL_HOST" =~ ^([A-Za-z0-9][A-Za-z0-9.-]{0,252}|[0-9a-fA-F:]+)$ ]]
+          [[ "$LIGHTSAIL_USER" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]]
+          printf '%s\n' "$LIGHTSAIL_DEPLOY_SSH_KEY" > "$RUNNER_TEMP/waw-kbo-key"
+          printf '%s\n' "$LIGHTSAIL_SSH_KNOWN_HOSTS" > "$RUNNER_TEMP/waw-kbo-known-hosts"
+          chmod 600 "$RUNNER_TEMP/waw-kbo-key" "$RUNNER_TEMP/waw-kbo-known-hosts"
+          ssh-keygen -y -f "$RUNNER_TEMP/waw-kbo-key" >/dev/null
+          ssh-keygen -F "$LIGHTSAIL_HOST" -f "$RUNNER_TEMP/waw-kbo-known-hosts" >/dev/null
+      - name: Run exact Gate C0 action
+        env:
+          ACTION: ${{ inputs.action }}
+          EXPECTED_RELEASE: ${{ inputs.expected_release }}
+          EXPECTED_PAYLOAD_SHA: ${{ inputs.expected_payload_sha }}
+          LIGHTSAIL_HOST: ${{ vars.LIGHTSAIL_HOST }}
+          LIGHTSAIL_USER: ${{ vars.LIGHTSAIL_USER }}
+        run: |
+          ssh \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o "UserKnownHostsFile=$RUNNER_TEMP/waw-kbo-known-hosts" \
+            -o ConnectTimeout=15 \
+            -o ConnectionAttempts=1 \
+            -i "$RUNNER_TEMP/waw-kbo-key" \
+            "$LIGHTSAIL_USER@$LIGHTSAIL_HOST" \
+            "sudo bash -s -- '$ACTION' '$EXPECTED_RELEASE' '$EXPECTED_PAYLOAD_SHA'" \
+            < scripts/manage-production-kbo-commands-remote.sh
+      - name: Remove SSH credentials
+        if: ${{ always() }}
+        run: rm -f -- "$RUNNER_TEMP/waw-kbo-key" "$RUNNER_TEMP/waw-kbo-known-hosts"
