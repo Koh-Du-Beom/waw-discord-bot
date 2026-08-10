@@ -5,9 +5,12 @@ import {
 } from "../../commands/command-handler.ts";
 
 export type DiscordCommandOptions = {
+  getSubcommandGroup?(required?: boolean): string | null;
   getSubcommand(required?: boolean): string | null;
   getString(name: string, required: true): string;
+  getInteger?(name: string, required?: boolean): number | null;
   getUser(name: string, required?: boolean): { id: string } | null;
+  getBoolean?(name: string, required?: boolean): boolean | null;
 };
 
 export type DiscordChatInputInteraction = {
@@ -96,6 +99,78 @@ function normalizeInteraction(
         channelId,
         "라이엇계정 연결해제",
         { 계정: interaction.options.getString("계정", true) },
+      );
+    }
+    case "크보": {
+      const group = interaction.options.getSubcommandGroup?.(true);
+      const subcommand = interaction.options.getSubcommand(true);
+      if (group === "크레딧") {
+        if (subcommand !== "내정보" && subcommand !== "받기") {
+          throw new Error("unsupported credit subcommand");
+        }
+        return request(
+          interaction,
+          correlationId,
+          guildId,
+          channelId,
+          subcommand === "내정보" ? "크레딧 내정보" : "크레딧 받기",
+          {},
+        );
+      }
+      if (group === "베팅" && subcommand === "가입") {
+        return request(
+          interaction,
+          correlationId,
+          guildId,
+          channelId,
+          "베팅 가입",
+          { 동의: interaction.options.getBoolean?.("동의", true) === true ? "true" : "false" },
+        );
+      }
+      if (group === "베팅") {
+        if (subcommand === "경기" || subcommand === "내역") {
+          return request(
+            interaction,
+            correlationId,
+            guildId,
+            channelId,
+            subcommand === "경기" ? "베팅 경기" : "베팅 내역",
+            {},
+          );
+        }
+        if (subcommand !== "하기" || !interaction.options.getInteger) {
+          throw new Error("unsupported betting subcommand");
+        }
+        const homeScore = interaction.options.getInteger("홈점수");
+        const awayScore = interaction.options.getInteger("원정점수");
+        return request(interaction, correlationId, guildId, channelId, "베팅 하기", {
+          경기: interaction.options.getString("경기", true),
+          결과: interaction.options.getString("결과", true),
+          금액: String(interaction.options.getInteger("금액", true)),
+          홈점수: homeScore === null ? undefined : String(homeScore),
+          원정점수: awayScore === null ? undefined : String(awayScore),
+        });
+      }
+      if (
+        group !== "랭킹" || subcommand === null ||
+        !["크레딧", "결과", "점수", "적중률"].includes(subcommand)
+      ) {
+        throw new Error("unsupported ranking subcommand");
+      }
+      const page = interaction.options.getInteger?.("페이지");
+      return request(
+        interaction,
+        correlationId,
+        guildId,
+        channelId,
+        `랭킹 ${subcommand}` as KoreanCommandName,
+        {
+          ...(subcommand === "크레딧" ? {} : {
+            대회: interaction.options.getString("대회", true),
+            시즌: interaction.options.getString("시즌", true),
+          }),
+          페이지: page === null || page === undefined ? undefined : String(page),
+        },
       );
     }
     case "몰랭검거": {

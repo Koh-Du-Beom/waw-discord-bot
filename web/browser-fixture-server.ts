@@ -22,6 +22,15 @@ export function buildBrowserFixtureServer({ authenticated = true } = {}) {
       : reply.code(401).send());
   app.get("/api/overview", async () => healthyOverviewFixture);
   app.get("/api/riot/links", async () => ({ links: [] }));
+  app.get("/api/kbo/management", async () => ({
+    accounts: [],
+    provider: {
+      games: 0,
+      latestStatus: null,
+      sourceUpdatedAt: null,
+      collectedAt: null,
+    },
+  }));
   app.get("/api/game/stacks", async () => ({
     entries: [{ memberLabel: "합성 사용자", stack: 1 }],
   }));

@@ -37,7 +37,7 @@ const lease = (): SingletonLease => ({
   release: async () => true,
 });
 
-test("dispatches all eight Korean commands through the bot listener and audits each attempt", async () => {
+test("dispatches every Korean command through the bot listener and audits each attempt", async () => {
   const client = new FakeDiscordClient();
   const audits: CommandAuditEvent[] = [];
   const featureCommands: KoreanCommandName[] = [];
@@ -110,6 +110,22 @@ test("dispatches all eight Korean commands through the bot listener and audits e
     fixture("몰랭검거", "현황", {}, "4001"),
     fixture("몰랭검거", "정정", { 사건: "incident-1", 사유: "오탐" }),
     fixture("몰랭검거", "취소", { 사건: "incident-1", 사유: "API 장애" }),
+    fixture("크보", "내정보", {}, undefined, undefined, "크레딧"),
+    fixture("크보", "받기", {}, undefined, undefined, "크레딧"),
+    fixture("크보", "가입", {}, undefined, true, "베팅"),
+    fixture("크보", "하기", {
+      경기: "game-id-0001",
+      결과: "home_win",
+      금액: "1000",
+      홈점수: "3",
+      원정점수: "2",
+    }, undefined, undefined, "베팅"),
+    fixture("크보", "경기", {}, undefined, undefined, "베팅"),
+    fixture("크보", "내역", {}, undefined, undefined, "베팅"),
+    fixture("크보", "크레딧", {}, undefined, undefined, "랭킹"),
+    fixture("크보", "결과", { 대회: "KBO_REGULAR", 시즌: "2026", 페이지: "2" }, undefined, undefined, "랭킹"),
+    fixture("크보", "점수", { 대회: "KBO_REGULAR", 시즌: "2026" }, undefined, undefined, "랭킹"),
+    fixture("크보", "적중률", { 대회: "KBO_REGULAR", 시즌: "2026" }, undefined, undefined, "랭킹"),
   ];
   for (const interaction of fixtures) {
     interaction.reply = async ({ content }) => { replies.push(content); };
@@ -118,7 +134,7 @@ test("dispatches all eight Korean commands through the bot listener and audits e
   }
   await assembly.commands?.whenIdle();
 
-  assert.equal(replies.length, 8);
+  assert.equal(replies.length, 18);
   assert.deepEqual(featureCommands, [
     "라이엇계정 연결",
     "라이엇계정 목록",
@@ -126,8 +142,18 @@ test("dispatches all eight Korean commands through the bot listener and audits e
     "몰랭검거 현황",
     "몰랭검거 정정",
     "몰랭검거 취소",
+    "크레딧 내정보",
+    "크레딧 받기",
+    "베팅 가입",
+    "베팅 하기",
+    "베팅 경기",
+    "베팅 내역",
+    "랭킹 크레딧",
+    "랭킹 결과",
+    "랭킹 점수",
+    "랭킹 적중률",
   ]);
-  assert.equal(audits.length, 8);
+  assert.equal(audits.length, 18);
   assert.equal(JSON.stringify(audits).includes("통합 테스트 원문 canary"), false);
   await assembly.process.shutdown();
   assert.equal(client.listeners.get(Events.InteractionCreate)?.size, 0);
@@ -184,6 +210,8 @@ function fixture(
   subcommand: string | null,
   strings: Record<string, string>,
   userId?: string,
+  booleanValue?: boolean,
+  subcommandGroup?: string,
 ) {
   return {
     id: String(++fixtureId),
@@ -194,9 +222,12 @@ function fixture(
     channel: { isThread: () => false },
     isChatInputCommand: () => true,
     options: {
+      getSubcommandGroup: () => subcommandGroup ?? null,
       getSubcommand: () => subcommand,
       getString: (name: string) => strings[name]!,
+      getInteger: (name: string) => strings[name] === undefined ? null : Number(strings[name]),
       getUser: () => userId === undefined ? null : { id: userId },
+      getBoolean: () => booleanValue ?? null,
     },
     deferReply: async (_input: { ephemeral: true }) => {},
     editReply: async (_input: { content: string }) => {},

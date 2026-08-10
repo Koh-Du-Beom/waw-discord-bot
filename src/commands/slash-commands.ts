@@ -5,6 +5,7 @@ import {
   type RESTPostAPIApplicationCommandsJSONBody,
 } from "discord.js";
 import { SUMMARY_EXTERNAL_PROCESSING_NOTICE } from "../contracts/summary-disclosure.ts";
+import { KBO_ENROLLMENT_POLICY } from "../kbo/betting-enrollment.ts";
 
 const stringOption = (
   name: string,
@@ -29,7 +30,7 @@ export const WAW_SLASH_COMMANDS: readonly RESTPostAPIApplicationCommandsJSONBody
     description: "현재 채널 또는 스레드의 대화를 요약합니다.",
     options: [
       {
-        type: ApplicationCommandOptionType.Subcommand,
+        type: ApplicationCommandOptionType.Subcommand as const,
         name: "최근",
         description: "지금부터 선택한 시간만큼 이전 대화를 요약합니다.",
         options: [{
@@ -131,6 +132,138 @@ export const WAW_SLASH_COMMANDS: readonly RESTPostAPIApplicationCommandsJSONBody
       },
     ],
   },
+  {
+    type: ApplicationCommandType.ChatInput,
+    name: "크보",
+    description: "KBO 경기와 승부 예측 기능을 사용합니다.",
+    options: [
+      {
+        type: ApplicationCommandOptionType.SubcommandGroup,
+        name: "크레딧",
+        description: "내 KBO 크레딧을 확인하거나 받습니다.",
+        options: [
+          {
+            type: ApplicationCommandOptionType.Subcommand,
+            name: "내정보",
+            description: "내 가용 크레딧과 정정 부채를 확인합니다.",
+          },
+          {
+            type: ApplicationCommandOptionType.Subcommand,
+            name: "받기",
+            description: "오늘의 50,000 크레딧을 받습니다.",
+          },
+        ],
+      },
+      {
+        type: ApplicationCommandOptionType.SubcommandGroup,
+        name: "베팅",
+        description: "KBO 승부 예측에 가입하거나 베팅합니다.",
+        options: [
+          {
+            type: ApplicationCommandOptionType.Subcommand,
+            name: "가입",
+            description: "KBO 승부 예측에 명시적으로 가입합니다.",
+            options: [{
+              type: ApplicationCommandOptionType.Boolean,
+              name: "동의",
+              description: KBO_ENROLLMENT_POLICY.optionDisclosure,
+              required: true,
+            }],
+          },
+          {
+            type: ApplicationCommandOptionType.Subcommand,
+            name: "하기",
+            description: "선택한 KBO 경기에 크레딧을 베팅합니다.",
+            options: [
+              stringOption("경기", "경기 조회에 표시된 경기 ID"),
+              {
+                type: ApplicationCommandOptionType.String,
+                name: "결과",
+                description: "예측할 경기 결과",
+                required: true,
+                choices: [
+                  { name: "홈 승", value: "home_win" },
+                  { name: "무승부", value: "draw" },
+                  { name: "원정 승", value: "away_win" },
+                ],
+              },
+              {
+                type: ApplicationCommandOptionType.Integer as const,
+                name: "금액",
+                description: "1,000 단위, 최대 50,000 크레딧",
+                required: true,
+                min_value: 1_000,
+                max_value: 50_000,
+              },
+              {
+                type: ApplicationCommandOptionType.Integer,
+                name: "홈점수",
+                description: "정확 점수 예측 시 홈 점수",
+                required: false,
+                min_value: 0,
+                max_value: 32_767,
+              },
+              {
+                type: ApplicationCommandOptionType.Integer,
+                name: "원정점수",
+                description: "정확 점수 예측 시 원정 점수",
+                required: false,
+                min_value: 0,
+                max_value: 32_767,
+              },
+            ],
+          },
+          {
+            type: ApplicationCommandOptionType.Subcommand,
+            name: "경기",
+            description: "최신 정보로 접수 가능한 KBO 경기를 확인합니다.",
+          },
+          {
+            type: ApplicationCommandOptionType.Subcommand,
+            name: "내역",
+            description: "내 최근 베팅 5개와 정산 결과를 확인합니다.",
+          },
+        ],
+      },
+      {
+        type: ApplicationCommandOptionType.SubcommandGroup,
+        name: "랭킹",
+        description: "KBO 크레딧과 승부 예측 순위를 확인합니다.",
+        options: [
+          {
+            type: ApplicationCommandOptionType.Subcommand,
+            name: "크레딧",
+            description: "현재 보유 크레딧 순위를 확인합니다.",
+            options: [{
+              type: ApplicationCommandOptionType.Integer,
+              name: "페이지",
+              description: "조회할 10명 단위 페이지(기본 1)",
+              required: false,
+              min_value: 1,
+              max_value: 100,
+            }],
+          },
+          ...(["결과", "점수", "적중률"] as const).map((name) => ({
+            type: ApplicationCommandOptionType.Subcommand as const,
+            name,
+            description: `${name} 랭킹을 대회와 시즌별로 확인합니다.`,
+            options: [
+              stringOption("대회", "공급자 competition ID"),
+              stringOption("시즌", "공급자 season ID"),
+              {
+                type: ApplicationCommandOptionType.Integer as const,
+                name: "페이지",
+                description: "조회할 10명 단위 페이지(기본 1)",
+                required: false,
+                min_value: 1,
+                max_value: 100,
+              },
+            ],
+          })),
+        ],
+      },
+    ],
+  },
 ] as const;
 
 export const KOREAN_COMMAND_RESPONSES = {
@@ -156,6 +289,19 @@ export const KOREAN_COMMAND_RESPONSES = {
     "`/몰랭검거 현황 [사용자]` — 사용자를 생략하면 전체 등록 사용자의 몰랭스택을 표로 확인합니다.",
     "`/몰랭검거 정정 사건:<사건 ID> 사유:<내용>` — 관리자 전용 정정입니다.",
     "`/몰랭검거 취소 사건:<사건 ID> 사유:<내용>` — 관리자 전용 취소입니다.",
+    "",
+    "**KBO 크레딧**",
+    "`/크보 크레딧 내정보` — 내 가용 크레딧과 정정 부채를 확인합니다.",
+    "`/크보 크레딧 받기` — 오늘의 50,000 크레딧을 직접 받습니다.",
+    "",
+    "**KBO 승부 예측**",
+    "`/크보 베팅 가입 동의:true` — 비현금성·공개 랭킹·보존 정책에 동의하고 가입합니다.",
+    "`/크보 베팅 하기 경기:<ID> 결과:<홈 승|무승부|원정 승> 금액:<1,000~50,000>` — 경기 시작 전 베팅합니다.",
+    "`/크보 베팅 경기` — 최신 정보로 접수 가능한 경기와 베팅용 경기 ID를 확인합니다.",
+    "`/크보 베팅 내역` — 최근 베팅 5개와 정산·무효·정정 결과를 확인합니다.",
+    "정확 점수 예측은 `홈점수`와 `원정점수`를 함께 입력합니다.",
+    "`/크보 랭킹 크레딧` — 현재 보유 크레딧 공동 순위를 확인합니다.",
+    "`/크보 랭킹 결과|점수|적중률 대회:<ID> 시즌:<ID>` — 대회·시즌별 공동 순위를 확인합니다.",
     "",
     "명령 결과와 이 도움말은 호출자에게만 표시됩니다.",
   ].join("\n"),

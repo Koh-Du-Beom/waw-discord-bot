@@ -15,6 +15,9 @@ import {
   type CommandLogPageDto,
   type ListCommandLogRequestDto,
   type LowRiskSettingsDto,
+  type KboCreditAdjustmentRequestDto,
+  type KboCreditAdjustmentResponseDto,
+  type KboManagementDto,
   type PendingRiotLinkRequestsDto,
   type ApproveRiotLinkRequestDto,
   type DecideRiotLinkRequestDto,
@@ -31,6 +34,7 @@ export type DashboardApi = {
   logout(): Promise<void>;
   getOverview(): Promise<DashboardOverviewDto>;
   getRiotLinks(): Promise<ActiveRiotLinksDto>;
+  getKboManagement(): Promise<KboManagementDto>;
   getGameStacks(): Promise<GameStacksDto>;
   getActiveGames(): Promise<ActiveGameObservationsDto>;
   getGameIncidents(
@@ -44,6 +48,7 @@ export type DashboardApi = {
   approveRiotRequest(request: ApproveRiotLinkRequestDto): Promise<RiotLinkDecisionResponseDto>;
   rejectRiotRequest(request: DecideRiotLinkRequestDto): Promise<RiotLinkDecisionResponseDto>;
   removeRiotLink(request: RemoveRiotLinkRequestDto): Promise<RiotLinkDecisionResponseDto>;
+  adjustKboCredit(request: KboCreditAdjustmentRequestDto): Promise<KboCreditAdjustmentResponseDto>;
   correctGameIncident(request: MutateGameIncidentRequestDto): Promise<GameIncidentMutationResponseDto>;
   cancelGameIncident(request: MutateGameIncidentRequestDto): Promise<GameIncidentMutationResponseDto>;
 };
@@ -58,6 +63,7 @@ type ViewState =
       session: SessionDto;
       overview: DashboardOverviewDto;
       riotLinks: ActiveRiotLinksDto;
+      kboManagement: KboManagementDto;
       settings: LowRiskSettingsDto;
       audit: AuditEventsDto;
       riotRequests: PendingRiotLinkRequestsDto;
@@ -135,6 +141,12 @@ function Dashboard({
   const [audit, setAudit] = useState(value.audit);
   const [riotRequests, setRiotRequests] = useState(value.riotRequests);
   const [riotLinks, setRiotLinks] = useState(value.riotLinks);
+  const [kboManagement, setKboManagement] = useState(value.kboManagement);
+  const [adjustingAccountId, setAdjustingAccountId] = useState<string>();
+  const [adjustmentDelta, setAdjustmentDelta] = useState("");
+  const [adjustmentReason, setAdjustmentReason] = useState<KboCreditAdjustmentRequestDto["reasonCode"]>("support_correction");
+  const [adjustmentConfirmed, setAdjustmentConfirmed] = useState(false);
+  const [adjustingCredit, setAdjustingCredit] = useState(false);
   const [confirmingRiotLink, setConfirmingRiotLink] = useState<string>();
   const [processingRiotLinks, setProcessingRiotLinks] = useState<Set<string>>(new Set());
   const riotLinksInFlight = useRef(new Set<string>());
@@ -453,6 +465,52 @@ function Dashboard({
     }
   }
 
+  async function adjustKboCredit(event: React.FormEvent) {
+    event.preventDefault();
+    const account = kboManagement.accounts.find((item) => item.accountId === adjustingAccountId);
+    const delta = Number(adjustmentDelta);
+    if (!account || !Number.isSafeInteger(delta) || delta === 0 || Math.abs(delta) > 1_000_000 || !adjustmentConfirmed) {
+      setResult({ kind: "error", message: "조정값과 확인 항목을 다시 확인하세요." });
+      return;
+    }
+    setAdjustingCredit(true);
+    setResult(undefined);
+    try {
+      const adjusted = await api.adjustKboCredit({
+        accountId: account.accountId,
+        expectedVersion: account.version,
+        delta,
+        reasonCode: adjustmentReason,
+        confirmation: true,
+      });
+      setKboManagement((current) => ({
+        ...current,
+        accounts: current.accounts.map((item) => item.accountId === account.accountId
+          ? { ...item, availableBalance: adjusted.availableBalance, version: adjusted.version, adminAdjusted: true }
+          : item),
+      }));
+      setAdjustmentDelta("");
+      setAdjustmentConfirmed(false);
+      setAdjustingAccountId(undefined);
+      setResult({ kind: "success", message: adjusted.message });
+      const refreshed = await api.getKboManagement().catch(() => undefined);
+      if (refreshed) setKboManagement(refreshed);
+    } catch (error) {
+      setResult({
+        kind: "error",
+        message: errorCode(error) === "conflict"
+          ? "계정 잔액이 변경되었습니다. 목록을 새로 불러온 뒤 다시 시도하세요."
+          : errorCode(error) === "forbidden"
+            ? "보안을 위해 Discord 재인증이 필요합니다. 로그아웃 후 다시 로그인하세요."
+            : "크레딧을 조정하지 못했습니다.",
+      });
+      const refreshed = await api.getKboManagement().catch(() => undefined);
+      if (refreshed) setKboManagement(refreshed);
+    } finally {
+      setAdjustingCredit(false);
+    }
+  }
+
   function previousCommandPage() {
     const previous = commandHistory.at(-1);
     if (!previous) return;
@@ -471,6 +529,7 @@ function Dashboard({
         <nav aria-label="Dashboard 주요 영역">
           <NavButton active={tab === "dashboard"} icon="⌂" label="대시보드" onClick={() => setTab("dashboard")} />
           <NavButton active={tab === "riot"} count={riotRequests.requests.length} icon="R" label="Riot 계정" onClick={() => setTab("riot")} />
+          {value.session.actor.tier === "administrator" && <NavButton active={tab === "kbo"} icon="⚾" label="KBO 베팅" onClick={() => setTab("kbo")} />}
           <NavButton active={tab === "games"} icon="!" label="몰랭" onClick={() => setTab("games")} />
           <NavButton active={tab === "commands"} icon="≡" label="명령어 로그" onClick={() => setTab("commands")} />
           <NavButton active={tab === "settings"} icon="⚙" label="설정" onClick={() => setTab("settings")} />
@@ -648,6 +707,37 @@ function Dashboard({
                 <button type="button" disabled={!commandLog.nextCursor || loadingCommands} onClick={() => void nextCommandPage()}>다음</button>
               </div>
             </>
+          )}
+
+          {tab === "kbo" && (
+            <section className="panel" aria-labelledby="kbo-title">
+              <p className="eyebrow">관리자 전용</p>
+              <h2 id="kbo-title">KBO 베팅 관리</h2>
+              <div className="card-grid">
+                <MetricCard status="connected" title="수집 경기" value={`${kboManagement.provider.games}건`} detail={formatDate(kboManagement.provider.collectedAt)} />
+                <MetricCard status={kboManagement.provider.latestStatus ? "connected" : "unknown"} title="최근 경기 상태" value={kboManagement.provider.latestStatus ?? "관측 없음"} detail={formatDate(kboManagement.provider.sourceUpdatedAt)} />
+              </div>
+              {kboManagement.accounts.length === 0 ? <p className="empty">등록된 KBO 베팅 계정이 없습니다.</p> : (
+                <div className="table-scroll"><table><thead><tr><th>계정</th><th>상태</th><th>잔액 / 정정 부채</th><th>베팅</th><th>적중</th><th>관리</th></tr></thead>
+                  <tbody>{kboManagement.accounts.map((account) => <tr key={account.accountId}>
+                    <td data-label="계정"><strong>{account.displayLabel}</strong><br /><code>{account.accountId}</code></td>
+                    <td data-label="상태">{account.enrollmentStatus === "active" ? "활성" : "탈퇴"}</td>
+                    <td data-label="잔액 / 정정 부채">{account.availableBalance} / {account.correctionDebt}</td>
+                    <td data-label="베팅">전체 {account.bets} · 대기 {account.pendingBets} · 정산 {account.settledBets} · 무효 {account.voidBets}</td>
+                    <td data-label="적중">결과 {account.outcomeHits} · 점수 {account.scoreHits} · 정정 {account.corrections}</td>
+                    <td data-label="관리">{account.enrollmentStatus === "active" && <button className="secondary" type="button" onClick={() => { setAdjustingAccountId(account.accountId); setAdjustmentConfirmed(false); }}>크레딧 조정</button>}</td>
+                  </tr>)}</tbody></table></div>
+              )}
+              {adjustingAccountId && <form className="credit-adjustment" onSubmit={(event) => void adjustKboCredit(event)}>
+                <h3>크레딧 조정</h3>
+                <label>증감액<input aria-label="크레딧 증감액" type="number" min="-1000000" max="1000000" step="1" required value={adjustmentDelta} onChange={(event) => setAdjustmentDelta(event.target.value)} /></label>
+                <label>사유<select aria-label="크레딧 조정 사유" value={adjustmentReason} onChange={(event) => setAdjustmentReason(event.target.value as KboCreditAdjustmentRequestDto["reasonCode"])}>
+                  <option value="support_correction">지원 정정</option><option value="policy_correction">정책 정정</option><option value="incident_recovery">장애 복구</option>
+                </select></label>
+                <label className="confirmation"><input type="checkbox" checked={adjustmentConfirmed} onChange={(event) => setAdjustmentConfirmed(event.target.checked)} /> 선택한 계정의 잔액을 변경합니다.</label>
+                <div><button type="submit" disabled={adjustingCredit || !adjustmentConfirmed}>{adjustingCredit ? "조정 중…" : "조정 실행"}</button> <button className="secondary" type="button" disabled={adjustingCredit} onClick={() => setAdjustingAccountId(undefined)}>취소</button></div>
+              </form>}
+            </section>
           )}
 
           {tab === "settings" && (
@@ -1015,7 +1105,7 @@ function MetricCard({
   );
 }
 
-type DashboardTab = "dashboard" | "riot" | "games" | "commands" | "settings" | "operations";
+type DashboardTab = "dashboard" | "riot" | "kbo" | "games" | "commands" | "settings" | "operations";
 
 type IncidentActionState = {
   entry: GameIncidentHistoryPageDto["entries"][number];
@@ -1039,6 +1129,7 @@ function tabTitle(tab: DashboardTab) {
   return {
     dashboard: "대시보드",
     riot: "Riot 계정",
+    kbo: "KBO 베팅",
     games: "몰랭",
     commands: "명령어 로그",
     settings: "설정",
@@ -1050,9 +1141,12 @@ async function loadDashboard(api: DashboardApi): Promise<ViewState> {
   try {
     const session = await api.getSession();
     if (!session) return { kind: "login" };
-    const [overview, riotLinks, settings, audit, riotRequests, commandLog] = await Promise.all([
+    const [overview, riotLinks, kboManagement, settings, audit, riotRequests, commandLog] = await Promise.all([
       api.getOverview(),
       api.getRiotLinks(),
+      session.actor.tier === "administrator"
+        ? api.getKboManagement()
+        : Promise.resolve({ accounts: [], provider: { games: 0, latestStatus: null, sourceUpdatedAt: null, collectedAt: null } }),
       api.getSettings(),
       api.getAudit(),
       session.actor.tier === "administrator"
@@ -1060,7 +1154,7 @@ async function loadDashboard(api: DashboardApi): Promise<ViewState> {
         : Promise.resolve({ requests: [] }),
       api.getCommandLog(),
     ]);
-    return { kind: "ready", session, overview, riotLinks, settings, audit, riotRequests, commandLog };
+    return { kind: "ready", session, overview, riotLinks, kboManagement, settings, audit, riotRequests, commandLog };
   } catch (error) {
     return errorCode(error) === "forbidden" ? { kind: "denied" } : { kind: "unavailable" };
   }

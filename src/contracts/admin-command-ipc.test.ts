@@ -31,7 +31,7 @@ function base() {
   };
 }
 
-test("parses and serializes all seven exact command payloads", () => {
+test("parses and serializes all eight exact command payloads", () => {
   const wires = [
     {
       ...base(),
@@ -75,6 +75,17 @@ test("parses and serializes all seven exact command payloads", () => {
       ...base(),
       command: "riot_link_request_reject",
       payload: { requestId: "request:pending1", expectedVersion: 3 },
+    },
+    {
+      ...base(),
+      command: "credit_account_adjust",
+      payload: {
+        accountId: "account:credit001",
+        expectedVersion: 3,
+        delta: -50_000,
+        reasonCode: "support_correction",
+        confirmation: true,
+      },
     },
     {
       ...base(),
@@ -137,6 +148,17 @@ test("rejects unknown, missing and command-specific payload fields", () => {
   assert.equal(parseAdminCommandRequest(JSON.stringify({
     ...valid,
     authorizationTier: "administrator",
+  })), undefined);
+  assert.equal(parseAdminCommandRequest(JSON.stringify({
+    ...base(),
+    command: "credit_account_adjust",
+    payload: {
+      accountId: "account:credit001",
+      expectedVersion: 0,
+      delta: 0,
+      reasonCode: "support_correction",
+      confirmation: true,
+    },
   })), undefined);
   assert.equal(parseAdminCommandRequest(JSON.stringify({
     ...base(),
