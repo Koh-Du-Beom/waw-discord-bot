@@ -194,6 +194,42 @@ test("removes an active link only after current administrator authorization", as
   assert.deepEqual(store.calls, ["terminal", "remove"]);
 });
 
+test("adjusts one credit account only through the exact administrator command", async () => {
+  const store = fakeStore();
+  const adjustments: unknown[] = [];
+  const application = new AdminCommandApplication({
+    authorization: {
+      async readCurrentAuthorization() {
+        return { kind: "authorized", authorizationTier: "administrator" };
+      },
+    },
+    validator: { async validate() { throw new Error("validator not requested"); } },
+    store,
+    credits: {
+      async adjust(input) {
+        adjustments.push(input);
+        return { status: "adjusted", availableBalance: 75_000n, version: 4 };
+      },
+    },
+    now: () => now,
+  });
+  const response = await application.execute(request("credit_account_adjust", {
+    accountId: "account:credit001",
+    expectedVersion: 3,
+    delta: -25_000,
+    reasonCode: "support_correction",
+    confirmation: true,
+  }));
+  assert.equal(response.outcome, "success");
+  assert.deepEqual(response.result, {
+    kind: "credit_account_adjustment",
+    status: "adjusted",
+    availableBalance: "75000",
+    version: 4,
+  });
+  assert.equal((adjustments[0] as { audit: { commandName: string } }).audit.commandName, "크레딧 관리자조정");
+});
+
 function applicationWith(
   store: ReturnType<typeof fakeStore>,
   validate: () => Promise<

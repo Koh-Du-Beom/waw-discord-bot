@@ -59,6 +59,17 @@
 
 ## Unreleased
 
+- Add a default-off KBO virtual-credit prediction system with explicit
+  enrollment, KST daily claims, immutable credit ledger, atomic bet placement,
+  final/void/correction settlement, recent bets, public rankings,
+  administrator-only dashboard adjustment, Discord departure handling and
+  one-year hold-aware retention. Production migration, external response
+  ingestion, Discord registration and feature activation remain separate gates.
+- Extend the guarded production data-only reset through schema version 17 so
+  its disposable PostgreSQL proof clears all 23 application data tables,
+  including KBO accounts, ledgers, games, bets, settlements and retention holds.
+- Refresh seven existing transitive dependencies to compatible patched versions;
+  the production dependency audit reports zero vulnerabilities.
 - Confirm the first automatically observed game-policy violation in the same
   transaction, so it contributes exactly one stack and later game-end
   observations cannot overwrite the confirmed violation.
@@ -146,8 +157,6 @@
   exact version 5와 canonical SQL에만 묶인 compatibility 검증과 disposable
   PostgreSQL/Linux exact-archive 회귀를 추가; candidate `1d9a1fa`의 동일
   archive를 CloudShell Amazon Linux 2023에서 재검증해 Gate A 통과
-- KBO를 현재 제품 명세, dashboard 설정, 구현·완료·배포 범위에서 제외하고
-  추후 새 제품 정책으로 재검토하도록 변경
 - Candidate `f126ce3` CloudShell Linux 검증에서 exact archive와 Node
   `24.18.0`은 확인했지만 release-manager fixture의 read-only cleanup이 exit
   `1`로 실패해 stage를 중단; temporary artifact와 production mutation 0,

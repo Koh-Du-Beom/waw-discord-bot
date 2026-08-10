@@ -7,7 +7,13 @@ export type AdminCommandName =
   | "riot_link_request_approve"
   | "riot_link_request_reject"
   | "riot_link_remove"
+  | "credit_account_adjust"
   | "operation_status";
+
+export type CreditAdjustmentReasonCode =
+  | "support_correction"
+  | "policy_correction"
+  | "incident_recovery";
 
 type RequestBase = {
   version: 1;
@@ -40,6 +46,16 @@ export type AdminCommandRequest =
       payload: { linkId: string; expectedVersion: number; confirmation: true };
     })
   | (RequestBase & {
+      command: "credit_account_adjust";
+      payload: {
+        accountId: string;
+        expectedVersion: number;
+        delta: number;
+        reasonCode: CreditAdjustmentReasonCode;
+        confirmation: true;
+      };
+    })
+  | (RequestBase & {
       command: "operation_status";
       payload: { operationId: string };
     });
@@ -60,6 +76,11 @@ export type AdminCommandReasonCode =
   | "invalid_puuid"
   | "platform_mismatch"
   | "validator_unavailable"
+  | "credit_account_not_found"
+  | "credit_account_stale"
+  | "credit_account_self_adjustment"
+  | "credit_account_insufficient_balance"
+  | "credit_account_adjustment_unavailable"
   | "persistence_unavailable";
 
 export type PendingRiotLinkIpcItem = {
@@ -91,6 +112,12 @@ export type AdminCommandResponse =
             status: "approved" | "rejected";
           }
         | { kind: "riot_link_removal"; status: "removed" }
+        | {
+            kind: "credit_account_adjustment";
+            status: "adjusted";
+            availableBalance: string;
+            version: number;
+          }
         | {
             kind: "operation_status";
             status: "success" | "denied" | "conflict" | "failure" | "unknown";
@@ -144,6 +171,11 @@ const reasonCodes = new Set<AdminCommandReasonCode>([
   "invalid_puuid",
   "platform_mismatch",
   "validator_unavailable",
+  "credit_account_not_found",
+  "credit_account_stale",
+  "credit_account_self_adjustment",
+  "credit_account_insufficient_balance",
+  "credit_account_adjustment_unavailable",
   "persistence_unavailable",
 ]);
 
@@ -301,6 +333,10 @@ function parsePayload(
       "command" | "payload"
     >
   | Pick<
+      Extract<AdminCommandRequest, { command: "credit_account_adjust" }>,
+      "command" | "payload"
+    >
+  | Pick<
       Extract<AdminCommandRequest, { command: "operation_status" }>,
       "command" | "payload"
     >
@@ -371,6 +407,33 @@ function parsePayload(
           confirmation: true,
         },
       };
+    case "credit_account_adjust":
+      if (
+        !hasExactKeys(value, [
+          "accountId", "confirmation", "delta", "expectedVersion", "reasonCode",
+        ]) ||
+        !isPattern(value.accountId, entityIdPattern) ||
+        !isVersion(value.expectedVersion) ||
+        !Number.isSafeInteger(value.delta) ||
+        Number(value.delta) === 0 ||
+        Math.abs(Number(value.delta)) > 1_000_000 ||
+        !["support_correction", "policy_correction", "incident_recovery"].includes(
+          String(value.reasonCode),
+        ) ||
+        value.confirmation !== true
+      ) {
+        return undefined;
+      }
+      return {
+        command,
+        payload: {
+          accountId: value.accountId,
+          expectedVersion: value.expectedVersion,
+          delta: Number(value.delta),
+          reasonCode: value.reasonCode as CreditAdjustmentReasonCode,
+          confirmation: true,
+        },
+      };
     case "operation_status":
       if (
         !hasExactKeys(value, ["operationId"]) ||
@@ -397,6 +460,20 @@ function parseResult(
   if (value.kind === "riot_link_removal") {
     return hasExactKeys(value, ["kind", "status"]) && value.status === "removed"
       ? { kind: value.kind, status: value.status }
+      : undefined;
+  }
+  if (value.kind === "credit_account_adjustment") {
+    return hasExactKeys(value, ["availableBalance", "kind", "status", "version"]) &&
+      value.status === "adjusted" &&
+      typeof value.availableBalance === "string" &&
+      /^(0|[1-9][0-9]{0,18})$/.test(value.availableBalance) &&
+      isVersion(value.version)
+      ? {
+          kind: value.kind,
+          status: value.status,
+          availableBalance: value.availableBalance,
+          version: value.version,
+        }
       : undefined;
   }
   if (value.kind === "operation_status") {

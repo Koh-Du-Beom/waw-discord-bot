@@ -11,6 +11,8 @@ import type {
   ListPendingRiotLinksRequestDto,
   PendingRiotLinkRequestsDto,
   RemoveRiotLinkRequestDto,
+  KboCreditAdjustmentRequestDto,
+  KboCreditAdjustmentResponseDto,
   RiotLinkDecisionResponseDto,
 } from "../contracts/dashboard.ts";
 import { HttpPortError } from "../http/dashboard-server.ts";
@@ -131,6 +133,22 @@ export function createAdminCommandDashboardPorts(input: {
         confirmation: true,
       });
       return decision(response, "연결을 해제했습니다.");
+    },
+    async adjustKboCredit(
+      context: DispatchInput & { request: KboCreditAdjustmentRequestDto },
+    ): Promise<KboCreditAdjustmentResponseDto> {
+      const response = await dispatch(context, "credit_account_adjust", context.request);
+      if (
+        response.outcome === "success" &&
+        response.result.kind === "credit_account_adjustment"
+      ) {
+        return {
+          message: "크레딧을 조정했습니다.",
+          availableBalance: response.result.availableBalance,
+          version: response.result.version,
+        };
+      }
+      throw mapFailure(response);
     },
   };
 }

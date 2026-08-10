@@ -1,13 +1,13 @@
 # ADR-0028: 권리 확인형 KBO 데이터 어댑터와 경기 생명주기
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-07-31
 - Owners: 프로젝트 소유자
 - Related requirements: `FUN-021`, `FUN-022`, `FUN-025`~`FUN-029`, `OWN-039`~`OWN-041`, `DAT-001`~`DAT-005`, `OPS-002`~`OPS-004`, `SEC-007`~`SEC-010`
 - Related research: `docs/research/technology-options/kbo-data-sources.md`, `docs/research/technology-options/kbo-discord-bot-and-credit-prediction-system.md`
 - Related ADRs: `ADR-0001`, `ADR-0004`, `ADR-0006`, `ADR-0014`
 - Supersedes: 없음
-- Superseded by: 없음
+- Superseded by: `ADR-0031`
 
 ## Context
 

@@ -65,3 +65,35 @@ test("command log pagination sends only the opaque cursor", async () => {
 
   assert.equal(requested, "/api/command-log?cursor=opaque_cursor_0123456789");
 });
+
+test("KBO credit adjustment uses the exact CSRF-protected route", async () => {
+  const requests: Array<{ input: string; init: RequestInit | undefined }> = [];
+  const api = createBrowserApi(async (input, init) => {
+    requests.push({ input: String(input), init });
+    if (String(input) === "/api/session") {
+      return Response.json({
+        authenticated: true,
+        actor: { displayName: "관리자", tier: "administrator" },
+        csrfToken: "csrf-kbo-synthetic",
+      });
+    }
+    return Response.json({ message: "크레딧을 조정했습니다.", availableBalance: "1250", version: 8 });
+  });
+  await api.getSession();
+  await api.adjustKboCredit({
+    accountId: "account:active0001",
+    expectedVersion: 7,
+    delta: -250,
+    reasonCode: "support_correction",
+    confirmation: true,
+  });
+  assert.equal(requests[1]?.input, "/api/kbo/credits/adjust");
+  assert.equal(new Headers(requests[1]?.init?.headers).get("X-CSRF-Token"), "csrf-kbo-synthetic");
+  assert.deepEqual(JSON.parse(String(requests[1]?.init?.body)), {
+    accountId: "account:active0001",
+    expectedVersion: 7,
+    delta: -250,
+    reasonCode: "support_correction",
+    confirmation: true,
+  });
+});

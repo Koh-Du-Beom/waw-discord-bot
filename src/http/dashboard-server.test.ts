@@ -81,6 +81,10 @@ function ports(overrides: Partial<DashboardHttpPorts> = {}): DashboardHttpPorts 
     readDisplayName: async () => "Fixture Operator",
     readOverview: async () => overview,
     readActiveRiotLinks: async () => ({ links: [] }),
+    readKboManagement: async () => ({
+      accounts: [],
+      provider: { games: 0, latestStatus: null, sourceUpdatedAt: null, collectedAt: null },
+    }),
     readSettings: async () => settings,
     updateSettings: async () => ({
       kind: "updated",
@@ -92,6 +96,11 @@ function ports(overrides: Partial<DashboardHttpPorts> = {}): DashboardHttpPorts 
     approveRiotLink: async () => ({ message: "승인했습니다." }),
     rejectRiotLink: async () => ({ message: "거절했습니다." }),
     removeRiotLink: async () => ({ message: "연결을 해제했습니다." }),
+    adjustKboCredit: async () => ({
+      message: "크레딧을 조정했습니다.",
+      availableBalance: "0",
+      version: 1,
+    }),
     ...overrides,
   };
 }
@@ -321,6 +330,106 @@ test("Riot administrator routes reject a current operator before invoking ports"
   assert.equal(response.statusCode, 403);
   assert.equal(portCalls, 0);
   await app.close();
+});
+
+test("KBO management is admin-only and credit adjustment uses high-risk authorization", async () => {
+  const authorizationCalls: Array<{ kind: string; confirmation?: boolean }> = [];
+  let adjustment: unknown;
+  const app = server({
+    auth: {
+      async authorize(input) {
+        authorizationCalls.push({
+          kind: input.kind,
+          ...(input.explicitConfirmation === undefined
+            ? {}
+            : { confirmation: input.explicitConfirmation }),
+        });
+        return authResponse(200, {
+          kind: "authorized",
+          actorId: "administrator-1",
+          authorizationTier: "administrator",
+          source: "current-role",
+        });
+      },
+    },
+    ports: {
+      async readKboManagement() {
+        return {
+          accounts: [],
+          provider: { games: 2, latestStatus: "scheduled", sourceUpdatedAt: null, collectedAt: null },
+        };
+      },
+      async adjustKboCredit(input) {
+        adjustment = input;
+        return { message: "크레딧을 조정했습니다.", availableBalance: "1250", version: 8 };
+      },
+    },
+  });
+  const management = await app.inject({
+    method: "GET",
+    url: "/api/kbo/management",
+    headers: { cookie: sessionCookie },
+  });
+  assert.equal(management.statusCode, 200);
+  assert.equal(management.json().provider.games, 2);
+
+  const adjusted = await app.inject({
+    method: "POST",
+    url: "/api/kbo/credits/adjust",
+    headers: mutationHeaders,
+    payload: {
+      accountId: "account:active0001",
+      expectedVersion: 7,
+      delta: -250,
+      reasonCode: "support_correction",
+      confirmation: true,
+    },
+  });
+  assert.equal(adjusted.statusCode, 200);
+  assert.deepEqual(authorizationCalls, [
+    { kind: "read" },
+    { kind: "high-risk", confirmation: true },
+  ]);
+  assert.deepEqual(adjustment, {
+    actorId: "administrator-1",
+    authorizationTier: "administrator",
+    operationId: "req-2",
+    request: {
+      accountId: "account:active0001",
+      expectedVersion: 7,
+      delta: -250,
+      reasonCode: "support_correction",
+      confirmation: true,
+    },
+  });
+
+  const invalid = await app.inject({
+    method: "POST",
+    url: "/api/kbo/credits/adjust",
+    headers: mutationHeaders,
+    payload: {
+      accountId: "account:active0001",
+      expectedVersion: 7,
+      delta: 0,
+      reasonCode: "support_correction",
+      confirmation: true,
+    },
+  });
+  assert.equal(invalid.statusCode, 400);
+  await app.close();
+
+  let operatorPortCalls = 0;
+  const operator = server({
+    ports: { async readKboManagement() { operatorPortCalls += 1; return { accounts: [], provider: { games: 0, latestStatus: null, sourceUpdatedAt: null, collectedAt: null } }; } },
+  });
+  const denied = await operator.inject({
+    method: "GET",
+    url: "/api/kbo/management",
+    headers: { cookie: sessionCookie },
+  });
+  assert.equal(denied.statusCode, 403);
+  assert.equal(operatorPortCalls, 0);
+  await operator.close();
 });
 
 test("exposes only allowlisted loopback health without a session", async () => {

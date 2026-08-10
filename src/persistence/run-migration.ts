@@ -62,6 +62,41 @@ const migrations = [
     name: "riot_link_removal_result",
     path: path.resolve(import.meta.dirname, "../../migrations/0010_riot_link_removal_result.sql"),
   },
+  {
+    version: 11,
+    name: "kbo_credit_ledger_foundation",
+    path: path.resolve(import.meta.dirname, "../../migrations/0011_kbo_credit_ledger_foundation.sql"),
+  },
+  {
+    version: 12,
+    name: "kbo_daily_credit_claim",
+    path: path.resolve(import.meta.dirname, "../../migrations/0012_kbo_daily_credit_claim.sql"),
+  },
+  {
+    version: 13,
+    name: "kbo_bet_foundation",
+    path: path.resolve(import.meta.dirname, "../../migrations/0013_kbo_bet_foundation.sql"),
+  },
+  {
+    version: 14,
+    name: "kbo_game_projection",
+    path: path.resolve(import.meta.dirname, "../../migrations/0014_kbo_game_projection.sql"),
+  },
+  {
+    version: 15,
+    name: "kbo_settlement_schema",
+    path: path.resolve(import.meta.dirname, "../../migrations/0015_kbo_settlement_schema.sql"),
+  },
+  {
+    version: 16,
+    name: "kbo_admin_credit_adjustment",
+    path: path.resolve(import.meta.dirname, "../../migrations/0016_kbo_admin_credit_adjustment.sql"),
+  },
+  {
+    version: 17,
+    name: "kbo_retention_purge",
+    path: path.resolve(import.meta.dirname, "../../migrations/0017_kbo_retention_purge.sql"),
+  },
 ] as const;
 
 async function main(): Promise<void> {

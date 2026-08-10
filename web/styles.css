@@ -22,6 +22,10 @@ input {
   font: inherit;
 }
 
+select {
+  font: inherit;
+}
+
 button,
 .button {
   display: inline-flex;
@@ -484,6 +488,10 @@ h2 {
 }
 
 .wide-panel { margin-top: 1rem; }
+.credit-adjustment { display: grid; gap: .9rem; max-width: 34rem; margin-top: 1.5rem; border-top: 1px solid #28364b; padding-top: 1.25rem; }
+.credit-adjustment label:not(.confirmation) { display: grid; gap: .35rem; color: #aeb9c9; }
+.credit-adjustment input[type="number"], .credit-adjustment select { min-height: 44px; border: 1px solid #344258; border-radius: 8px; padding: .65rem; color: #dce5f0; background: #0d1521; }
+.credit-adjustment .confirmation { display: flex; align-items: center; gap: .55rem; }
 .text-button { margin-top: .75rem; border-color: transparent; color: #e5bd6c; background: transparent; }
 .section-description { color: #8492a6; }
 .pagination { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-top: 1px solid #28364b; padding: 1rem 0; color: #7f8da1; }

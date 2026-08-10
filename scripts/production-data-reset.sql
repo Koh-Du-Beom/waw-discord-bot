@@ -9,13 +9,22 @@ begin
     raise exception 'production_data_reset_not_approved';
   end if;
   if (select array_agg(version order by version) from app_schema_version)
-       is distinct from array[1,2,3,4,5,6,7,8,9,10] then
+       is distinct from array[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17] then
     raise exception 'production_data_reset_schema_mismatch';
   end if;
 end
 $$;
 
 truncate table
+  kbo_retention_hold,
+  bet_settlement,
+  kbo_bet,
+  kbo_game_revision,
+  kbo_game,
+  daily_credit_claim,
+  credit_ledger_entry,
+  betting_enrollment,
+  credit_account,
   game_incident_revision,
   game_incident,
   game_observation,
@@ -48,6 +57,15 @@ begin
   end if;
   if exists (
     select 1 from (
+      select 1 from kbo_retention_hold union all
+      select 1 from bet_settlement union all
+      select 1 from kbo_bet union all
+      select 1 from kbo_game_revision union all
+      select 1 from kbo_game union all
+      select 1 from daily_credit_claim union all
+      select 1 from credit_ledger_entry union all
+      select 1 from betting_enrollment union all
+      select 1 from credit_account union all
       select 1 from game_incident_revision union all
       select 1 from game_incident union all
       select 1 from game_observation union all

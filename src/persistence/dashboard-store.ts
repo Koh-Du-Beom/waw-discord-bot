@@ -8,6 +8,7 @@ import type {
   CommandLogPageDto,
   ListCommandLogRequestDto,
   LowRiskSettingsDto,
+  KboManagementDto,
   UpdateLowRiskSettingsRequestDto,
 } from "../contracts/dashboard.ts";
 import { PersistenceError } from "./postgres-persistence.ts";
@@ -81,6 +82,109 @@ export class PostgresDashboardStore {
       };
     } catch {
       throw new PersistenceError("dashboard_riot_links_read_failed");
+    }
+  }
+
+  async readKboManagement(guildId: string): Promise<KboManagementDto> {
+    if (!/^[1-9][0-9]{16,19}$/.test(guildId)) {
+      throw new PersistenceError("dashboard_kbo_guild_invalid");
+    }
+    try {
+      const [accounts, provider] = await Promise.all([
+        this.pool.query<{
+          account_id: string; display_label: string | null; status: "active" | "departed";
+          available_balance: string; correction_debt: string; version: string;
+          daily_claims: string; bets: string; pending_bets: string; settled_bets: string;
+          void_bets: string; corrections: string; outcome_hits: string; score_hits: string;
+          admin_adjusted: boolean; last_ledger_at: Date | null;
+        }>(
+          `select account.account_id, users.display_label, enrollment.status,
+                  account.available_balance::text, account.correction_debt::text,
+                  account.version::text,
+                  (select count(*)::text from daily_credit_claim claim
+                    where claim.account_id = account.account_id) daily_claims,
+                  (select count(*)::text from kbo_bet bet
+                    where bet.account_id = account.account_id) bets,
+                  (select count(*)::text from kbo_bet bet
+                    where bet.account_id = account.account_id and bet.status = 'pending') pending_bets,
+                  (select count(*)::text from kbo_bet bet
+                    where bet.account_id = account.account_id and bet.status = 'settled') settled_bets,
+                  (select count(*)::text from kbo_bet bet
+                    where bet.account_id = account.account_id and bet.status = 'void') void_bets,
+                  (select coalesce(sum(greatest(history.count - 1, 0)), 0)::text
+                     from kbo_bet bet
+                     cross join lateral (
+                       select count(*) count from bet_settlement settlement
+                        where settlement.bet_id = bet.bet_id
+                     ) history
+                    where bet.account_id = account.account_id) corrections,
+                  (select count(*)::text from kbo_bet bet
+                     join bet_settlement settlement
+                       on settlement.settlement_id = bet.current_settlement_id
+                    where bet.account_id = account.account_id
+                      and settlement.result in ('outcome_hit', 'score_hit')) outcome_hits,
+                  (select count(*)::text from kbo_bet bet
+                     join bet_settlement settlement
+                       on settlement.settlement_id = bet.current_settlement_id
+                    where bet.account_id = account.account_id
+                      and settlement.result = 'score_hit') score_hits,
+                  exists (select 1 from credit_ledger_entry ledger
+                    where ledger.account_id = account.account_id
+                      and ledger.reason_code = 'admin_adjustment') admin_adjusted,
+                  (select max(occurred_at) from credit_ledger_entry ledger
+                    where ledger.account_id = account.account_id) last_ledger_at
+             from betting_enrollment enrollment
+             join credit_account account on account.account_id = enrollment.account_id
+             left join registered_discord_user users
+               on users.guild_id = enrollment.guild_id
+              and users.discord_user_id = enrollment.discord_user_id
+            where enrollment.guild_id = $1
+            order by (enrollment.status = 'active') desc,
+                     coalesce(users.display_label, account.account_id), account.account_id
+            limit 500`,
+          [guildId],
+        ),
+        this.pool.query<{
+          games: string; latest_status: string | null;
+          source_updated_at: Date | null; collected_at: Date | null;
+        }>(
+          `select count(*)::text games,
+                  (select status from kbo_game order by collected_at desc, game_id limit 1) latest_status,
+                  max(source_updated_at) source_updated_at,
+                  max(collected_at) collected_at
+             from kbo_game`,
+        ),
+      ]);
+      const source = provider.rows[0]!;
+      return {
+        accounts: accounts.rows.map((row) => ({
+          accountId: row.account_id,
+          displayLabel: row.display_label ?? "탈퇴 계정",
+          enrollmentStatus: row.status,
+          availableBalance: row.available_balance,
+          correctionDebt: row.correction_debt,
+          version: Number(row.version),
+          dailyClaims: Number(row.daily_claims),
+          bets: Number(row.bets),
+          pendingBets: Number(row.pending_bets),
+          settledBets: Number(row.settled_bets),
+          voidBets: Number(row.void_bets),
+          corrections: Number(row.corrections),
+          outcomeHits: Number(row.outcome_hits),
+          scoreHits: Number(row.score_hits),
+          adminAdjusted: row.admin_adjusted,
+          lastLedgerAt: row.last_ledger_at?.toISOString() ?? null,
+        })),
+        provider: {
+          games: Number(source.games),
+          latestStatus: source.latest_status,
+          sourceUpdatedAt: source.source_updated_at?.toISOString() ?? null,
+          collectedAt: source.collected_at?.toISOString() ?? null,
+        },
+      };
+    } catch (error) {
+      if (error instanceof PersistenceError) throw error;
+      throw new PersistenceError("dashboard_kbo_management_read_failed");
     }
   }
 

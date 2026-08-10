@@ -16,10 +16,10 @@ maintenance operation are separate gates.
 - A fresh encrypted production backup is published and restored successfully
   into a disposable empty PostgreSQL 17 target before deletion.
 - The exact reset SQL passes its approval and schema-version guards.
-- All 14 explicitly listed data tables are empty after one transaction.
+- All 23 explicitly listed data tables are empty after one transaction.
 - `dashboard_setting` contains exactly the default singleton row:
   `summary_enabled=false`, `version=0`.
-- `app_schema_version` remains exactly versions 1 through 8.
+- `app_schema_version` remains exactly versions 1 through 17.
 - Table, constraint, index, RLS policy, workload-role grant, migration-ledger,
   backup, monitoring, credential, DNS, firewall and release state are unchanged.
 - Web and bot restart healthy, the Discord Gateway reconnects once, login works,
@@ -32,6 +32,8 @@ maintenance operation are separate gates.
 - Riot links and link requests.
 - Games, observations, incidents and incident revisions.
 - Registered Discord display labels and summary cooldown reservations.
+- KBO accounts, enrollment, credit ledger and daily claims.
+- KBO game projections/revisions, bets, settlements and retention holds.
 - The current dashboard setting value, replaced with its migration default.
 
 The encrypted pre-reset archive becomes the final retained copy of the deleted
@@ -71,7 +73,7 @@ bash deploy/integration/postgres/test-data-reset.sh
 
 The fixture must:
 
-- apply migrations 1 through 8 to disposable PostgreSQL 17;
+- apply migrations 1 through 17 to disposable PostgreSQL 17;
 - seed every reset table and a non-default dashboard setting;
 - prove an invocation without the exact approval GUC fails without deletion;
 - run the approved reset;
@@ -92,7 +94,7 @@ not success.
 - [ ] Use an exact-object temporary reader and offline identity to verify bytes,
       reject a wrong identity and restore into a disposable empty PostgreSQL 17
       target.
-- [ ] Verify schema version 8, expected row count, foreign keys and documented
+- [ ] Verify schema version 17, expected row count, foreign keys and documented
       invariant.
 - [ ] Remove the reader/key, downloaded archive, decrypted dump, disposable
       database and temporary credential material.
@@ -101,7 +103,7 @@ Do not continue with a merely `published` archive; restore evidence must pass.
 
 ## Gate 3 — read-only production preflight
 
-- [ ] Confirm `app_schema_version` is exactly `1,2,3,4,5,6,7,8`.
+- [ ] Confirm `app_schema_version` is exactly `1` through `17`.
 - [ ] Record aggregate row counts for every table named under “Deleted data”.
 - [ ] Record counts of public tables, constraints, indexes, RLS-enabled tables,
       policies and `waw_web`/`waw_bot` grants.

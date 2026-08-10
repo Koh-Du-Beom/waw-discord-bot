@@ -26,6 +26,8 @@ test("dashboard API paths remain same-origin and canonical", () => {
     riotApprove: "/api/riot/requests/approve",
     riotReject: "/api/riot/requests/reject",
     riotRemove: "/api/riot/links/remove",
+    kboManagement: "/api/kbo/management",
+    kboCreditAdjust: "/api/kbo/credits/adjust",
     commandLog: "/api/command-log",
   });
 

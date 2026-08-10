@@ -754,6 +754,8 @@ function adminCommandName(
       return "riot_link_request_reject";
     case "라이엇계정 연결해제":
       return "riot_link_remove";
+    case "크레딧 관리자조정":
+      return "credit_account_adjust";
     default:
       return "riot_link_request_list";
   }

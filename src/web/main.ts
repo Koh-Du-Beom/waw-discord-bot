@@ -74,6 +74,7 @@ const auth = createAuthService({
 const app = buildDashboardServer({
   auth,
   ports: createProductionDashboardPorts({
+    guildId: configuration.allowedGuildId,
     pool,
     backupMarkerPath:
       process.env.WAW_BACKUP_MARKER_PATH ??

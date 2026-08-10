@@ -82,6 +82,73 @@ test("dashboard store reads active Riot links with their optimistic version", as
   assert.doesNotMatch(calls[0]?.text ?? "", /link\.puuid/);
 });
 
+test("dashboard store maps allowlisted KBO management aggregates", async () => {
+  const calls: Call[] = [];
+  const pool = {
+    async query(text: string, values?: readonly unknown[]) {
+      calls.push({ text, ...(values === undefined ? {} : { values }) });
+      if (text.includes("from betting_enrollment")) {
+        return result([{
+          account_id: "account:active0001",
+          display_label: "야구팬",
+          status: "active",
+          available_balance: "1250",
+          correction_debt: "50",
+          version: "8",
+          daily_claims: "4",
+          bets: "3",
+          pending_bets: "1",
+          settled_bets: "1",
+          void_bets: "1",
+          corrections: "2",
+          outcome_hits: "1",
+          score_hits: "0",
+          admin_adjusted: true,
+          last_ledger_at: new Date("2026-08-10T01:00:00.000Z"),
+        }]);
+      }
+      return result([{
+        games: "10",
+        latest_status: "scheduled",
+        source_updated_at: new Date("2026-08-10T00:55:00.000Z"),
+        collected_at: new Date("2026-08-10T01:00:00.000Z"),
+      }]);
+    },
+  } as unknown as Pool;
+
+  assert.deepEqual(
+    await new PostgresDashboardStore(pool).readKboManagement("223456789012345678"),
+    {
+      accounts: [{
+        accountId: "account:active0001",
+        displayLabel: "야구팬",
+        enrollmentStatus: "active",
+        availableBalance: "1250",
+        correctionDebt: "50",
+        version: 8,
+        dailyClaims: 4,
+        bets: 3,
+        pendingBets: 1,
+        settledBets: 1,
+        voidBets: 1,
+        corrections: 2,
+        outcomeHits: 1,
+        scoreHits: 0,
+        adminAdjusted: true,
+        lastLedgerAt: "2026-08-10T01:00:00.000Z",
+      }],
+      provider: {
+        games: 10,
+        latestStatus: "scheduled",
+        sourceUpdatedAt: "2026-08-10T00:55:00.000Z",
+        collectedAt: "2026-08-10T01:00:00.000Z",
+      },
+    },
+  );
+  assert.deepEqual(calls[0]?.values, ["223456789012345678"]);
+  assert.match(calls[0]?.text ?? "", /reason_code = 'admin_adjustment'/);
+});
+
 test("dashboard setting update and audit commit in one transaction", async () => {
   const calls: Call[] = [];
   const client = transactionClient(calls, true);

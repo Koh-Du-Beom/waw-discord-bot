@@ -18,6 +18,7 @@ export function createProductionDashboardPorts(input: {
   pool: Pool;
   backupMarkerPath: string;
   botHealthPath: string;
+  guildId: string;
   adminCommand?: {
     transport: AdminCommandTransport;
     guildId: string;
@@ -44,6 +45,9 @@ export function createProductionDashboardPorts(input: {
     },
     async readActiveRiotLinks() {
       return store.readActiveRiotLinks();
+    },
+    async readKboManagement() {
+      return store.readKboManagement(input.guildId);
     },
     async readSettings() {
       return store.readSettings();
@@ -72,6 +76,10 @@ export function createProductionDashboardPorts(input: {
     async removeRiotLink(request) {
       if (adminPorts) return adminPorts.removeRiotLink(request);
       throw new HttpPortError("unavailable", "riot_admin_ipc_unavailable");
+    },
+    async adjustKboCredit(request) {
+      if (adminPorts) return adminPorts.adjustKboCredit(request);
+      throw new HttpPortError("unavailable", "kbo_admin_ipc_unavailable");
     },
   };
 }

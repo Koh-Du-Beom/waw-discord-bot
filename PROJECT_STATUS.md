@@ -1,6 +1,232 @@
 # 프로젝트 상태
 
-마지막 갱신일: 2026-07-31
+마지막 갱신일: 2026-08-10
+
+## 2026-08-10 — ADR-0031 승인, PLAN-0024~0035 완료
+
+- Owner가 남은 기술 선택을 승인해 외부 KBO 봇 공개 응답의 제한적 수집을
+  `ADR-0031` Accepted로 전환하고 `ADR-0028`을 Superseded 처리했습니다. 제품
+  정책은 정확한 application·서버·채널·schema allowlist만 허용하며 개발자 허가,
+  Discord 정책 적합성, 정상 경기 schema와 정정 기준이 확인될 때까지
+  production ingestion·베팅을 default-off로 유지합니다.
+- Orca 내장 브라우저에서 로그인된 시험 서버의 네이티브 `야구 오늘 보내기`를
+  실행해 2026-08-10 월요일 휴식일 `no_game` public Components V2 응답을
+  확인했습니다. 정상 경기 ID·팀·시작 시각·revision은 관찰되지 않아 parser를
+  추측하지 않았습니다.
+- `PLAN-0024`의 공급자 독립 접수 정책은 가입, 권리·신선도, 경기 상태·시작 시각,
+  correction debt, 잔액, stake와 KST 일일 한도를 고정 판정합니다.
+- `PLAN-0025` additive `0014`는 정확한 source application, 안정적 source game ID,
+  competition/season, 팀·상태·점수·시각의 canonical game과 원문 없는 불변
+  revision을 추가하고 `kbo_bet.game_id` FK 및 web/bot RLS를 연결했습니다.
+- `PLAN-0026`은 account → game lock, 5분 evidence, 권리·접수 정책과 기존 bet을
+  transaction 안에서 재검증하고 operation·잔액 차감·stake 원장·bet·audit를
+  원자적으로 기록합니다. 같은 operation의 동시 요청은 한 성공으로 결합하고
+  audit 실패는 전체 rollback합니다.
+- `PLAN-0027`은 기존 `/베팅 가입`과 `/베팅 하기`를 한 executor 경계로 연결하고
+  경기 ID·결과·금액·선택 점수를 원자 registration store로 전달합니다. 기능과
+  데이터 권리 flag가 모두 exact `1`일 때만 접수를 허용합니다.
+- `PLAN-0028` additive `0015`는 bet·game revision별 불변 settlement와 같은
+  bet의 공식 정정 chain, 현재 canonical settlement pointer를 추가했습니다.
+  bot의 bet 변경은 terminal status와 pointer 두 열로 제한합니다.
+- `PLAN-0029`는 account → game → bet 고정 lock 아래 final 0/2/3배, void 1배와
+  공식 정정 차액을 account·불변 원장·settlement·bet projection·감사에 원자
+  반영합니다. 탈퇴한 opaque account의 열린 bet도 계속 정산할 수 있습니다.
+- `PLAN-0030`은 `/베팅 경기`에 시작 전·5분 이내 canonical 경기 ID를 노출하고,
+  `/베팅 내역`에 active 가입자의 최근 5개와 현재 정산·무효·정정 결과를
+  표시합니다. 내역 조회는 베팅 접수 feature가 닫혀도 유지됩니다.
+- `PLAN-0031`은 active 가입자만 대상으로 현재 보유 크레딧과 competition/season별
+  결과·정확 점수·적중률 공동 순위를 10행 page로 제공합니다. 무효와 departed를
+  제외하고 적중률은 유효 10건부터 표시하며 관리자 조정은 포함 여부만 밝힙니다.
+- `PLAN-0032`는 별도 관리자 IPC에 exact `credit_account_adjust`를 추가하고 현재
+  관리자 역할, self/stale/음수 잔액 거부, bounded delta와 allowlisted 사유를
+  account·불변 원장·operation·감사·terminal result에 원자 반영합니다.
+- `PLAN-0033`은 canonical dashboard의 administrator 전용 KBO 탭에 opaque account,
+  지급·베팅·정산·정정·랭킹 성격 집계와 공급 상태를 표시하고, 기존 고위험
+  Origin·CSRF·최근 OAuth·confirmation 경계를 재사용해 signed credit 조정을
+  exact IPC로 실행합니다. Operator와 미인증 요청은 관리 DTO를 받지 못합니다.
+- `PLAN-0034`는 허용 guild의 `GuildMemberRemove`와 시작 시 reconciliation을
+  연결해 active 가입을 원자적으로 departed 처리하고 KBO의 Discord 직접 연결을
+  제거합니다. 열린 bet은 그대로 정산하며 재가입은 과거 계정을 연결하지 않고
+  명시적 가입으로 0잔액 새 계정을 만듭니다.
+- `PLAN-0035`와 additive `0017`은 1년이 지난 departed account를 legal/dispute
+  hold와 pending bet이 없을 때만 100개씩 삭제하는 exact security-definer 함수를
+  추가했습니다. Bot은 table DELETE 없이 함수 EXECUTE만 받고 하루 한 번
+  non-overlap 호출하며 backup lifecycle은 기존 30일을 유지합니다.
+- Migration/PostgreSQL 대상 test `29/29`, 전체 test
+  `356 pass / 7 기존 환경 skip / 0 fail`, typecheck, migration 17개 production
+  build, production application asset test와 diff check가 통과했습니다.
+- Production unit의 `WAW_KBO_BETTING_ENABLED`, `WAW_KBO_RANKINGS_ENABLED`,
+  `WAW_KBO_DATA_RIGHTS_AUTHORIZED`는 모두 `0`으로 고정해 배포 후보도 fail-closed로
+  유지합니다.
+- Production data-only reset의 schema guard와 disposable fixture를 migration
+  `1`~`17`, 명시적 data table 23개로 확장해 KBO account·원장·경기·bet·정산·
+  retention hold도 한 transaction에서 삭제되고 schema/RLS/grant는 보존됨을
+  검증했습니다.
+- 관리자 조정 PostgreSQL fixture가 실행 시각에 따라 account 생성 시각보다 이른
+  고정 시각을 쓰던 문제를 제거했습니다. 기존 전이 dependency 7개는 호환 보안
+  patch로만 갱신했으며 production dependency audit 취약점은 `0`입니다.
+- PostgreSQL 강제 전체 test `356 pass / 7 기존 환경 skip / 0 fail`, browser
+  accessibility `2/2`, typecheck, migration 17개 build, application asset,
+  Linux release manager, deployment controller, game activation, health retry와
+  data-reset fixture가 모두 통과했습니다.
+  Production migration·Discord 등록·배포·feature 활성화는 수행하지 않았습니다.
+  정상 경기·정정 공개 응답 schema, 외부 봇 개발자 허가, Discord 정책 및 국내
+  공개 제공 승인 확인 뒤 별도 activation checklist로 진행해야 합니다.
+
+## 2026-08-07 — 외부 KBO Discord 봇 연동 의도 정정과 Proposed ADR-0031
+
+- Owner가 `PLAN-0023` Task 1을 승인해 additive `0013` `kbo_bet` migration을
+  local/disposable 범위에 구현했습니다. 예측·선택 점수·1,000~50,000 stake,
+  KST stake date, operation/ledger 1:1 참조와 pending 중복을 DB constraint로
+  고정하고 web SELECT-only, bot SELECT·INSERT 권한만 부여했습니다.
+- Disposable PostgreSQL suite `20/20`, 전체 test
+  `321 pass / 7 기존 환경 skip / 0 fail`, typecheck와 diff check가 통과했습니다.
+  Transaction store, canonical game FK, Discord/runtime과 Production migration
+  적용·배포는 수행하지 않았습니다.
+- `ADR-0029`와 현재 KBO 원장을 기준으로 베팅 등록의 Draft `PLAN-0023`을
+  작성했습니다. Additive `0013` `kbo_bet` schema와 disposable PostgreSQL 계약
+  테스트 한 작업만 계획하며 transaction store, game/provider ingestion, Discord와
+  Production 연결은 제외합니다. Canonical game projection이 아직 없어 opaque
+  internal game ID에는 FK를 만들지 않고 실제 접수 연결 전 별도 gate로 남겼습니다.
+- Owner가 `PLAN-0022` Task 1을 승인해 option 없는 `/크레딧 받기` definition,
+  ephemeral claim executor 분기와 local bot assembly를 구현했습니다. 서버 시각의
+  KST 일일 50,000 지급은 기존 멱등 transaction을 재사용하고 가용 증가·correction
+  debt 상계 결과만 표시합니다.
+- 대상 command/domain/합성 test `20/20`, 전체 test
+  `320 pass / 7 기존 환경 skip / 0 fail`, typecheck와 diff check가 통과했습니다.
+  Discord REST 등록, 외부 서버 변경, schema·migration과 Production 배포는
+  수행하지 않았습니다.
+- `ADR-0029`와 완료된 일일 지급·가입·credit command 경계를 기준으로 option 없는
+  `/크레딧 받기`의 Draft `PLAN-0022`를 작성했습니다. 기존 claim store와 credit
+  executor를 재사용하는 source/local command·합성 테스트 한 작업만 계획하며
+  Discord REST 등록, 새 schema와 Production 연결은 제외합니다.
+- Owner가 `PLAN-0021` Task 1을 승인해 `/베팅 가입 동의:true`, 고정 policy v1
+  고지, 가입 전 actor registration, enrollment executor와 local bot assembly를
+  구현했습니다. 신규 사용자의 첫 command가 0잔액 account를 만들며 응답은
+  ephemeral이고 중앙 command audit에는 고정 결과만 남습니다.
+- 대상 unit·합성 test `14/14`, PostgreSQL suite `19/19`, 전체 test
+  `317 pass / 7 기존 환경 skip / 0 fail`과 typecheck가 통과했습니다. Discord
+  REST 등록, 외부 서버 변경과 Production migration·배포는 수행하지 않았습니다.
+- `ADR-0029`와 `PLAN-0016`을 기준으로 명시적 `/베팅 가입 동의:true`의 Draft
+  `PLAN-0021`을 작성했습니다. 고지·동의, 첫 command actor 등록, enrollment
+  executor와 source/local 합성 테스트만 계획하며 Discord REST 등록, 외부 서버와
+  Production 연결은 제외합니다.
+- Owner가 `PLAN-0020` Task 1을 승인해 `/크레딧 내정보` definition, ephemeral
+  executor와 bot source assembly를 구현했습니다. 가용 크레딧과 정정 부채만
+  한국어 숫자로 표시하며 성공·미가입·조회 실패를 기존 command audit에 남깁니다.
+- 대상 command/executor/합성 Discord test `12/12`, 전체 test
+  `311 pass / 7 기존 환경 skip / 0 fail`, typecheck와 diff check가 통과했습니다.
+  Discord REST 등록, 외부 서버 변경과 Production 배포는 수행하지 않았습니다.
+- 현재 KBO 가입·지급·잔액 store와 기존 Discord command/audit 경계를 기준으로
+  `/크레딧 내정보`의 Draft `PLAN-0020`을 작성했습니다. 본인 잔액 executor,
+  ephemeral 응답과 local assembly·합성 테스트만 계획하며 Discord REST 등록,
+  외부 서버와 Production 연결은 제외합니다.
+- Owner가 `PLAN-0019` Task 1을 승인해 active KBO 가입 사용자의 가용 크레딧과
+  correction debt를 단일 SELECT로 읽는 최소 contract/store를 구현했습니다.
+  결과는 정확한 bigint 두 값 또는 `not_enrolled`만 반환하고 내부 식별자는
+  노출하지 않습니다.
+- Unit test `2/2`, PostgreSQL suite `19/19`, 전체 test
+  `306 pass / 7 기존 환경 skip / 0 fail`, typecheck와 diff check가 통과했습니다.
+  Discord command/runtime, schema·migration과 Production 연결은 없습니다.
+- `ADR-0029`와 현재 KBO account projection을 기준으로 가입 사용자의 가용
+  크레딧과 correction debt를 단일 SELECT로 조회하는 Draft `PLAN-0019`를
+  작성했습니다. Active-only read contract·store와 unit/PostgreSQL 테스트만
+  계획하며 command, 최근 베팅, schema와 Production은 제외합니다.
+- Owner가 `PLAN-0018` Task 1을 승인해 서버 시각의 KST 날짜 계산과 일일
+  50,000 크레딧의 correction debt 우선 상계 transaction store를 구현했습니다.
+  Active account lock 아래 operation, projection, 불변 ledger, claim과 audit을
+  원자적으로 처리하고 동일 성공 operation은 기존 결과를 반환합니다.
+- Unit test `4/4`, PostgreSQL suite `18/18`, 전체 test
+  `303 pass / 7 기존 환경 skip / 0 fail`, typecheck와 diff check가 통과했습니다.
+  Discord command/runtime, 새 migration·dependency와 Production 연결은 없습니다.
+- `ADR-0029`와 migrations `0011`·`0012`를 기준으로 KST 일일 50,000 지급과
+  correction debt 우선 상계를 한 transaction으로 처리하는 Draft `PLAN-0018`을
+  작성했습니다. 계산·store와 unit/PostgreSQL 테스트 한 작업만 계획하며
+  Discord/runtime, 새 migration과 Production 적용은 제외합니다.
+- Owner가 `PLAN-0017` Task 1을 승인해 additive `0012`
+  `daily_credit_claim` migration을 local/disposable 범위에 구현했습니다.
+  Opaque account와 KST claim date, operation과 ledger entry 중복을 DB에서 막고
+  web SELECT-only, bot SELECT·INSERT 권한으로 제한했습니다.
+- 대상 PostgreSQL suite `17/17`, 전체 test
+  `298 pass / 7 기존 환경 skip / 0 fail`, typecheck와 diff check가 통과했습니다.
+  지급 계산·debt 상계 store, Discord/runtime와 Production 적용은 없습니다.
+- `ADR-0029`, migration `0011`과 가입 transaction을 기준으로 KST 날짜별
+  50,000 크레딧 지급의 첫 bounded 작업을 Draft `PLAN-0017`로 작성했습니다.
+  Additive `0012` claim schema와 PostgreSQL 계약 테스트만 계획하며 지급 계산·
+  debt 상계 store, Discord/runtime와 Production 적용은 제외합니다.
+- Owner가 `PLAN-0016` Task 1을 승인해 명시적 KBO 가입과 0잔액 account 생성을
+  하나의 멱등 PostgreSQL transaction으로 구현했습니다. 등록 사용자 row lock,
+  operation claim, active enrollment와 최소 audit을 원자적으로 처리하며 동일
+  operation 재시도는 workload 권한을 늘리지 않고 `duplicate_operation`으로
+  종료합니다.
+- Unit test `3/3`, PostgreSQL integration suite `16/16`, 전체 test
+  `297 pass / 7 기존 환경 skip / 0 fail`이 통과했습니다. Discord command/runtime,
+  새 migration과 Production 연결·적용은 수행하지 않았습니다.
+- Migration `0011`과 기존 operation claim/row-lock 패턴을 기준으로 명시적 KBO
+  가입과 0잔액 계정 생성을 한 transaction으로 처리하는 Draft `PLAN-0016`을
+  작성했습니다. Store와 실제 PostgreSQL 동시성·rollback 테스트 하나만 계획하며
+  Discord command, 지급 원장, 새 migration과 production 적용은 제외합니다.
+- Owner가 `PLAN-0015` Task 1의 local/disposable 구현만 승인해 additive `0011`
+  KBO 가입·계정·불변 원장 migration을 완료했습니다. 신규 계정 0 balance/debt,
+  원장 delta/전후 값, reason·operation/source 중복과 application UPDATE/DELETE
+  금지를 PostgreSQL constraint·RLS·grant로 고정했습니다.
+- 대상 PostgreSQL test `16/16`, 전체 test
+  `293 pass / 7 기존 환경 skip / 0 fail`, typecheck와 diff check가 통과했습니다.
+  Production migration, credential, service, runtime과 사용자 데이터 변경은
+  없습니다.
+- `ADR-0029`와 기존 PostgreSQL RLS/workload role 패턴을 기준으로 KBO 가입,
+  잔액 projection과 불변 원장의 첫 additive schema 작업을 Draft `PLAN-0015`로
+  작성했습니다. `0011` migration과 실제 PostgreSQL 계약 검증 하나만 계획하며
+  service, command, 지급·베팅·정산과 production 적용은 제외합니다.
+- Owner가 `PLAN-0014` Task 1을 승인해 공급자 독립적인 KBO 최종 베팅 반환액
+  계산을 구현했습니다. 합성 최종 점수로 홈 승·무승부·원정 승을 판정하고
+  실패 0배, 결과 적중 2배, 정확 점수 적중 3배를 반환하며 잘못된 금액·점수와
+  부분 예상 점수를 거부합니다.
+- 대상 테스트 `2/2`, 전체 test `292 pass / 7 PostgreSQL 환경 skip / 0 fail`과
+  typecheck가 통과했습니다. DB·migration·Discord·provider·runtime 연결은
+  추가하지 않았습니다.
+- 정상 경기가 있는 날의 `/야구 오늘` Gateway schema Spike는 owner 지시로
+  Deferred했습니다. 자동 listener와 parser는 계속 미구현입니다.
+- 공급자 독립 KBO 베팅 구현을 조사한 결과 source, migration과 구현 계획이
+  모두 비어 있었습니다. Accepted ADR-0029의 0/2/3배 최종 반환 계산만 순수
+  TypeScript 함수와 표 기반 단위 테스트로 고정하는 Draft `PLAN-0014`를
+  작성했습니다. DB·원장·Discord·provider 연결은 범위 밖입니다.
+- Owner가 지정한 시험 서버에서 Orca 내장 브라우저로 설윤 `/야구 오늘`을 직접
+  실행했고, 응답이 ephemeral이 아닌 영속 public channel message임을 확인했습니다.
+- 응답 UI는 legacy embed가 아닌 Discord Components V2 container/markdown
+  구조였습니다. 취소일 응답에는 날짜·경기 수·취소/연기·사유가 있었지만 개별
+  경기 ID, 팀, 시작 시각, revision·공급자 시각은 확인되지 않았습니다.
+- 따라서 ADR-0031은 Proposed 상태를 유지합니다. 정상 경기 Gateway schema,
+  정정 동작, 설윤 개발자 허용과 Discord scraping 정책 gate가 남아 있습니다.
+
+- Owner가 WAW의 목표를 “사용자가 기존 KBO Discord 봇을 호출하고 WAW가 그
+  공개 응답을 읽어 경기 정보·베팅 입력·정산에 사용”하는 흐름으로 명확히
+  했습니다. 계약형 API 우선 `ADR-0030`은 Rejected, 문의 패키지는 미전송
+  Cancelled로 표시했습니다.
+- Discord Gateway상 public bot message 관측은 가능하지만 embeds/content에는
+  Message Content Intent가 필요하고 ephemeral 응답은 관측할 수 없습니다.
+  다른 앱 slash command 자동 실행 경로는 없어 사람 호출만 후보로 남겼습니다.
+- Discord Developer Policy의 mining/scraping 금지와 외부 봇의 이용 허가,
+  안정적인 경기 ID·예외 상태·정정이 미확인이라 자동 수집을 구현하지 않았습니다.
+  설윤 하나를 별도 시험 서버에서 수동 관찰하는 Spike와 조건부 `ADR-0031`을
+  Proposed로 작성했습니다.
+- Sportradar 영문 문의문과 KBO/스포츠투아이 국문 문의문, 계약 조항 근거형
+  답변 비교표, 문의·trial·ADR 결정을 분리한 owner 승인 양식을 준비했습니다.
+  Owner가 두 문의문을 최종 검토해 Gate 1 전송 범위를 승인했습니다. 외부 전송,
+  credential 발급, trial 시작과 계약 체결은 수행하지 않았습니다.
+- 공식 1차 자료를 다시 확인해 Sportradar Global Baseball v2를 KBO coverage,
+  일정·결과·순위, 한국어와 경기 상태를 공개적으로 확인할 수 있는 조건부
+  1순위 계약·trial 후보로 정리했습니다.
+- 가격, KBO 권리 출처, Discord·dashboard 재표시권, 파생 정산·랭킹, 보장
+  SLA는 공개 자료로 확인할 수 없어 production 공급자로 확정하지 않았습니다.
+- KBO/스포츠투아이 직접 B2B feed를 더 짧은 권리 사슬의 강한 대안으로
+  유지하고 같은 주문서 체크리스트로 비교하도록 했습니다.
+- 베팅 접수와 진행 경기 5분, 다른 예정 경기·순위 30분, `closed` 뒤 30분과
+  5분 간격 동일 결과 2회를 신선도·정정 유예 Spike 후보값으로 제안했습니다.
+- `ADR-0030`은 정정된 제품 의도에 따라 Rejected이며 관련 문의 패키지는
+  Cancelled입니다.
+- 제품 코드, schema, migration, dependency, 외부 문의와 production 변경은
+  없습니다.
 
 ## 2026-07-31 — KBO 사용자 탈퇴 범위 축소와 OWN-048
 
