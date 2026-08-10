@@ -11,6 +11,9 @@ import {
   type CommandLogPageDto,
   type ListCommandLogRequestDto,
   type LowRiskSettingsDto,
+  type KboCreditAdjustmentRequestDto,
+  type KboCreditAdjustmentResponseDto,
+  type KboManagementDto,
   type PendingRiotLinkRequestsDto,
   type ApproveRiotLinkRequestDto,
   type DecideRiotLinkRequestDto,
@@ -66,6 +69,11 @@ export function createBrowserApi(fetcher: typeof fetch = fetch): DashboardApi {
     async getRiotLinks() {
       return readJson<ActiveRiotLinksDto>(
         await fetcher(DASHBOARD_API_PATHS.riotLinks, requestInit()),
+      );
+    },
+    async getKboManagement() {
+      return readJson<KboManagementDto>(
+        await fetcher(DASHBOARD_API_PATHS.kboManagement, requestInit()),
       );
     },
     async getGameStacks() {
@@ -143,6 +151,9 @@ export function createBrowserApi(fetcher: typeof fetch = fetch): DashboardApi {
     },
     async removeRiotLink(request: RemoveRiotLinkRequestDto) {
       return mutate<RiotLinkDecisionResponseDto>(DASHBOARD_API_PATHS.riotRemove, request);
+    },
+    async adjustKboCredit(request: KboCreditAdjustmentRequestDto) {
+      return mutate<KboCreditAdjustmentResponseDto>(DASHBOARD_API_PATHS.kboCreditAdjust, request);
     },
     async correctGameIncident(request: MutateGameIncidentRequestDto) {
       return mutate<GameIncidentMutationResponseDto>(

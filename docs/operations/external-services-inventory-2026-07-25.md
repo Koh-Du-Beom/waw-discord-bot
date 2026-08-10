@@ -44,7 +44,7 @@
 | Caddy ACME | Caddy가 ingress로 Accepted됐지만 public certificate와 DNS 연동은 G6 대기. Caddy 자체는 외부 SaaS가 아니라 host process |
 | Riot / RSO | 조사 항목일 뿐 production credential, API 또는 계정 연결 없음 |
 | 요약 AI API | OpenAI, Anthropic, Gemini를 조사했지만 공급자 선택·credential·production 호출 없음 |
-| KBO data provider | licensed provider가 정해지지 않아 연기. production 연동 없음 |
+| 외부 KBO Discord 봇 | `ADR-0032`에 따라 정확한 application·guild·channel·공개 응답 schema allowlist를 쓰는 조건부 source로 선택. 정상 경기·정정 schema, 개발자 허가, Discord 정책 및 국내 공개 제공 승인이 남아 production 수집·베팅은 default-off |
 
 ## 배포 과정에서만 존재하고 제거되는 항목
 

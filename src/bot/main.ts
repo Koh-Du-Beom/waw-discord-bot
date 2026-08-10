@@ -52,6 +52,26 @@ import { RiotCommandExecutor } from "../riot/riot-command-executor.ts";
 import { RiotSpectatorObserver } from "../riot/riot-game-observer.ts";
 import { RiotPuuidValidator } from "../riot/riot-puuid-validator.ts";
 import { RiotIdentityRefreshScheduler } from "../riot/riot-identity-refresh.ts";
+import { KboCreditCommandExecutor } from "../kbo/credit-command-executor.ts";
+import { PostgresKboCreditBalanceStore } from "../persistence/postgres-kbo-credit-balance-store.ts";
+import { KboEnrollmentCommandExecutor } from "../kbo/enrollment-command-executor.ts";
+import { PostgresKboEnrollmentStore } from "../persistence/postgres-kbo-enrollment-store.ts";
+import { PostgresKboEnrollmentActorStore } from "../persistence/postgres-kbo-enrollment-actor-store.ts";
+import { PostgresKboDailyCreditClaimStore } from "../persistence/postgres-kbo-daily-credit-claim-store.ts";
+import { PostgresKboBetStore } from "../persistence/postgres-kbo-bet-store.ts";
+import { KboBetCommandExecutor, KboBettingCommandExecutor } from "../kbo/bet-command-executor.ts";
+import { kboBettingFeatureEnabled } from "../kbo/betting-feature.ts";
+import { KboBetQueryCommandExecutor } from "../kbo/bet-query-command-executor.ts";
+import { PostgresKboBetQueryStore } from "../persistence/postgres-kbo-bet-query-store.ts";
+import { KboRankingCommandExecutor } from "../kbo/ranking-command-executor.ts";
+import { PostgresKboRankingStore } from "../persistence/postgres-kbo-ranking-store.ts";
+import { PostgresKboAdminCreditStore } from "../persistence/postgres-kbo-admin-credit-store.ts";
+import { PostgresKboDepartureStore } from "../persistence/postgres-kbo-departure-store.ts";
+import { PostgresKboRetentionStore } from "../persistence/postgres-kbo-retention-store.ts";
+import {
+  attachKboDepartureSync,
+  reconcileKboDepartures,
+} from "../adapters/discord/kbo-departure-sync.ts";
 import { DUPLICATE_BOT_EXIT_CODE } from "./bot-entrypoint.ts";
 import {
   parseBotAuthorizationConfiguration,
@@ -105,6 +125,14 @@ const alertChannelId = gameAlertChannelId(
   process.env.WAW_GAME_ALERT_CHANNEL_ID,
   gameObservationEnabled,
 );
+const kboBettingEnabled = kboBettingFeatureEnabled(
+  process.env.WAW_KBO_BETTING_ENABLED,
+  process.env.WAW_KBO_DATA_RIGHTS_AUTHORIZED,
+);
+const kboRankingsEnabled = kboBettingFeatureEnabled(
+  process.env.WAW_KBO_RANKINGS_ENABLED,
+  process.env.WAW_KBO_DATA_RIGHTS_AUTHORIZED,
+);
 const client = new Client({ intents: [...DISCORDJS_MINIMUM_INTENTS] });
 const pool = new Pool({
   connectionString: databaseUrl,
@@ -142,6 +170,8 @@ const readCurrentAuthorization = async (input: {
 const featureStore = new PostgresFeatureStore(pool);
 const riotStore = new PostgresRiotCommandStore(pool);
 const memberLabelStore = new PostgresDiscordMemberLabelStore(pool);
+const kboDepartureStore = new PostgresKboDepartureStore(pool);
+const kboRetentionStore = new PostgresKboRetentionStore(pool);
 const riotIdentityReader = new RiotPuuidValidator(riotApiKey);
 const riotIdentityRefresh = new RiotIdentityRefreshScheduler({
   source: new PostgresRiotIdentityStore(pool),
@@ -162,6 +192,35 @@ const commandHandler = new KoreanCommandHandler({
       featureStore,
       { readCurrentAuthorization },
       () => new Date(),
+    ),
+    new KboCreditCommandExecutor(
+      new PostgresKboCreditBalanceStore(pool),
+      new PostgresKboDailyCreditClaimStore(pool),
+      randomUUID,
+      () => new Date(),
+    ),
+    new KboBettingCommandExecutor(
+      new KboEnrollmentCommandExecutor(
+        new PostgresKboEnrollmentActorStore(pool),
+        new PostgresKboEnrollmentStore(pool),
+        randomUUID,
+        () => new Date(),
+      ),
+      new KboBetCommandExecutor(
+        new PostgresKboBetStore(pool),
+        kboBettingEnabled,
+        randomUUID,
+        () => new Date(),
+      ),
+      new KboBetQueryCommandExecutor(
+        new PostgresKboBetQueryStore(pool),
+        kboBettingEnabled,
+        () => new Date(),
+      ),
+      new KboRankingCommandExecutor(
+        new PostgresKboRankingStore(pool),
+        kboRankingsEnabled,
+      ),
     ),
   ),
   audit: new PostgresCommandAuditSink(pool),
@@ -280,6 +339,12 @@ const reconcileMembers = async () => {
     refreshKnown: (values, observedAt) =>
       memberLabelStore.refreshKnown(values, observedAt),
   });
+  await reconcileKboDepartures({
+    guildId: guild.id,
+    currentDiscordUserIds: members.keys(),
+    store: kboDepartureStore,
+    now: () => new Date(),
+  });
   return members
     .map((member) => {
       const authorizationTier = resolveMemberAuthorization({
@@ -305,6 +370,20 @@ const memberLabelSync = attachDiscordMemberLabelSync({
       `${JSON.stringify({
         event_type: "discord.member_label_refresh",
         reason_code: "discord_member_label_refresh_failed",
+      })}\n`,
+    );
+  },
+});
+const kboDepartureSync = attachKboDepartureSync({
+  source: client,
+  allowedGuildId: authorizationConfiguration.allowedGuildId,
+  store: kboDepartureStore,
+  now: () => new Date(),
+  reportFailure: () => {
+    process.stderr.write(
+      `${JSON.stringify({
+        event_type: "kbo.departure",
+        reason_code: "kbo_departure_failed",
       })}\n`,
     );
   },
@@ -354,6 +433,7 @@ const assembly = await startDiscordJsBot({
       }),
 });
 if (assembly.process.exitCode === DUPLICATE_BOT_EXIT_CODE) {
+  await kboDepartureSync.detach();
   await memberLabelSync.detach();
   await pool.end();
   process.exitCode = DUPLICATE_BOT_EXIT_CODE;
@@ -369,6 +449,7 @@ if (assembly.process.exitCode === DUPLICATE_BOT_EXIT_CODE) {
     authorization: { readCurrentAuthorization },
     validator: riotIdentityReader,
     store: riotStore,
+    credits: new PostgresKboAdminCreditStore(pool),
     incidents: featureStore,
     displayName: async (discordUserId) => {
       const guild = await client.guilds.fetch(
@@ -426,6 +507,23 @@ if (assembly.process.exitCode === DUPLICATE_BOT_EXIT_CODE) {
       })}\n`,
     );
   });
+  let retentionPurge = Promise.resolve();
+  const purgeExpiredKboAccounts = () => {
+    retentionPurge = retentionPurge
+      .then(() => kboRetentionStore.purgeExpired(new Date()))
+      .then(() => undefined)
+      .catch(() => {
+        process.stderr.write(
+          `${JSON.stringify({
+            event_type: "kbo.retention",
+            reason_code: "kbo_retention_purge_failed",
+          })}\n`,
+        );
+      });
+  };
+  const retentionTimer = setInterval(purgeExpiredKboAccounts, 24 * 60 * 60_000);
+  retentionTimer.unref();
+  purgeExpiredKboAccounts();
 
   let stopping = false;
   const stop = async (): Promise<void> => {
@@ -433,8 +531,11 @@ if (assembly.process.exitCode === DUPLICATE_BOT_EXIT_CODE) {
     stopping = true;
     clearInterval(healthTimer);
     clearInterval(identityRefreshTimer);
+    clearInterval(retentionTimer);
+    await kboDepartureSync.detach();
     await memberLabelSync.detach();
     await riotIdentityRefresh.whenIdle().catch(() => undefined);
+    await retentionPurge;
     await shutdownBotFeatures({
       ...(adminIpc === undefined ? {} : { adminCommand: adminIpc }),
       memberRole: ipc,
