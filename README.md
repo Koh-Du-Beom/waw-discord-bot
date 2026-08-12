@@ -1,10 +1,13 @@
 # WAW Discord Bot
 
+> **운영 종료:** 2026년 8월 12일부로 production 서비스와 외부 자산을 모두
+> 삭제했습니다. 이 저장소는 구현과 회고를 위한 archive로만 유지합니다.
+
 개인 Discord 서버에서 대화 요약, Riot 계정 관리, 리그 오브 레전드 솔로
 랭크와 Discord Go Live 비교, KBO 가상 크레딧 승부 예측, 운영 대시보드,
 감사·백업·복구를 제공하는 통합 봇입니다.
 
-- Production dashboard: **<https://waw.dubeom.com>**
+- Production dashboard: 운영 종료
 - 기준 브랜치: `develop`
 - Production 배포 권한 브랜치: `production`
 - Runtime: TypeScript, Node.js `>=24.18.0 <25`

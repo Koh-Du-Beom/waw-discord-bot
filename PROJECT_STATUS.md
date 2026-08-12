@@ -1,6 +1,23 @@
 # 프로젝트 상태
 
-마지막 갱신일: 2026-08-10
+마지막 갱신일: 2026-08-12
+
+## 2026-08-12 — Production 운영 종료와 자산 완전 삭제
+
+- Owner 결정으로 WAW production 운영을 종료하고 복구용 보존 없이 외부 자산을
+  완전 삭제했습니다. Source repository와 구현 이력은 portfolio archive로만
+  유지합니다.
+- GitHub Actions를 repository 설정에서 비활성화하고 production variables와
+  secrets가 `0`임을 확인한 뒤 회고 commit `4b5f6ef`를 `develop`에 push했습니다.
+- Discord guild command 5개를 빈 payload로 제거하고 read-back `0`을 확인한 뒤
+  bot installation, developer application과 monitoring webhook을 삭제했습니다.
+- Production web, bot, Caddy, backup과 monitoring timer를 정지·비활성화하고
+  listener `0`을 확인한 뒤 server credential 원본 8개를 제거했습니다.
+- OpenAI project key와 Riot API 접근, Supabase production project, S3 bucket과
+  모든 backup, Lightsail instance 및 관련 AWS 자산, WAW IAM 사용자·정책·access
+  key와 `waw.dubeom.com` DNS record를 삭제했습니다.
+- Termius host와 WAW 전용 SSH key, offline `age` recovery identity와 로컬 사본도
+  제거했습니다. Production DB, backup과 credential은 복구할 수 없습니다.
 
 ## 2026-08-10 — KBO Gate C0 `/크보` 등록 PASS, default-off 유지
 
